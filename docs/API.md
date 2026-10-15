@@ -145,6 +145,23 @@ GDD daily time series for the accumulation chart.
 
 ---
 
+## Microclimate sensors (TAHAP 4 / Opsi 4)
+
+### `POST /api/v1/climate/ingest`
+Batch of sensor readings pulled from an ESP32/BLE logger by the phone; returns
+the current 72h EWS inline. Idempotent on `(land_id, observed_at)`.
+```json
+{ "land_id": "aaaa...", "device_id": "esp32-01",
+  "readings": [ { "observed_at": "2026-10-15T10:00:00Z", "rh": 92, "temp_c": 26 } ] }
+```
+→ `201 { "ingested": 6, "land_id": "...", "ews": { "peak_risk": 0.92, "action": "RISIKO TINGGI...", "irrigation_minutes_per_bed": 0 } }`
+
+### `GET /api/v1/lands/:id/ews`
+EWS computed from the land's stored readings (last 72h).
+→ the EWS object, or `{ "insufficient_data": true, "readings": N }` when < 3 rows.
+
+---
+
 ## Diagnostics
 
 ### `POST /api/v1/diagnostics/evaluate`

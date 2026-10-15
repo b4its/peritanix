@@ -179,6 +179,7 @@ Setelah `web-up`:
 | `make web-test` | Jalankan suite Go + Python |
 | `make verify` | **Full pipeline**: unit + E2E + calibration + chaos |
 | `make e2e` / `calibrate` / `chaos` | Jalankan masing-masing skrip verifikasi |
+| `make loadtest` | Jalankan k6 load test (butuh k6) |
 | `make db-backup` | Dump DB → `backups/dape-<ts>.dump` (+sha256) |
 | `make db-restore DUMP=backups/x.dump [CLEAN=--clean]` | Restore (checksum-verified) |
 | `make web-logs` / `web-ps` / `web-down` / `web-nuke` | Log / status / stop / hapus semua |
@@ -221,8 +222,8 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 | Python (fastapi) | **202** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, **harvest decision** |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **53** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area + on-device vision + **canonical JSON (cross-platform)** |
-| E2E script | **44** | Full stack incl. hardening, analytics, feedback, harvest, **version/runtime** |
+| Vitest (web) | **53** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
+| E2E script | **47** | Full stack incl. hardening, analytics, feedback, harvest, version, **sensor ingest→EWS** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -328,6 +329,9 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       **terverifikasi 3-arah** (Kotlin↔Go↔TypeScript canonical JSON identik)
 - [x] **Klien OTA model** — cek manifest, unduh hanya versi yang berubah
 - [x] **Observability** — `/api/v1/version` + `/api/v1/models/runtime`
+- [x] **Ingest sensor iklim** — batch ESP32/BLE → EWS ledakan jamur (Opsi 4)
+- [x] **PWA installable** — ikon 192/512 + maskable
+- [x] **Load test k6** — `make loadtest` (thresholds p95<800ms)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -339,12 +343,12 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 ```
 make verify  →
   unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 53
-  e2e smoke:   44 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
-                           →CRDT→sync→cert→yield→protocol→trace→media→JWT→
-                           models→fertility→gdd→hardening→feedback→harvest→version)
+  e2e smoke:   47 passed  (…→media→JWT→models→fertility→gdd→hardening→
+                           feedback→harvest→version→sensor-ingest→EWS)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
+  loadtest:    make loadtest  (k6: reads 10 VUs + compute 3 VUs, p95<800ms)
 ```
 
 **Cross-platform crypto (bukti):** sertifikat yang ditandatangani KOTLIN dan
