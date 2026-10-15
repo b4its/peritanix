@@ -82,6 +82,27 @@ export async function soilList(id: string): Promise<SoilAssessment[]> {
 	return r.assessments ?? [];
 }
 
+/** Soil-fertility FeatureCollection for the dashboard fertility map layer. */
+export async function soilFertilityGeoJSON(): Promise<GeoJSON.FeatureCollection> {
+	return req('/api/v1/soil/fertility/geojson');
+}
+
+export interface GDDPoint {
+	day: string;
+	t_min: number;
+	t_max: number;
+	gdd_day: number;
+	gdd_cum: number;
+}
+
+/** GDD daily time series for the accumulation chart. */
+export async function gddHistory(
+	id: string,
+	days = 30
+): Promise<{ land_id: string; series: GDDPoint[] }> {
+	return req(`/api/v1/lands/${id}/gdd?days=${days}`);
+}
+
 export async function recomputeGDD(id: string): Promise<any> {
 	return req(`/api/v1/lands/${id}/recompute-gdd`, { method: 'POST', body: '{}' });
 }

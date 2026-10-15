@@ -10,13 +10,15 @@
 		ewsMicroclimate,
 		yieldProjection,
 		prescribeProtocol,
+		gddHistory,
 		type Land,
 		type DiseaseLog,
 		type SoilAssessment,
 		type CalorimetryResult,
 		type EwsResult,
 		type YieldResult,
-		type Protocol
+		type Protocol,
+		type GDDPoint
 	} from '$lib/api';
 	import { db, enqueue } from '$lib/db';
 
@@ -28,6 +30,7 @@
 	let ewsErr = $state('');
 	let yieldRes = $state<YieldResult | null>(null);
 	let protocol = $state<Protocol | null>(null);
+	let gddSeries = $state<GDDPoint[]>([]);
 
 	let sampledTrees = $state(50);
 	let totalTrees = $state(500);
@@ -48,6 +51,7 @@
 			soils = await soilList(id);
 			elevation = land.elevation_m || 850;
 			await loadEws(id);
+			gddSeries = (await gddHistory(id, 30).catch(() => ({ series: [] }))).series;
 		} catch (e: any) {
 			err = e.message;
 		}
@@ -178,6 +182,25 @@
 			<p>Akumulasi GDD: <strong>{(land.accumulated_gdd ?? 0).toFixed(0)}</strong></p>
 			<p class="muted">Tbase cabai = 15 °C. Fase ditentukan oleh umur termal, bukan kalender.</p>
 			<button class="btn" onclick={doGDD}>↻ Hitung Ulang GDD</button>
+		</div>
+
+		<div class="card">
+			<h2>Kurva Akumulasi GDD (30 hari)</h2>
+			{#if gddSeries.length < 2}
+				<p class="muted">
+					Data time-series belum cukup ({gddSeries.length} titik). Jalankan
+					cron GDD harian untuk mengisi <code>gdd_daily</code>.
+				</p>
+			{:else}
+				<svg viewBox="0 0 320 90" width="100%" height="100" style="background:#f8faf8;border-radius:8px">
+					<path d={curvePath(gddSeries.map((p) => p.gdd_cum), 320, 90)}
+						fill="none" stroke="#d97706" stroke-width="2" />
+				</svg>
+				<p class="muted">
+					Kumulatif GDD: {gddSeries[gddSeries.length - 1].gdd_cum.toFixed(0)}
+					· Ambang: 350 (bunga) / 700 (buah) / 1050 (panen)
+				</p>
+			{/if}
 		</div>
 
 		<div class="card">

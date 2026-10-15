@@ -37,3 +37,32 @@ describe('diseaseHeatPoints', () => {
 		expect(diseaseHeatPoints([])).toEqual([]);
 	});
 });
+
+import { fertilityColor, fertilityLayer } from '../src/lib/heatmap';
+
+describe('fertilityColor', () => {
+	it('optimal is green', () => {
+		expect(fertilityColor('optimal')).toBe('#16a34a');
+	});
+	it('acid is amber', () => {
+		expect(fertilityColor('acid')).toBe('#d97706');
+	});
+	it('alkaline is blue', () => {
+		expect(fertilityColor('alkaline')).toBe('#2563eb');
+	});
+	it('unknown falls back to grey', () => {
+		expect(fertilityColor('weird')).toBe('#9ca3af');
+	});
+});
+
+describe('fertilityLayer', () => {
+	it('handles null FeatureCollection', () => {
+		const fakeL = { layerGroup: () => ({ addLayer: () => {} }) };
+		const layer = fertilityLayer(fakeL, null);
+		expect(layer).toBeDefined();
+	});
+	it('handles missing features array', () => {
+		const fakeL = { layerGroup: () => ({ addLayer: () => {} }) };
+		expect(fertilityLayer(fakeL, {})).toBeDefined();
+	});
+});

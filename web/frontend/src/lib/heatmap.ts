@@ -157,3 +157,46 @@ export function diseaseHeatPoints(
 			weight: Math.min(1, Math.max(0.2, (d.severity_pct ?? 10) / 30))
 		}));
 }
+
+/**
+ * Colour a soil-fertility point by pH class.
+ *  optimal (green) | acid (amber) | alkaline (blue) | unknown (grey)
+ */
+export function fertilityColor(phClass: string): string {
+	switch (phClass) {
+		case 'optimal':
+			return '#16a34a';
+		case 'acid':
+			return '#d97706';
+		case 'alkaline':
+			return '#2563eb';
+		default:
+			return '#9ca3af';
+	}
+}
+
+/** Build a Leaflet circle-marker layer from a fertility FeatureCollection. */
+export function fertilityLayer(L: any, fc: any): any {
+	const group = L.layerGroup();
+	if (!fc || !Array.isArray(fc.features)) return group;
+	for (const f of fc.features) {
+		const p = f.properties || {};
+		const coords = f.geometry?.coordinates;
+		if (!coords) continue;
+		L.circleMarker([coords[1], coords[0]], {
+			radius: 8,
+			color: '#ffffff',
+			weight: 1,
+			fillColor: fertilityColor(p.ph_class),
+			fillOpacity: 0.85
+		})
+			.bindPopup(
+				`<strong>${p.land_name ?? p.land_id}</strong><br/>` +
+					`Tanah: ${p.soil_class ?? '—'}<br/>` +
+					`pH: ${p.ph ?? '—'} (${p.ph_class})<br/>` +
+					`KTK: ${p.cec_meq ?? '—'} meq/100g`
+			)
+			.addTo(group);
+	}
+	return group;
+}

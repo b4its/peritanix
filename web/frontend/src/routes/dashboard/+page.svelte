@@ -1,17 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { listLands, landGeoJSON, landDiseases, type Land, type DiseaseLog } from '$lib/api';
-	import { heatCanvasLayer, windVectorLayer, diseaseHeatPoints, type WindVector } from '$lib/heatmap';
+	import {
+		listLands,
+		landGeoJSON,
+		landDiseases,
+		soilFertilityGeoJSON,
+		type Land,
+		type DiseaseLog
+	} from '$lib/api';
+	import {
+		heatCanvasLayer,
+		windVectorLayer,
+		fertilityLayer,
+		diseaseHeatPoints,
+		type WindVector
+	} from '$lib/heatmap';
 
 	let lands = $state<Land[]>([]);
 	let diseases = $state<DiseaseLog[]>([]);
 	let geo = $state<any>(null);
+	let fertility = $state<any>(null);
 	let mapEl: HTMLDivElement;
 	let map: any;
 	let err = $state('');
-	let showHeat = $state(true);
-	let showWind = $state(true);
+	let showFertility = $state(true);
 
 	// A demo prevailing wind (SE trades, blowing from ~135°).
 	let wind: WindVector[] = [];
@@ -21,7 +34,7 @@
 		try {
 			lands = await listLands();
 			geo = await landGeoJSON();
-			// Aggregate diseases across all lands for the heatmap.
+			fertility = await soilFertilityGeoJSON().catch(() => null);
 			for (const l of lands) {
 				const ds = await landDiseases(l.id).catch(() => []);
 				diseases = diseases.concat(ds);
@@ -37,7 +50,7 @@
 		}).addTo(map);
 		if (geo) {
 			L.geoJSON(geo, {
-				style: () => ({ color: '#16a34a', weight: 2, fillOpacity: 0.15 }),
+				style: () => ({ color: '#16a34a', weight: 2, fillOpacity: 0.1 }),
 				onEachFeature: (f: any, layer: any) => {
 					layer.bindPopup(
 						`<strong>${f.properties.name}</strong><br/>` +
@@ -47,21 +60,18 @@
 				}
 			}).addTo(map);
 		}
+		// Soil-fertility layer (coloured by pH class).
+		if (fertility) {
+			fertilityLayer(L, fertility).addTo(map);
+		}
 		// Disease heatmap layer.
 		const pts = diseaseHeatPoints(diseases);
 		if (pts.length > 0) {
 			heatCanvasLayer(L, pts).addTo(map);
 		}
-		// Wind vector layer (one arrow per land centroid-ish).
-		wind = lands.map((l) => ({
-			lat: -6.9035,
-			lng: 107.6035,
-			direction_deg: 135,
-			speed: 1
-		}));
-		if (wind.length > 0) {
-			windVectorLayer(L, [wind[0]]).addTo(map);
-		}
+		// Wind vector layer.
+		wind = [{ lat: -6.9035, lng: 107.6035, direction_deg: 135, speed: 1 }];
+		windVectorLayer(L, wind).addTo(map);
 	});
 </script>
 
@@ -77,7 +87,13 @@
 </div>
 <p class="muted" style="margin-top:0.5rem">
 	Layer: <strong>{diseases.length}</strong> titik penyakit (heatmap) ·
-	vektor angin dominan 135° (dari tenggara). Cekungan TWI = area drainase.
+	<strong>{fertility?.features?.length ?? 0}</strong> titik kesuburan (pH) ·
+	vektor angin dominan 135° (dari tenggara).
+</p>
+<p class="muted">
+	Legenda pH: <span style="color:#16a34a">● optimal</span> ·
+	<span style="color:#d97706">● masam (&lt;5.5)</span> ·
+	<span style="color:#2563eb">● basa (&gt;7.0)</span>
 </p>
 
 <div class="grid" style="margin-top:1rem">
