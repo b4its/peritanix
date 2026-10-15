@@ -263,3 +263,30 @@ score = 0.5·duration_closeness + 0.5·motion_norm
 
 A heuristic deterrent combined with the SHA-256 image hash and Ed25519
 signature in the certificate.
+
+## 19. Spatial epidemiology enrichment (TAHAP 3.2)
+
+Beyond Moran's I (§6), each diagnosis point is enriched with PostGIS context
+that feeds the `P(S | D_i)` channel:
+
+```
+distance_to_land_edge_m   = ST_Distance(point, ST_Boundary(land))
+bearing_deg               = (90 − azimuth(centroid, point)) mod 360
+```
+
+- **Edge proximity** favours airborne/vector entry:
+  `edge_mult = 1 − 0.7·min(1, dist/band)`
+- **Wind alignment** favours downwind spread:
+  `wind_mult = 1.5` if |Δbearing| ≤ 60°, `0.7` if ≥ 120°, linear between.
+- **Pattern classification** (§6) maps to per-disease odds:
+  EDGE_WIND_GRADIENT → Begomovirus/Thrips/Mites up-weighted;
+  DRAINAGE_TROUGH_CLUSTER → Ralstonia/Phytophthora/Fusarium;
+  UNIFORM_BLOCK → deficiency.
+
+## 20. Model registry & OTA (Continuous Learning)
+
+Each ONNX artefact is described by a *model card* (name, version, sha256,
+size, quantisation). The registry version is a deterministic digest of
+`(name, version)` pairs. A client's OTA manifest flags only the models whose
+version changed, so a farmer on metered data downloads the minimum. Integrity
+is verified by re-hashing the artefact and comparing to the card's sha256.

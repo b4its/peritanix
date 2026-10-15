@@ -288,6 +288,21 @@ kinds: `burst | trans_illum | ooze | twi_raster | archimedes | photometry`; 10 M
 
 ---
 
+## Model OTA (Continuous Learning)
+
+### `POST /api/v1/models/manifest`
+Returns the OTA manifest; only models whose version differs from the client's are
+flagged `update_available`.
+```json
+{ "client_versions": { "detector_yolov8n": "1.0.0" } }
+```
+→ `{ "registry_version": "…", "update_count": 0, "models": [ { "name": "...", "version": "1.0.0", "sha256": "...", "size_mb": 6, "quantisation": "int8", "url": "..." } ] }`
+
+### `GET /api/v1/models`
+Full registry listing (public).
+
+---
+
 ## Certificates (public, no auth)
 
 ### `POST /api/v1/certificates/verify`
@@ -355,5 +370,7 @@ All require `X-Internal-Token`.
 | POST | `/internal/decision/protocol` | Prescriptive pesticide protocol |
 | GET  | `/internal/decision/protocols` | Full protocol catalogue |
 | POST | `/internal/decision/validate-trace` | Immersion trace anti-cheat |
+| POST | `/internal/models/manifest` | OTA model manifest |
+| GET  | `/internal/models/list` | All registered models |
 | POST | `/internal/postharvest/calorimetry` | Black's-law hot-water ratio |
 | POST | `/internal/postharvest/archimedes` | Sink ratio + grade |

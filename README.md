@@ -113,27 +113,31 @@ tertutup dan bisa diverifikasi laboratorium:
 peritanix/
 ├── Makefile                  # Interface tunggal: web-* & mobile-*
 ├── docker-compose.yml        # 6 layanan + profil opsional (storage/mobile)
-├── infra/postgres/init/      # 01_schema.sql  02_functions.sql  03_seed.sql
+├── k8s/                      # Kubernetes base + overlays (kustomize, TLS, HPA)
+├── infra/postgres/init/      # 01_schema  02_functions  03_seed  04_migrations
+├── scripts/                  # e2e_smoke / calibration_test / offline_chaos_test
+├── .github/workflows/        # CI (python, go, web, kotlin, integration)
 ├── web/
 │   ├── backend/
-│   │   ├── fastapi/          # Fisika & ML deterministik (+ 79 pytest)
-│   │   │   ├── app/services/physics/  # twi, stokes, colorimetry, calorimetry,
-│   │   │   │                          # gdd, bayesian, archimedes, fertilizer
-│   │   │   ├── app/routers/           # gis, soil, pathology, gdd, postharvest
-│   │   │   └── tests/
+│   │   ├── fastapi/          # Fisika & ML deterministik (+ 182 pytest)
+│   │   │   ├── app/services/physics/       # twi, stokes, colorimetry, ...
+│   │   │   ├── app/services/optics/        # mfsr, trans_illumination
+│   │   │   ├── app/services/epidemiology/  # ooze, forensics, trace
+│   │   │   ├── app/services/agronomy/      # grading, ews, yield, protocols
+│   │   │   ├── app/services/models/        # ONNX registry + OTA manifest
+│   │   │   └── app/routers/                # gis, soil, pathology, optics, ...
 │   │   └── golang/           # Fiber + Clean/Hexagonal
 │   │       ├── cmd/api/      # entrypoint
 │   │       └── internal/
+│   │           ├── auth/         # JWT + bcrypt
+│   │           ├── crdt/         # LWW + version vectors
+│   │           ├── epidemiology/ # Moran's I, edge/trough bias
 │   │           ├── domain/       # entitas + port repo
-│   │           ├── handlers/     # REST (lands, soil, diag, postharvest, sync)
-│   │           ├── infra/        # postgres(pgx), redis, mlclient, crypto
+│   │           ├── handlers/     # REST
+│   │           ├── infra/        # postgres, redis, mlclient, crypto, storage
 │   │           └── worker/       # GDD cron
-│   └── frontend/             # SvelteKit PWA (+ 15 vitest)
+│   └── frontend/             # SvelteKit PWA (+ 26 vitest)
 └── mobile/                   # Kotlin/JVM core (+ 27 JUnit)
-    └── src/main/kotlin/id/peritanix/dape/
-        ├── physics/Physics.kt
-        ├── crypto/Ed25519OfflineSigner.kt
-        └── cli/Main.kt
 ```
 
 ---
@@ -208,11 +212,11 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **158** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, **yield projection, protocols, trace validation** |
-| Go (backend) | **26** | Ed25519 verify + canonical JSON, CRDT laws, **JWT auth (mint/parse/alg-none/expiry/bcrypt), media filename sanitisation** |
+| Python (fastapi) | **182** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, **spatial patterns, ONNX model registry** |
+| Go (backend) | **34** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename sanitisation, **epidemiology (Moran's I / edge / trough bias)** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **21** | Mirror fisika browser + microclimate EWS |
-| E2E script | **27** | Full stack incl. yield, protocol, trace, media, JWT |
+| Vitest (web) | **26** | Mirror fisika browser + microclimate EWS + **disease heatmap helpers** |
+| E2E script | **30** | Full stack incl. yield, protocol, trace, media, JWT, **spatial context, model OTA** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -289,9 +293,15 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       keparahan, langkah eradikasi, alternatif organik
 - [x] **Validasi bukti fisik** — trace giroskop perendaman anti-cheat
 - [x] **Media upload** — object storage (files/MinIO) dengan key ternamespace
+- [x] **Orkestrasi spatiotemporal** — distance-to-edge, bearing, vektor angin,
+      klasifikasi pola Moran's I (EDGE_WIND / DRAINAGE_TROUGH / UNIFORM)
+- [x] **ONNX model registry + OTA manifest** — 4 model card, sha256 integrity,
+      unduhan minim-data (Continuous Learning loop)
+- [x] **Kubernetes** — manifests lengkap + kustomize overlays (Ingress TLS, HPA)
+- [x] **Heatmap penyakit + vektor angin** di dashboard web (canvas, tanpa dep)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
-- [ ] Model ONNX YOLOv8-Nano / MobileNetV3 terkuantisasi (INT8/FP16) sebagai
-      pengganti bertahap dari inti sinyal deterministik
+- [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry & jalur OTA
+      sudah siap; tinggal mengisi artefak `.onnx`
 - [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
 - [ ] Pipeline rilis APK/AAB (R8 + native stripping)
 
@@ -299,9 +309,9 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 158 passed · go test 4 pkgs ok · kotlin 27 · vitest 21
-  e2e smoke:   27 passed  (TWI→soil→Bayes→EWS→grade→calo→archimedes→CRDT→sync
-                           →cert→yield→protocol→trace→media→JWT)
+  unit:        pytest 182 passed · go test 5 pkgs ok · kotlin 27 · vitest 26
+  e2e smoke:   30 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
+                           →CRDT→sync→cert→yield→protocol→trace→media→JWT→models)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
