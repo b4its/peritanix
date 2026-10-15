@@ -1,0 +1,212 @@
+# =============================================================================
+# DAPE / Peritanix — Docker Compose (local dev + integration)
+# -----------------------------------------------------------------------------
+# Services:
+#   postgres  : PostgreSQL + PostGIS (geospatial)
+#   redis     : idempotency keys, cache, rate-limit
+#   minio     : S3-compatible object storage (burst frames, rasters, video)
+#   ml        : FastAPI computational physics & ML engine (Python)
+#   api       : Go backend (Fiber, Clean/Hexagonal architecture)
+#   web       : SvelteKit PWA (dashboard + QR verifier)
+#
+# Usage: `make web-up` (see Makefile).
+# =============================================================================
+
+networks:
+  dape-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  gocache:
+  gomodcache:
+  node_modules:
+  web_build:
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL + PostGIS
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Migrations + seed run automatically on FIRST init of an empty volume.
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-56379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # MinIO (S3-compatible)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_HOST_PORT:-59000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-59001}:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [dape-net]
+
+  # Creates the bucket and exits.
+  minio-init:
+    image: minio/mc:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+      mc mb --ignore-existing local/${MINIO_BUCKET_RAW} &&
+      mc anonymous set download local/${MINIO_BUCKET_RAW} &&
+      echo '[minio-init] bucket ${MINIO_BUCKET_RAW} ready';
+      "
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # FastAPI — Computational Physics & ML engine
+  # ---------------------------------------------------------------------------
+  ml:
+    build:
+      context: ./web/backend/fastapi
+      dockerfile: Dockerfile
+      target: dev
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-ml
+    restart: unless-stopped
+    environment:
+      DAPE_ENV: ${DAPE_ENV}
+      INTERNAL_TOKEN: ${FASTAPI_INTERNAL_TOKEN}
+      MINIO_ENDPOINT: ${MINIO_HOST}:${MINIO_PORT}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_RAW: ${MINIO_BUCKET_RAW}
+      DAPE_TBASE_C: ${DAPE_TBASE_C}
+      DAPE_TARGET_CALORIMETRY_C: ${DAPE_TARGET_CALORIMETRY_C}
+    ports:
+      - "${FASTAPI_HOST_PORT:-58000}:8000"
+    volumes:
+      - ./web/backend/fastapi:/app
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # Go backend API
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./web/backend/golang
+      dockerfile: Dockerfile
+      target: dev
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-api
+    restart: unless-stopped
+    environment:
+      DAPE_ENV: ${DAPE_ENV}
+      HTTP_PORT: "8080"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
+      REDIS_ADDR: "${REDIS_HOST}:${REDIS_PORT}"
+      ML_BASE_URL: "http://${FASTAPI_HOST}:${FASTAPI_PORT}"
+      INTERNAL_TOKEN: ${FASTAPI_INTERNAL_TOKEN}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_TTL_HOURS: ${JWT_TTL_HOURS}
+      MINIO_ENDPOINT: "${MINIO_HOST}:${MINIO_PORT}"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_RAW: ${MINIO_BUCKET_RAW}
+      MINIO_PUBLIC_BASE: "http://localhost:${MINIO_HOST_PORT:-59000}"
+    ports:
+      - "${GO_HOST_PORT:-58080}:8080"
+    volumes:
+      - ./web/backend/golang:/app
+      - gocache:/root/.cache/go-build
+      - gomodcache:/go/pkg/mod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ml:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # SvelteKit PWA
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./web/frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-web
+    restart: unless-stopped
+    environment:
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+      VITE_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+      HOST: "0.0.0.0"
+      PORT: "${WEB_PORT}"
+    ports:
+      - "${WEB_HOST_PORT:-55173}:${WEB_PORT}"
+    volumes:
+      - ./web/frontend:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_started
+    networks: [dape-net]

@@ -1,2 +1,42 @@
+# --- DAPE / Peritanix ---
 flow/
-/flow
+.env
+dist/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+*.onnx
+*.tflite
+
+# --- Go ---
+web/backend/golang/bin/
+*.test
+*.out
+vendor/
+
+# --- Node / Svelte ---
+node_modules/
+.svelte-kit/
+build/
+.DS_Store
+
+# --- Android / Gradle ---
+mobile/.gradle/
+mobile/build/
+mobile/**/build/
+mobile/local.properties
+mobile/.idea/
+*.apk
+*.aab
+*.keystore
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.swp
+*.log
