@@ -1,0 +1,11 @@
+{
+  "name": "classifier_mobilenetv3",
+  "version": "1.0.0",
+  "sha256": "",
+  "size_bytes": 4194304,
+  "quantisation": "int8",
+  "min_app_version": "1.0.0",
+  "purpose": "disease classification (thrips/mites/begomovirus/anthracnose)",
+  "input": "image/uint8 224x224",
+  "format": "onnx"
+}

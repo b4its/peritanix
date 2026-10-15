@@ -1,0 +1,11 @@
+{
+  "name": "detector_yolov8n",
+  "version": "1.0.0",
+  "sha256": "",
+  "size_bytes": 6291456,
+  "quantisation": "int8",
+  "min_app_version": "1.0.0",
+  "purpose": "locate lesions & count fruit (bounding boxes)",
+  "input": "image/uint8 640x640",
+  "format": "onnx"
+}

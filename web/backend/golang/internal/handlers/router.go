@@ -98,6 +98,10 @@ func Register(app *fiber.App, d *Deps) {
 	// Media upload (burst, trans-illum, ooze, rasters)
 	mut.Post("/media/upload", d.mediaUpload)
 
+	// Model OTA (Continuous Learning loop): manifest + list
+	mut.Post("/models/manifest", d.modelManifest)
+	api.Get("/models", d.modelList)
+
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)
 	mut.Post("/sync/merge", d.syncMerge)

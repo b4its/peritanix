@@ -188,6 +188,15 @@ else
   pass "wrong password rejected"
 fi
 
+# --- 17. Model OTA manifest -------------------------------------------------
+echo "[17] Model OTA manifest"
+MAN=$(curl -sf -X POST "$API/api/v1/models/manifest" -H 'Content-Type: application/json' \
+  -d '{"client_versions":{"detector_yolov8n":"1.0.0"}}')
+N=$(echo "$MAN" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['models']))")
+assert_gt0 "$N" "model manifest lists models"
+RV=$(echo "$MAN" | jqv "['registry_version']")
+assert_gt0 "${#RV}" "registry version present"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

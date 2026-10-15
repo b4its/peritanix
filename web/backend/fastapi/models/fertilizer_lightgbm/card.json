@@ -1,0 +1,11 @@
+{
+  "name": "fertilizer_lightgbm",
+  "version": "1.0.0",
+  "sha256": "",
+  "size_bytes": 524288,
+  "quantisation": "fp32",
+  "min_app_version": "1.0.0",
+  "purpose": "prescriptive fertilizer mix (tabular)",
+  "input": "float32[N]",
+  "format": "onnx"
+}

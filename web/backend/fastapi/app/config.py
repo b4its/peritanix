@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     gdd_fruiting_start: float = 700.0
     gdd_harvest_start: float = 1050.0
 
+    # Model registry directory (ONNX artefacts + card.json per model).
+    dape_models_dir: str = "models"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -248,6 +248,36 @@ func (c *Client) ProtocolCatalog(ctx context.Context) (map[string]any, error) {
 	return out, nil
 }
 
+// ModelManifest returns the OTA model manifest for a client's version set.
+func (c *Client) ModelManifest(ctx context.Context, clientVersions map[string]string,
+	baseURL string) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/models/manifest", map[string]any{
+		"client_versions": clientVersions, "base_url": baseURL,
+	}, &out)
+	return out, err
+}
+
+// ModelList returns all registered models.
+func (c *Client) ModelList(ctx context.Context) (map[string]any, error) {
+	var out map[string]any
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL+"/internal/models/list", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Internal-Token", c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Health pings the ML service.
 func (c *Client) Health(ctx context.Context) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)

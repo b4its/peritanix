@@ -328,3 +328,30 @@ class TraceResponse(BaseModel):
     motion_variance: float
     score: float
     reasons: list[str]
+
+
+# --- Model registry / OTA ---------------------------------------------------
+class ModelManifestRequest(BaseModel):
+    client_versions: dict[str, str] = Field(default_factory=dict)
+    base_url: str = ""
+
+
+class ModelCardOut(BaseModel):
+    name: str
+    version: str
+    sha256: str
+    size_bytes: int
+    size_mb: float
+    quantisation: str
+    min_app_version: str
+    purpose: str
+    input: str
+    format: str
+    update_available: bool = False
+    url: str | None = None
+
+
+class ModelManifestResponse(BaseModel):
+    registry_version: str
+    update_count: int
+    models: list[ModelCardOut]

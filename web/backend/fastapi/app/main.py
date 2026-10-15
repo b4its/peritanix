@@ -15,6 +15,7 @@ from .routers import (
     forensics,
     gdd_physiology,
     gis_twi,
+    models_registry,
     optics,
     pathology_bayesian,
     postharvest,
@@ -72,3 +73,4 @@ app.include_router(optics.router)
 app.include_router(agronomy.router)
 app.include_router(forensics.router)
 app.include_router(decision.router)
+app.include_router(models_registry.router)
