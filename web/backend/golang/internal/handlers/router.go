@@ -72,6 +72,7 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Offline sync
 	api.Post("/sync/delta", d.syncDelta)
+	api.Post("/sync/merge", d.syncMerge)
 }
 
 func (d *Deps) health(c *fiber.Ctx) error {
