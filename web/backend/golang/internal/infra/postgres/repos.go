@@ -127,6 +127,62 @@ func (r *SoilRepo) LatestByLand(ctx context.Context, landID string) (*domain.Soi
 	return &list[0], nil
 }
 
+// FertilityGeoJSON returns a FeatureCollection of soil points per land.
+func (r *SoilRepo) FertilityGeoJSON(ctx context.Context) ([]byte, error) {
+	var js []byte
+	if err := r.s.Pool.QueryRow(ctx, `SELECT soil_fertility_geojson()`).Scan(&js); err != nil {
+		return nil, err
+	}
+	return js, nil
+}
+
+// --- GDDRepo ----------------------------------------------------------------
+
+// GDDRepo reads the GDD daily time series.
+type GDDRepo struct{ s *Store }
+
+// NewGDDRepo constructs a GDDRepo.
+func NewGDDRepo(s *Store) *GDDRepo { return &GDDRepo{s: s} }
+
+// History returns the last `days` GDD points for a land (chronological).
+func (r *GDDRepo) History(ctx context.Context, landID string, days int) ([]domain.GDDPoint, error) {
+	if days <= 0 {
+		days = 30
+	}
+	const q = `SELECT day::text, t_min, t_max, gdd_day, gdd_cum
+	           FROM gdd_history($1, $2)`
+	rows, err := r.s.Pool.Query(ctx, q, landID, days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.GDDPoint
+	for rows.Next() {
+		var p domain.GDDPoint
+		if err := rows.Scan(&p.Day, &p.TMin, &p.TMax, &p.GDDDay, &p.GDDCum); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	// Reverse to chronological order for charts.
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+	return out, rows.Err()
+}
+
+// AppendDaily records one day of GDD (upsert on the (land_id, day) key).
+func (r *GDDRepo) AppendDaily(ctx context.Context, landID, day string, tMin, tMax, gddDay, gddCum float64) error {
+	const q = `
+		INSERT INTO gdd_daily (land_id, day, t_min, t_max, gdd_day, gdd_cum)
+		VALUES ($1, $2::date, $3, $4, $5, $6)
+		ON CONFLICT (land_id, day) DO UPDATE SET
+		  t_min = EXCLUDED.t_min, t_max = EXCLUDED.t_max,
+		  gdd_day = EXCLUDED.gdd_day, gdd_cum = EXCLUDED.gdd_cum`
+	_, err := r.s.Pool.Exec(ctx, q, landID, day, tMin, tMax, gddDay, gddCum)
+	return err
+}
+
 // --- DiseaseRepo ------------------------------------------------------------
 
 // DiseaseRepo is the PostGIS-backed disease log repository.

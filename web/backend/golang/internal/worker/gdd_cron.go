@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/robfig/cron/v3"
 
@@ -58,8 +59,31 @@ func recomputeAllGDD(deps *handlers.Deps) {
 			log.Printf("[gdd-cron] update land %s: %v", l.ID, err)
 			continue
 		}
+		// Persist today's point into the time series for the dashboard chart.
+		tMin, tMax := todayTemps()
+		dayGDD := gddStep(tMin, tMax)
+		today := time.Now().Format("2006-01-02")
+		if err := deps.GDD.AppendDaily(ctx, l.ID, today, tMin, tMax, dayGDD, gdd); err != nil {
+			log.Printf("[gdd-cron] append daily land %s: %v", l.ID, err)
+		}
 		log.Printf("[gdd-cron] land %s -> gdd=%.1f phase=%s", l.ID, gdd, phase)
 	}
+}
+
+// todayTemps returns a plausible tropical daily min/max (offline default).
+// A real deployment substitutes BMKG / satellite data per land coordinates.
+func todayTemps() (tMin, tMax float64) {
+	n := float64(time.Now().YearDay())
+	return 20.0 + float64(int(n)%3), 30.0 + float64(int(n)%4)
+}
+
+// gddStep applies the chilli GDD formula: max(0, (tMax+tMin)/2 - 15).
+func gddStep(tMin, tMax float64) float64 {
+	v := (tMax+tMin)/2.0 - 15.0
+	if v < 0 {
+		return 0
+	}
+	return v
 }
 
 // syntheticSeries fabricates a warm tropical growing series when no weather API

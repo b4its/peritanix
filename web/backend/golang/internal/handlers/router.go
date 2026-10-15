@@ -23,6 +23,7 @@ type Deps struct {
 	Soil    domain.SoilRepo
 	Disease domain.DiseaseRepo
 	Harvest domain.HarvestRepo
+	GDD     domain.GDDRepo
 	ML      *mlclient.Client
 	Cache   *rds.Client
 	Store   *postgres.Store
@@ -53,6 +54,8 @@ func Register(app *fiber.App, d *Deps) {
 	api.Get("/lands/:id/soil", d.soilList)
 	api.Get("/lands/:id/diseases", d.diseaseList)
 	api.Get("/lands/:id/diseases/geojson", d.diseaseGeoJSON)
+	api.Get("/lands/:id/gdd", d.gddHistory)
+	api.Get("/soil/fertility/geojson", d.soilFertilityGeoJSON)
 	api.Get("/harvest/batches/:code", d.harvestGet)
 	api.Post("/certificates/verify", d.certVerify) // public verifier — no auth
 

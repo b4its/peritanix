@@ -109,3 +109,54 @@ RETURNS JSON AS $$
         FROM lands l
     ) sub;
 $$ LANGUAGE sql STABLE;
+
+-- Soil-fertility points for the dashboard fertility map: one Feature per land
+-- carrying its latest assessment (soil class, pH, CEC, nitrate).
+CREATE OR REPLACE FUNCTION soil_fertility_geojson()
+RETURNS JSON AS $$
+    SELECT COALESCE(json_agg(feature), '[]'::json) FROM (
+        SELECT json_build_object(
+            'type', 'Feature',
+            'geometry', ST_AsGeoJSON(ST_Centroid(l.boundary))::json,
+            'properties', json_build_object(
+                'land_id', l.id,
+                'land_name', l.name,
+                'soil_class', s.soil_class,
+                'ph', s.ph_deterministic,
+                'cec_meq', s.cec_meq,
+                'nitrate_ppm', s.nitrate_ppm,
+                'ph_class',
+                    CASE
+                        WHEN s.ph_deterministic IS NULL THEN 'unknown'
+                        WHEN s.ph_deterministic < 5.5 THEN 'acid'
+                        WHEN s.ph_deterministic > 7.0 THEN 'alkaline'
+                        ELSE 'optimal'
+                    END
+            )
+        ) AS feature
+        FROM lands l
+        LEFT JOIN LATERAL (
+            SELECT sa.* FROM soil_assessments sa
+            WHERE sa.land_id = l.id
+            ORDER BY sa.created_at DESC LIMIT 1
+        ) s ON TRUE
+    ) sub;
+$$ LANGUAGE sql STABLE;
+
+-- GDD time series for the accumulation curve (last `p_days` days).
+CREATE OR REPLACE FUNCTION gdd_history(
+    p_land_id UUID,
+    p_days    INT DEFAULT 30
+) RETURNS TABLE(
+    day     DATE,
+    t_min   FLOAT,
+    t_max   FLOAT,
+    gdd_day FLOAT,
+    gdd_cum FLOAT
+) AS $$
+    SELECT g.day, g.t_min, g.t_max, g.gdd_day, g.gdd_cum
+    FROM gdd_daily g
+    WHERE g.land_id = p_land_id
+    ORDER BY g.day DESC
+    LIMIT p_days;
+$$ LANGUAGE sql STABLE;

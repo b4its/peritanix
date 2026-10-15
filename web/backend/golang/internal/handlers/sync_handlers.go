@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -70,6 +71,16 @@ func (d *Deps) syncDelta(c *fiber.Ctx) error {
 		"results":   results,
 		"server_ts": time.Now().Unix(),
 	})
+}
+
+// ApplySyncOp applies a raw sync payload by entity (used by the retry worker).
+// `data` is the JSON-encoded field map for the entity.
+func (d *Deps) ApplySyncOp(ctx context.Context, entity string, data []byte) error {
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	return d.applyOp(ctx, syncOp{Entity: entity, Data: m})
 }
 
 // applyOp routes a sync op to the correct repository using Last-Write-Wins.

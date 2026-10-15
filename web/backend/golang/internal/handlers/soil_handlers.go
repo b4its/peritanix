@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -102,6 +103,31 @@ func (d *Deps) soilList(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(fiber.Map{"assessments": list})
+}
+
+// soilFertilityGeoJSON serves the dashboard fertility map layer.
+func (d *Deps) soilFertilityGeoJSON(c *fiber.Ctx) error {
+	js, err := d.Soil.FertilityGeoJSON(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	c.Set("Content-Type", "application/geo+json")
+	return c.Send(js)
+}
+
+// gddHistory serves the GDD accumulation time series for the chart.
+func (d *Deps) gddHistory(c *fiber.Ctx) error {
+	days := 30
+	if v := c.Query("days"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 365 {
+			days = n
+		}
+	}
+	pts, err := d.GDD.History(c.Context(), c.Params("id"), days)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"land_id": c.Params("id"), "series": pts})
 }
 
 func num(v any) float64 {

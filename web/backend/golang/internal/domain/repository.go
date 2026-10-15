@@ -27,6 +27,24 @@ type SoilRepo interface {
 	Create(ctx context.Context, s *SoilAssessment) error
 	ListByLand(ctx context.Context, landID string) ([]SoilAssessment, error)
 	LatestByLand(ctx context.Context, landID string) (*SoilAssessment, error)
+	// FertilityGeoJSON returns a FeatureCollection of soil points per land.
+	FertilityGeoJSON(ctx context.Context) ([]byte, error)
+}
+
+// GDDPoint is one day of thermal accumulation for the dashboard chart.
+type GDDPoint struct {
+	Day    string  `json:"day"`
+	TMin   float64 `json:"t_min"`
+	TMax   float64 `json:"t_max"`
+	GDDDay float64 `json:"gdd_day"`
+	GDDCum float64 `json:"gdd_cum"`
+}
+
+// GDDRepo reads the GDD daily time series.
+type GDDRepo interface {
+	History(ctx context.Context, landID string, days int) ([]GDDPoint, error)
+	// AppendDaily records one day of GDD for a land (idempotent per day).
+	AppendDaily(ctx context.Context, landID, day string, tMin, tMax, gddDay, gddCum float64) error
 }
 
 // DiseaseRepo is the persistence port for disease logs.

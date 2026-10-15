@@ -84,11 +84,13 @@ func main() {
 		Store:   store,
 		Auth:    auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTLHours),
 		Storage: objStore,
+		GDD:     postgres.NewGDDRepo(store),
 	}
 	handlers.Register(app, deps)
 
-	// --- Background GDD cron ---
+	// --- Background workers ---
 	worker.StartGDDCron(cfg, deps)
+	worker.StartSyncProcessor(deps)
 
 	// --- Serve ---
 	go func() {
