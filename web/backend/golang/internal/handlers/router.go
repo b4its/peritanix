@@ -18,18 +18,19 @@ import (
 
 // Deps bundles all handler dependencies.
 type Deps struct {
-	Cfg     config.Config
-	Lands   domain.LandRepo
-	Users   domain.UserRepo
-	Soil    domain.SoilRepo
-	Disease domain.DiseaseRepo
-	Harvest domain.HarvestRepo
-	GDD     domain.GDDRepo
-	ML      *mlclient.Client
-	Cache   *rds.Client
-	Store   *postgres.Store
-	Auth    *auth.Issuer
-	Storage storage.Store
+	Cfg      config.Config
+	Lands    domain.LandRepo
+	Users    domain.UserRepo
+	Soil     domain.SoilRepo
+	Disease  domain.DiseaseRepo
+	Harvest  domain.HarvestRepo
+	GDD      domain.GDDRepo
+	Feedback domain.FeedbackRepo
+	ML       *mlclient.Client
+	Cache    *rds.Client
+	Store    *postgres.Store
+	Auth     *auth.Issuer
+	Storage  storage.Store
 }
 
 // Register mounts all routes on the app.
@@ -115,6 +116,10 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Model OTA (Continuous Learning loop): manifest
 	mut.Post("/models/manifest", d.modelManifest)
+
+	// Continuous learning: capture ground-truth feedback + retrain readiness
+	mut.Post("/ml/feedback", d.feedbackCapture)
+	api.Get("/ml/retrain-readiness", d.retrainReadiness)
 
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)

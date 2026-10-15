@@ -47,6 +47,25 @@ type GDDRepo interface {
 	AppendDaily(ctx context.Context, landID, day string, tMin, tMax, gddDay, gddCum float64) error
 }
 
+// Feedback is a ground-truth correction for a model prediction.
+type Feedback struct {
+	ModelName   string         `json:"model_name"`
+	Inputs      map[string]any `json:"inputs"`
+	Predicted   map[string]any `json:"predicted"`
+	Corrected   map[string]any `json:"corrected"`
+	LandID      string         `json:"land_id,omitempty"`
+	DiagnosisID string         `json:"diagnosis_id,omitempty"`
+	Source      string         `json:"source"`
+	Confidence  float64        `json:"confidence"`
+}
+
+// FeedbackRepo persists model feedback and reports retrain readiness.
+type FeedbackRepo interface {
+	Create(ctx context.Context, f *Feedback) (string, error)
+	// Counts returns labelled-example counts per model.
+	Counts(ctx context.Context) (map[string]int64, error)
+}
+
 // DiseaseRepo is the persistence port for disease logs.
 type DiseaseRepo interface {
 	Create(ctx context.Context, d *DiseaseLog) error

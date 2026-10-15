@@ -27,3 +27,27 @@ CREATE INDEX IF NOT EXISTS idx_harvest_created ON harvest_batches (created_at DE
 -- CREATE OR REPLACE. On an existing volume, re-applying 02_functions.sql picks
 -- them up. `make web-migrate` runs it explicitly:
 --   psql -f /docker-entrypoint-initdb.d/02_functions.sql
+
+-- Continuous-learning feedback store (ground-truth corrections for retraining).
+CREATE TABLE IF NOT EXISTS ml_feedback (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    model_name      VARCHAR(64) NOT NULL,
+    inputs          JSONB NOT NULL DEFAULT '{}'::jsonb,
+    predicted       JSONB NOT NULL DEFAULT '{}'::jsonb,
+    corrected       JSONB NOT NULL DEFAULT '{}'::jsonb,
+    land_id         UUID REFERENCES lands(id) ON DELETE SET NULL,
+    diagnosis_id    UUID REFERENCES disease_logs(id) ON DELETE SET NULL,
+    source          VARCHAR(32) NOT NULL DEFAULT 'field',
+    confidence      FLOAT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_model ON ml_feedback (model_name, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_created ON ml_feedback (created_at DESC);
+
+CREATE OR REPLACE FUNCTION feedback_counts()
+RETURNS TABLE(model_name VARCHAR, n BIGINT) AS $$
+    SELECT model_name, COUNT(*)::BIGINT AS n
+    FROM ml_feedback
+    GROUP BY model_name
+    ORDER BY COUNT(*) DESC;
+$$ LANGUAGE sql STABLE;

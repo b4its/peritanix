@@ -73,18 +73,19 @@ func main() {
 	})
 
 	deps := &handlers.Deps{
-		Cfg:     cfg,
-		Lands:   postgres.NewLandRepo(store),
-		Users:   postgres.NewUserRepo(store),
-		Soil:    postgres.NewSoilRepo(store),
-		Disease: postgres.NewDiseaseRepo(store),
-		Harvest: postgres.NewHarvestRepo(store),
-		ML:      ml,
-		Cache:   cache,
-		Store:   store,
-		Auth:    auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTLHours),
-		Storage: objStore,
-		GDD:     postgres.NewGDDRepo(store),
+		Cfg:      cfg,
+		Lands:    postgres.NewLandRepo(store),
+		Users:    postgres.NewUserRepo(store),
+		Soil:     postgres.NewSoilRepo(store),
+		Disease:  postgres.NewDiseaseRepo(store),
+		Harvest:  postgres.NewHarvestRepo(store),
+		ML:       ml,
+		Cache:    cache,
+		Store:    store,
+		Auth:     auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTLHours),
+		Storage:  objStore,
+		GDD:      postgres.NewGDDRepo(store),
+		Feedback: postgres.NewFeedbackRepo(store),
 	}
 	handlers.Register(app, deps)
 
