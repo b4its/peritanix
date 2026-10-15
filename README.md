@@ -1,8 +1,11 @@
 # 🌶️ DAPE — Deterministic Agro-Physics Engine
 ### Precision Micro-Farming Cabai (`Capsicum annuum` / `Capsicum frutescens`), 0,1 – 2 ha
 
-[![tests](https://img.shields.io/badge/physics%20tests-79%20passing-brightgreen)](#-testing)
+[![tests](https://img.shields.io/badge/physics%20tests-219%20passing-brightgreen)](#-testing)
+[![go](https://img.shields.io/badge/go%20tests-42%20passing-brightgreen)](#-testing)
 [![mobile](https://img.shields.io/badge/kotlin%20tests-27%20passing-brightgreen)](#-testing)
+[![web](https://img.shields.io/badge/web%20tests-53%20passing-brightgreen)](#-testing)
+[![e2e](https://img.shields.io/badge/e2e-50%20passing-brightgreen)](#-testing)
 [![stack](https://img.shields.io/badge/docker%20compose-6%20services-blue)](#-quick-start)
 
 ---
