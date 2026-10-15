@@ -183,6 +183,10 @@ calibrate: ## Run only the agronomic calibration test
 chaos: ## Run only the offline + chaos test
 	bash scripts/offline_chaos_test.sh
 
+loadtest: init ## Run the k6 load test against the running stack (needs k6)
+	@command -v k6 >/dev/null 2>&1 || { printf "$(C_YELLOW)[loadtest]$(C_RESET) k6 not installed: https://k6.io/docs/get-started/installation/\n"; exit 1; }
+	k6 run scripts/loadtest.js
+
 db-backup: init ## Dump the database to backups/dape-<timestamp>.dump
 	bash scripts/db_backup.sh
 
