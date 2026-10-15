@@ -221,7 +221,8 @@ mobile-build: init ## Build the Android debug APK (needs Android SDK)
 	@printf "$(C_CYAN)[mobile]$(C_RESET) building the Android app (requires SDK)...\n"
 	$(DC) --profile mobile run --rm \
 		-v "$(PWD)/mobile/android:/app/android" \
-		--entrypoint gradle mobile --no-daemon -p /app/android assembleDebug \
+		--entrypoint sh mobile -c \
+		"cd /app/android && (./gradlew --no-daemon assembleDebug || gradle --no-daemon assembleDebug)" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) Android SDK not configured; the pure-JVM core build is 'make mobile-test'.\n"
 
 mobile-apk: init ## Copy the built debug APK to ./dist

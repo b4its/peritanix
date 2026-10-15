@@ -67,6 +67,8 @@ Key configuration:
 - `proguard-rules.pro` **keeps** `id.peritanix.dape.physics.**` and `.crypto.**`
   unobfuscated, because the canonical JSON float formatting must stay
   byte-identical to the Go verifier for offline certificate verification.
+- **Gradle wrapper** committed (`gradlew` + `gradle-wrapper.jar`) so the project
+  builds with no pre-installed Gradle: `cd mobile/android && ./gradlew assembleDebug`.
 
 ```bash
 cd mobile/android && ./gradlew assembleDebug   # requires Android SDK

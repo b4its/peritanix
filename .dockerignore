@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+.svelte-kit
+build
+dist
+backups
+mobile/.gradle
+mobile/build
+mobile/android/build
+web/frontend/node_modules
+web/frontend/.svelte-kit
+web/backend/fastapi/__pycache__
+web/backend/golang/bin
+*.log
