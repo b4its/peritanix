@@ -43,7 +43,7 @@ class TestCurvatureRatio:
 
 class TestColourAndDefect:
     def test_red_ramp(self):
-        assert grading.red_percentage(threshold := 25.0, 100) == pytest.approx(0.0)
+        assert grading.red_percentage(25.0, 100) == pytest.approx(0.0)
         assert grading.red_percentage(45.0, 100) == pytest.approx(100.0)
         assert grading.red_percentage(35.0, 100) == pytest.approx(50.0)
 

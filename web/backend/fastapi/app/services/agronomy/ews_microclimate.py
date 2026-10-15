@@ -72,7 +72,7 @@ def analyse_microclimate(rh_series: list[float], t_series: list[float],
     if len(rh_series) != len(t_series) or len(rh_series) < 3:
         raise ValueError("rh and t series must be equal length and >= 3 samples")
 
-    risks = [hourly_risk(rh, t) for rh, t in zip(rh_series, t_series)]
+    risks = [hourly_risk(rh, t) for rh, t in zip(rh_series, t_series, strict=False)]
     current_risk = risks[-1]
 
     rh_slope = _damped_trend(list(rh_series))

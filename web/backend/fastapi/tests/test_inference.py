@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from app.services.models import inference, registry
+from app.services.models import inference
 
 
 class TestFallback:
@@ -84,8 +84,9 @@ class TestRealInference:
 
 class TestDecodeImage:
     def test_decode_shape_and_range(self):
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         img = Image.new("RGB", (100, 50), (200, 100, 50))
         buf = io.BytesIO()

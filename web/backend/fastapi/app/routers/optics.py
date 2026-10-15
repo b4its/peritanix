@@ -5,9 +5,12 @@ import numpy as np
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import (
-    MfsrRequest, MfsrResponse,
-    OozeRequest, OozeResponse,
-    TransIllumRequest, TransIllumResponse,
+    MfsrRequest,
+    MfsrResponse,
+    OozeRequest,
+    OozeResponse,
+    TransIllumRequest,
+    TransIllumResponse,
 )
 from ..services.epidemiology import ooze_optical_flow
 from ..services.optics import mfsr_stacker, trans_illumination
@@ -21,7 +24,7 @@ def mfsr_stack(req: MfsrRequest) -> MfsrResponse:
         _, res = mfsr_stacker.stack_burst_u8(
             req.frames, sharpness_reject_ratio=req.sharpness_reject_ratio)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return MfsrResponse(
         stacked_shape=res.stacked_shape,
         frames_used=res.frames_used,
@@ -38,7 +41,7 @@ def trans_illum(req: TransIllumRequest) -> TransIllumResponse:
     try:
         res = trans_illumination.trans_illumination(img, sigma_k=req.sigma_k)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return TransIllumResponse(
         attenuation_pct=res.attenuation_pct,
         lesion_fraction=res.lesion_fraction,
@@ -54,7 +57,7 @@ def ooze_flow(req: OozeRequest) -> OozeResponse:
     try:
         res = ooze_optical_flow.analyse_ooze(frames)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return OozeResponse(
         mean_speed=res.mean_speed,
         coherence=res.coherence,

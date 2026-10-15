@@ -8,14 +8,14 @@ from app.services.physics import colorimetry as col
 
 class TestColorimetry:
     def test_white_to_lab(self):
-        l, a, b = col.rgb_to_lab(255, 255, 255)
-        assert l == pytest.approx(100.0, abs=0.1)
+        light, a, b = col.rgb_to_lab(255, 255, 255)
+        assert light == pytest.approx(100.0, abs=0.1)
         assert a == pytest.approx(0.0, abs=0.1)
         assert b == pytest.approx(0.0, abs=0.1)
 
     def test_black_to_lab(self):
-        l, a, b = col.rgb_to_lab(0, 0, 0)
-        assert l == pytest.approx(0.0, abs=1e-6)
+        light, a, b = col.rgb_to_lab(0, 0, 0)
+        assert light == pytest.approx(0.0, abs=1e-6)
 
     def test_red_channel_positive_a(self):
         _, a, _ = col.rgb_to_lab(255, 0, 0)

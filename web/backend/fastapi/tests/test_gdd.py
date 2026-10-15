@@ -6,8 +6,6 @@ merely "runs without crashing".
 """
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from app.services.physics import gdd as gdd_mod

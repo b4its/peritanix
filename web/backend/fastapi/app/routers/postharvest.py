@@ -4,8 +4,10 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..schemas import (
-    ArchimedesRequest, ArchimedesResponse,
-    CalorimetryRequest, CalorimetryResponse,
+    ArchimedesRequest,
+    ArchimedesResponse,
+    CalorimetryRequest,
+    CalorimetryResponse,
 )
 from ..services.physics import archimedes as arch
 from ..services.physics import calorimetry as calo

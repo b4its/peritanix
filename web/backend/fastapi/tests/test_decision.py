@@ -68,7 +68,7 @@ class TestYieldProjection:
 
     def test_transition_matrix_rows_sum_to_one(self):
         tm = yp.transition_matrix(12.0)
-        for src, row in tm.items():
+        for _src, row in tm.items():
             assert sum(row.values()) == pytest.approx(1.0, abs=1e-9)
 
 

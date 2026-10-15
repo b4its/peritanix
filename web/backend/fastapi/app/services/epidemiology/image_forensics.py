@@ -20,7 +20,7 @@ import io
 from dataclasses import dataclass, field
 
 import numpy as np
-from PIL import Image, ExifTags
+from PIL import ExifTags, Image
 
 
 @dataclass
@@ -51,7 +51,7 @@ def _avg_hash(gray: np.ndarray, size: int = 8) -> str:
 def hamming_distance_hex(a: str, b: str) -> int:
     """Hamming distance between two hex-encoded perceptual hashes."""
     ia, ib = int(a, 16), int(b, 16)
-    return bin(ia ^ ib).count("1")
+    return (ia ^ ib).bit_count()
 
 
 def ela_variance(image_bytes: bytes, quality: int = 90) -> float:

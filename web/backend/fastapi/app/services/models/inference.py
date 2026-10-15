@@ -46,9 +46,9 @@ class _SessionCache:
     """Caches InferenceSession objects keyed by artefact path."""
 
     def __init__(self) -> None:
-        self._sessions: dict[str, "ort.InferenceSession"] = {}
+        self._sessions: dict[str, ort.InferenceSession] = {}
 
-    def get(self, path: Path) -> "ort.InferenceSession":
+    def get(self, path: Path) -> ort.InferenceSession:
         key = str(path)
         if key not in self._sessions:
             self._sessions[key] = ort.InferenceSession(
@@ -103,7 +103,7 @@ def infer(models_dir: str | Path, name: str,
         feed = {i.name: inputs[i.name] for i in sess.get_inputs() if i.name in inputs}
         outs = sess.run(None, feed)
         out_names = [o.name for o in sess.get_outputs()]
-        outputs = {n: _to_jsonable(o) for n, o in zip(out_names, outs)}
+        outputs = {n: _to_jsonable(o) for n, o in zip(out_names, outs, strict=False)}
         return InferResult(available=True, model=name, version=version,
                             outputs=outputs)
     except Exception as e:  # pragma: no cover - defensive

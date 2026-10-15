@@ -71,12 +71,17 @@ def transition_matrix(gdd_per_day: float, gdd_green_to_blush: float = 40.0,
     }
 
 
+# Module-level singleton (frozen dataclass) — avoids a function call in the
+# default argument while remaining immutable.
+_DEFAULT_WEIGHTS = YieldWeights()
+
+
 def project_yield(counts: dict[str, int],
                   trees_per_bed: int,
                   sampled_trees: int,
                   horizon_days: int = 14,
                   gdd_per_day: float = 12.0,
-                  weights: YieldWeights = YieldWeights()) -> YieldProjection:
+                  weights: YieldWeights = _DEFAULT_WEIGHTS) -> YieldProjection:
     """Project harvestable mass over the horizon.
 
     Args:

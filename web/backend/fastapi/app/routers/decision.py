@@ -4,11 +4,16 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import (
-    EconomicsRequest, EconomicsResponse,
-    HarvestDecisionRequest, HarvestDecisionResponse,
-    ProtocolRequest, ProtocolResponse,
-    TraceRequest, TraceResponse,
-    YieldRequest, YieldResponse,
+    EconomicsRequest,
+    EconomicsResponse,
+    HarvestDecisionRequest,
+    HarvestDecisionResponse,
+    ProtocolRequest,
+    ProtocolResponse,
+    TraceRequest,
+    TraceResponse,
+    YieldRequest,
+    YieldResponse,
 )
 from ..services.agronomy import economics, harvest_decision, protocols, yield_projection
 from ..services.epidemiology import trace_validation
@@ -31,7 +36,7 @@ def yield_projection_ep(req: YieldRequest) -> YieldResponse:
                 red_full_g=req.red_full_g),
         )
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return YieldResponse(**res.__dict__)
 
 
@@ -75,7 +80,7 @@ def economics_ep(req: EconomicsRequest) -> EconomicsResponse:
             loss_if_early_pct=req.loss_if_early_pct,
         ))
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return EconomicsResponse(**res.__dict__)
 
 

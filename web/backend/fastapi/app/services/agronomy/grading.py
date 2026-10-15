@@ -14,7 +14,6 @@ rather than a black-box model, so a buyer can defend the result.
 """
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 
 import numpy as np

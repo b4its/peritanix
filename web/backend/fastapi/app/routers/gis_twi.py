@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..schemas import BBoxRequest, TwiCell, TwiResponse
 from ..services import gis

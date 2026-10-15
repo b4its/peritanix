@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..config import get_settings
-from ..schemas import ModelManifestRequest, ModelManifestResponse, ModelCardOut
+from ..schemas import ModelCardOut, ModelManifestRequest, ModelManifestResponse
 from ..services.models import registry
 
 router = APIRouter(prefix="/internal/models", tags=["models"])

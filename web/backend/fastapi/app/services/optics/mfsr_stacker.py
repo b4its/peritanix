@@ -132,7 +132,7 @@ def stack_burst(frames: np.ndarray, sharpness_reject_ratio: float = 0.5) -> Mfsr
             dx = dy = 0
         else:
             dx, dy = phase_correlation_shift(ref, grays[i])
-        dx_i, dy_i = int(round(dx)), int(round(dy))
+        dx_i, dy_i = round(dx), round(dy)
         shifts.append((dx, dy))
         aligned = _shift(grays[i], dx_i, dy_i)
         acc_sum = aligned if acc_sum is None else acc_sum + aligned
@@ -173,7 +173,7 @@ def stack_burst_u8(frames: list[list[list[float]]], **kw) -> tuple[np.ndarray, M
         if i != ref_idx and sharp[i] < sharp[ref_idx] * kw.get("sharpness_reject_ratio", 0.5):
             continue
         dx, dy = (0, 0) if i == ref_idx else phase_correlation_shift(ref, grays[i])
-        aligned = _shift(grays[i], int(round(dx)), int(round(dy)))
+        aligned = _shift(grays[i], round(dx), round(dy))
         acc = aligned if acc is None else acc + aligned
         count += 1
     stacked = acc / count

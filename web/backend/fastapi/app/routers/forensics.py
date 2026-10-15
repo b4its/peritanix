@@ -16,7 +16,7 @@ def image_audit(req: ForensicRequest) -> ForensicResponse:
     try:
         raw = base64.b64decode(req.image_base64)
     except Exception:
-        raise HTTPException(status_code=422, detail="invalid base64 image")
+        raise HTTPException(status_code=422, detail="invalid base64 image") from None
     res = image_forensics.forensic_audit(
         raw,
         known_hashes=req.known_hashes,

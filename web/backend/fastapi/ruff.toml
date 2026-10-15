@@ -1,0 +1,31 @@
+# DAPE FastAPI — ruff configuration.
+# Lint:  ruff check app/
+# Fix:   ruff check app/ --fix
+#
+# The `BLE001` (blind except) rule is intentionally relaxed for optional-import
+# guards: `try: import rasterio except Exception` must catch broadly because a
+# missing native dependency can raise ImportError, OSError, or a bindings error
+# depending on the platform. All other rules stay on.
+[lint]
+select = ["E", "F", "I", "UP", "B", "S", "RUF", "BLE", "FURB"]
+ignore = [
+    "E501",     # line length handled by the formatter
+    "RUF001",   # ambiguous unicode: intentional non-ASCII in Indonesian text
+    "RUF002",   # ambiguous unicode in docstrings (Indonesian)
+    "RUF003",   # ambiguous unicode in comments (Indonesian)
+    "RUF005",   # collection literal concat is readable here
+    "S105",     # hardcoded-password false positives (field name strings)
+]
+
+[lint.per-file-ignores]
+# Optional-import guards and defensive fallbacks in service modules.
+"app/services/gis.py" = ["BLE001"]
+"app/services/models/inference.py" = ["BLE001"]
+"app/services/models/registry.py" = ["BLE001", "S112"]
+"app/services/epidemiology/image_forensics.py" = ["BLE001", "S110"]
+"app/routers/forensics.py" = ["BLE001"]
+"app/routers/soil_photometry.py" = ["BLE001", "S110"]
+"tests/*" = ["S101", "BLE001", "S110"]
+
+[lint.isort]
+known-first-party = ["app"]

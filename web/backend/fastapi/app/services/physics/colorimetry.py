@@ -39,10 +39,10 @@ def rgb_to_xyz(r: float, g: float, b: float) -> tuple[float, float, float]:
 
 def xyz_to_lab(x: float, y: float, z: float) -> tuple[float, float, float]:
     fx, fy, fz = _f(x / _XN), _f(y / _YN), _f(z / _ZN)
-    l = 116.0 * fy - 16.0
+    light = 116.0 * fy - 16.0
     a = 500.0 * (fx - fy)
     b = 200.0 * (fy - fz)
-    return l, a, b
+    return light, a, b
 
 
 def rgb_to_lab(r: float, g: float, b: float) -> tuple[float, float, float]:
@@ -59,13 +59,13 @@ def apply_white_reference(rgb: tuple[float, float, float],
     """
     if any(w <= 0 for w in white_ref):
         raise ValueError("white reference channels must be > 0")
-    return tuple(min(255.0, max(0.0, c / w * 255.0)) for c, w in zip(rgb, white_ref))
+    return tuple(min(255.0, max(0.0, c / w * 255.0)) for c, w in zip(rgb, white_ref, strict=False))
 
 
 def delta_e(lab1: tuple[float, float, float],
             lab2: tuple[float, float, float]) -> float:
     """CIE76 colour difference (sufficient for reagent-patch matching)."""
-    return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2, strict=False)))
 
 
 def match_reagent_curve(measured_lab: tuple[float, float, float],

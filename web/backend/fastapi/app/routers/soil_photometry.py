@@ -4,9 +4,12 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..schemas import (
-    FertilizerRequest, FertilizerResponse,
-    PhotometryRequest, PhotometryResponse,
-    SoilCalibrateRequest, SoilCalibrateResponse,
+    FertilizerRequest,
+    FertilizerResponse,
+    PhotometryRequest,
+    PhotometryResponse,
+    SoilCalibrateRequest,
+    SoilCalibrateResponse,
 )
 from ..services.physics import colorimetry
 from ..services.physics import fertilizer as fert_mod
@@ -60,8 +63,10 @@ def fertilizer_plan(req: FertilizerRequest) -> FertilizerResponse:
 
     # Prefer a trained ONNX model if one is registered; otherwise the
     # deterministic rule engine is authoritative (and fully auditable).
-    import numpy as np
     from pathlib import Path
+
+    import numpy as np
+
     from ..config import get_settings
     from ..services.models import inference
 

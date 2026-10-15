@@ -4,8 +4,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import (
-    EwsRequest, EwsResponse,
-    GradeRequest, GradeResponse,
+    EwsRequest,
+    EwsResponse,
+    GradeRequest,
+    GradeResponse,
 )
 from ..services.agronomy import ews_microclimate, grading
 
@@ -18,7 +20,7 @@ def grade_fruit(req: GradeRequest) -> GradeResponse:
         res = grading.grade_from_measurements(
             req.contour, req.mean_a_channel, req.lesion_area, req.total_area)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return GradeResponse(
         curvature_ratio=round(res.curvature_ratio, 4),
         red_pct=round(res.red_pct, 3),
@@ -34,5 +36,5 @@ def ews(req: EwsRequest) -> EwsResponse:
         res = ews_microclimate.analyse_microclimate(
             req.rh_series, req.t_series, horizon_h=req.horizon_h)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
     return EwsResponse(**res.__dict__)

@@ -17,7 +17,6 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 # The canonical DAPE model set (interface stable; weights are swapped in).
 KNOWN_MODELS = {
@@ -78,7 +77,7 @@ class Registry:
     cards: dict[str, ModelCard] = field(default_factory=dict)
 
     @classmethod
-    def from_dir(cls, root: str | Path) -> "Registry":
+    def from_dir(cls, root: str | Path) -> Registry:
         root = Path(root)
         reg = cls(root=root)
         if root.exists():
