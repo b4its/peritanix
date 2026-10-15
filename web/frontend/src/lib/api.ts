@@ -183,3 +183,80 @@ export function fortificationCompliance(lands: Land[]): {
 	const locked = lands.filter((l) => l.current_phase === 'FORTIFICATION_LOCKED');
 	return { compliant: locked, locked, total: lands.length };
 }
+
+export interface YieldResult {
+	total_trees: number;
+	sampled_trees: number;
+	scale_factor: number;
+	day_mass_kg: number[];
+	cumulative_kg: number[];
+	projected_14d_kg: number;
+	confidence_pct: number;
+	per_class_now: Record<string, number>;
+	notes: string[];
+}
+
+/** Estimate harvestable tonnage over a horizon (default 14 days). */
+export async function yieldProjection(input: {
+	land_id?: string;
+	green_dark: number;
+	red_blush: number;
+	red_full: number;
+	trees_per_bed: number;
+	sampled_trees: number;
+	horizon_days?: number;
+	gdd_per_day?: number;
+}): Promise<YieldResult> {
+	return req('/api/v1/yield/projection', {
+		method: 'POST',
+		body: JSON.stringify(input)
+	});
+}
+
+export interface Protocol {
+	code: string;
+	disease: string;
+	active_ingredient: string;
+	dose_g_per_l: number;
+	unit: string;
+	interval_days: number;
+	window: string;
+	safety: string;
+	organic_fallback: string;
+	severity_pct: number;
+	action_line: string;
+	steps: string[];
+}
+
+/** Get an actionable prescription for a verdict. */
+export async function prescribeProtocol(
+	verdict_key: string,
+	severity_pct = 0
+): Promise<Protocol> {
+	return req('/api/v1/protocols/prescribe', {
+		method: 'POST',
+		body: JSON.stringify({ verdict_key, severity_pct })
+	});
+}
+
+export async function protocolCatalog(): Promise<{ protocols: Protocol[] }> {
+	return req('/api/v1/protocols');
+}
+
+export interface AuthResult {
+	token: string;
+	user: { id: string; name: string; role: string };
+}
+
+export async function register(input: {
+	name: string;
+	phone: string;
+	role?: string;
+	password: string;
+}): Promise<AuthResult> {
+	return req('/api/v1/auth/register', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function login(phone: string, password: string): Promise<AuthResult> {
+	return req('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ phone, password }) });
+}

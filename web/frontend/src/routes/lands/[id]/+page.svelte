@@ -8,11 +8,15 @@
 		calorimetry,
 		recomputeGDD,
 		ewsMicroclimate,
+		yieldProjection,
+		prescribeProtocol,
 		type Land,
 		type DiseaseLog,
 		type SoilAssessment,
 		type CalorimetryResult,
-		type EwsResult
+		type EwsResult,
+		type YieldResult,
+		type Protocol
 	} from '$lib/api';
 	import { db, enqueue } from '$lib/db';
 
@@ -22,6 +26,14 @@
 	let err = $state('');
 	let ews = $state<EwsResult | null>(null);
 	let ewsErr = $state('');
+	let yieldRes = $state<YieldResult | null>(null);
+	let protocol = $state<Protocol | null>(null);
+
+	let sampledTrees = $state(50);
+	let totalTrees = $state(500);
+	let greenDark = $state(30);
+	let redBlush = $state(15);
+	let redFull = $state(10);
 
 	// Offline calorimetry calculator
 	let elevation = $state(850);
@@ -101,6 +113,43 @@
 		} catch (e: any) {
 			err = e.message;
 		}
+	}
+
+	async function doYield() {
+		if (!land) return;
+		try {
+			yieldRes = await yieldProjection({
+				land_id: land.id,
+				green_dark: greenDark,
+				red_blush: redBlush,
+				red_full: redFull,
+				trees_per_bed: totalTrees,
+				sampled_trees: sampledTrees
+			});
+		} catch (e: any) {
+			err = e.message;
+		}
+	}
+
+	async function doPrescribe(code: string, severity: number) {
+		try {
+			protocol = await prescribeProtocol(code, severity);
+		} catch (e: any) {
+			err = e.message;
+		}
+	}
+
+	// Build an SVG polyline path for the cumulative tonnage curve.
+	function curvePath(values: number[], w = 320, h = 80): string {
+		if (values.length < 2) return '';
+		const max = Math.max(...values, 1e-9);
+		return values
+			.map((v, i) => {
+				const x = (i / (values.length - 1)) * w;
+				const y = h - (v / max) * h;
+				return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+			})
+			.join(' ');
 	}
 
 	onMount(() => {
@@ -196,7 +245,7 @@
 		{:else}
 			<table>
 				<thead>
-					<tr><th>Penyakit</th><th>Keparahan</th><th>Keyakinan</th><th>Protokol</th><th>TWI</th></tr>
+					<tr><th>Penyakit</th><th>Keparahan</th><th>Keyakinan</th><th>Protokol</th><th>TWI</th><th></th></tr>
 				</thead>
 				<tbody>
 					{#each diseases as d}
@@ -210,10 +259,56 @@
 							</td>
 							<td><code>{d.protocol_code}</code></td>
 							<td>{(d.local_twi ?? 0).toFixed(2)}</td>
+							<td>
+								<button class="btn secondary" onclick={() => doPrescribe(d.protocol_code, d.severity_pct)}>
+									Resep
+								</button>
+							</td>
 						</tr>
 					{/each}
 				</tbody>
 			</table>
+		{/if}
+	</div>
+
+	{#if protocol}
+		<div class="card" style="margin-top:1rem;border-color:#86efac">
+			<h2>💊 Resep Tindakan — {protocol.disease}</h2>
+			<p><strong>{protocol.action_line}</strong></p>
+			<p class="muted">
+				Dosis: {protocol.dose_g_per_l} {protocol.unit} · Interval {protocol.interval_days} hari ·
+				Jendela: {protocol.window}
+			</p>
+			<ol>
+				{#each protocol.steps as s}<li>{s}</li>{/each}
+			</ol>
+			<p class="muted">⚠️ {protocol.safety}</p>
+			{#if protocol.organic_fallback}
+				<p class="muted">🌿 Alternatif organik: {protocol.organic_fallback}</p>
+			{/if}
+		</div>
+	{/if}
+
+	<div class="card" style="margin-top:1rem">
+		<h2>Proyeksi Panen 14 Hari</h2>
+		<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:end">
+			<div><label class="muted" for="gd">Hijau tua</label><input id="gd" type="number" bind:value={greenDark} /></div>
+			<div><label class="muted" for="rb">Semburat</label><input id="rb" type="number" bind:value={redBlush} /></div>
+			<div><label class="muted" for="rf">Merah penuh</label><input id="rf" type="number" bind:value={redFull} /></div>
+			<div><label class="muted" for="st">Sampel pohon</label><input id="st" type="number" bind:value={sampledTrees} /></div>
+			<div><label class="muted" for="tt">Total pohon</label><input id="tt" type="number" bind:value={totalTrees} /></div>
+			<button class="btn" onclick={doYield}>Hitung Proyeksi</button>
+		</div>
+		{#if yieldRes}
+			<p style="margin-top:0.75rem">
+				Proyeksi 14 hari: <strong>{yieldRes.projected_14d_kg} kg</strong> ·
+				Keyakinan {yieldRes.confidence_pct}% (skala ×{yieldRes.scale_factor})
+			</p>
+			<svg viewBox="0 0 320 80" width="100%" height="90" style="background:#f8faf8;border-radius:8px">
+				<path d={curvePath(yieldRes.cumulative_kg)} fill="none" stroke="#16a34a" stroke-width="2" />
+			</svg>
+			<p class="muted">Kurva kumulatif kg (kiri → hari ke-14).</p>
+			{#each yieldRes.notes as n}<p class="muted">ℹ️ {n}</p>{/each}
 		{/if}
 	</div>
 {/if}
