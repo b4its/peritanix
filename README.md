@@ -175,6 +175,10 @@ Setelah `web-up`:
 | `make web-reseed` | **Destruktif**: hapus volume DB → migrasi + seed ulang |
 | `make web-migrate` | Terapkan migrasi SQL ke Postgres yang berjalan |
 | `make web-test` | Jalankan suite Go + Python |
+| `make verify` | **Full pipeline**: unit + E2E + calibration + chaos |
+| `make e2e` / `calibrate` / `chaos` | Jalankan masing-masing skrip verifikasi |
+| `make db-backup` | Dump DB → `backups/dape-<ts>.dump` (+sha256) |
+| `make db-restore DUMP=backups/x.dump [CLEAN=--clean]` | Restore (checksum-verified) |
 | `make web-logs` / `web-ps` / `web-down` / `web-nuke` | Log / status / stop / hapus semua |
 | `make web-shell-<svc>` | Shell ke `api`\|`ml`\|`web`\|`postgres`\|`redis` |
 | `make web-psql` | Buka psql |
@@ -212,11 +216,11 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **182** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX model registry |
-| Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, **UUID guard + rate limiter** |
+| Python (fastapi) | **188** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry, **ONNX inference** |
+| Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **34** | Mirror fisika browser + microclimate EWS + heatmap/fertility + **QR scanner capability** |
-| E2E script | **36** | Full stack incl. yield, protocol, trace, media, JWT, spatial, OTA, analytics, **hardening** |
+| Vitest (web) | **39** | Mirror fisika + EWS + heatmap/fertility + QR scanner + **WKT/area geo** |
+| E2E script | **38** | Full stack incl. hardening, analytics, **feedback + ONNX runtime** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -306,9 +310,14 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Hardening produksi** — request-ID, validasi UUID, rate limit auth,
       `/readyz` deep check, verifikasi sertifikat vs kunci petani tersimpan
 - [x] **Pemindai QR kamera** di halaman verifikasi publik (BarcodeDetector)
+- [x] **ONNX inference runtime** — InferenceSession + graceful fallback ke rule
+      engine; status runtime via `/internal/models/runtime`
+- [x] **Onboarding lahan** — halaman gambar poligon GPS → `lands/init`
+- [x] **Continuous learning** — capture feedback (lab/expert) + retrain-readiness
+- [x] **Backup/restore DB** — `make db-backup` / `make db-restore` (pg_dump+sha256)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
-- [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry & jalur OTA
-      sudah siap; tinggal mengisi artefak `.onnx`
+- [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
+      jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
 - [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
 - [ ] APK/AAB release build (R8 + stripping sudah dikonfigurasi)
 
@@ -316,10 +325,10 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 182 passed · go test 7 pkgs ok · kotlin 27 · vitest 34
-  e2e smoke:   36 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
+  unit:        pytest 188 passed · go test 7 pkgs ok · kotlin 27 · vitest 39
+  e2e smoke:   38 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
                            →CRDT→sync→cert→yield→protocol→trace→media→JWT→
-                           models→fertility→gdd→hardening)
+                           models→fertility→gdd→hardening→feedback)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)

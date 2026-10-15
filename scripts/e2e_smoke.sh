@@ -223,6 +223,16 @@ for i in $(seq 1 25); do
 done
 assert_eq "$LIMITED" "1" "auth rate limiter engaged (429)"
 
+# --- 20. Continuous learning + ONNX runtime ---------------------------------
+echo "[20] Continuous learning + model runtime"
+FB=$(curl -sf -X POST "$API/api/v1/ml/feedback" -H 'Content-Type: application/json' \
+  -d '{"model_name":"classifier_mobilenetv3","inputs":{"x":1},"predicted":{"d":"A"},"corrected":{"d":"Thrips"},"source":"lab"}')
+FID=$(echo "$FB" | jqv "['id']")
+assert_gt0 "${#FID}" "feedback captured"
+RR=$(curl -sf "$API/api/v1/ml/retrain-readiness")
+RN=$(echo "$RR" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['models']))")
+assert_gt0 "$RN" "retrain readiness lists models"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

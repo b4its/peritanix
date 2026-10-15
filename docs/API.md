@@ -320,6 +320,19 @@ flagged `update_available`.
 ### `GET /api/v1/models`
 Full registry listing (public).
 
+### `POST /api/v1/ml/feedback`
+Capture a ground-truth correction (lab/expert) for the next retraining cycle.
+```json
+{ "model_name": "classifier_mobilenetv3", "inputs": {"leaf_lesion_pct": 12},
+  "predicted": {"disease": "Antraknosa"}, "corrected": {"disease": "Keriting_Thrips"},
+  "source": "lab", "confidence": 0.95 }
+```
+→ `201 { "id": "...", "model_name": "classifier_mobilenetv3" }`
+
+### `GET /api/v1/ml/retrain-readiness`
+Per-model labelled-example counts vs the retraining threshold.
+→ `{ "models": [ { "model_name": "...", "examples": 12, "threshold": 150, "ready_to_retrain": false } ] }`
+
 ---
 
 ## Certificates (public, no auth)
@@ -396,5 +409,6 @@ All require `X-Internal-Token`.
 | POST | `/internal/decision/validate-trace` | Immersion trace anti-cheat |
 | POST | `/internal/models/manifest` | OTA model manifest |
 | GET  | `/internal/models/list` | All registered models |
+| GET  | `/internal/models/runtime` | ONNX runtime + loadable-model status |
 | POST | `/internal/postharvest/calorimetry` | Black's-law hot-water ratio |
 | POST | `/internal/postharvest/archimedes` | Sink ratio + grade |
