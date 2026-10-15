@@ -64,6 +64,24 @@ export async function getLand(id: string): Promise<Land> {
 	return req(`/api/v1/lands/${id}`);
 }
 
+export interface LandInitResult {
+	land: Land;
+	twi_cache: { cells?: any[]; max_risk?: string; cache_kb?: number } | null;
+	cache_kb?: number;
+}
+
+/** Create a plot, register the key, and download the TWI/flow cache. */
+export async function initLand(input: {
+	user_id: string;
+	name: string;
+	boundary_wkt: string;
+	elevation_m?: number;
+	planting_date?: string;
+	ed25519_public_key?: string;
+}): Promise<LandInitResult> {
+	return req('/api/v1/lands/init', { method: 'POST', body: JSON.stringify(input) });
+}
+
 export async function landGeoJSON(): Promise<GeoJSON.FeatureCollection> {
 	return req('/api/v1/lands/geojson');
 }

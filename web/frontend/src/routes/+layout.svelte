@@ -29,6 +29,7 @@
 		<a href="/" class="brand">🌶️ DAPE</a>
 		<nav>
 			<a href="/dashboard">Dashboard</a>
+			<a href="/lands/new">+ Lahan</a>
 			<a href="/verify">Verifikasi QR</a>
 		</nav>
 		<span class="net" class:on={online} class:off={!online}>
