@@ -198,19 +198,26 @@ docker compose --env-file .env --profile storage up -d
 ## 5. Testing
 
 ```bash
+make verify        # full pipeline: unit tests + E2E + calibration + chaos
 make web-test      # Python (pytest) + Go (go test)
 make mobile-test   # Kotlin JVM (JUnit)
+make e2e           # end-to-end smoke (16 assertions across all layers)
+make calibrate     # lab-reference validation (52C mix, flash correction, TWI, GDD)
+make chaos         # offline physics + reconnect + ML-outage graceful degradation
 ```
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **79** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer |
-| Go (backend) | **8** | Verifikasi Ed25519 (valid/tampered/hex/base64/badlen), kanonikalisasi JSON |
+| Python (fastapi) | **136** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, **MFSR, trans-illumination, ooze flow, grading, EWS, forensics** |
+| Go (backend) | **17** | Ed25519 verify + canonical JSON (8), **CRDT laws: commutative/associative/idempotent (9)** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **15** | Mirror fisika browser |
+| Vitest (web) | **21** | Mirror fisika browser + microclimate EWS |
+| E2E script | **16** | Full stack: TWI→soil→Bayes→EWS→grading→calorimetry→Archimedes→CRDT→sync→crypto |
+| Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
+| Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
 Semua suite memverifikasi **nilai analitik eksak** dalam toleransi ketat —
-bukan sekadar "jalan tanpa error". Tes ini menemukan 4 bug nyata selama
+bukan sekadar "jalan tanpa error". Tes ini menemukan **6 bug nyata** selama
 pengembangan (lihat §6).
 
 ---
@@ -230,6 +237,12 @@ pengembangan (lihat §6).
 4. **Kanonikalisasi lintas-platform**: sertifikat Kotlin (`52.0`) gagal
    verifikasi di Go (`52`). Ini cacat *interoperabilitas* yang fatal untuk
    sertifikasi offline. Standar final: nilai integral → `x.0`.
+5. **EWS RH membership** terlalu lemah: RH 90 % + hangat hanya menghasilkan
+   risiko 0.49, padahal RH ≥ 90 % adalah kondisi optimal sporulasi
+   Colletotrichum. Ramp RH diperbaiki ke [80, 90] (saturasi).
+6. **numpy bool bocor**: flag `latent_fungal_suspected` mengembalikan
+   `np.False_` (bukan `bool` Python) yang bisa membingungkan konsumen JSON.
+   Diperbaiki dengan cast `bool(...)`.
 
 ---
 
@@ -260,16 +273,31 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Tahap 1** — Inisialisasi lahan, cache DEM/TWI, identitas Ed25519
 - [x] **Tahap 2** — Stokes, TWI, fotometri CIELAB, pupuk preskriptif
 - [x] **Tahap 3** — Bayes multi-modal + epidemiologi spasial (Moran's I)
-- [x] **Tahap 4** — GDD cron + Fortification Lock
-- [x] **Tahap 5** — Kalorimetri, Archimedes, sertifikasi Crypto-QR
-- [x] **Tahap 6** — Dashboard geospasial, delta sync idempoten, anti-fraud
-- [x] **Tahap 7** — Containerization + CI-ready
-- [ ] Akuisisi media nyata (Camera2 burst, trans-illumination, ooze video)
-- [ ] Model ONNX YOLOv8-Nano / MobileNetV3 terkuantisasi (INT8/FP16)
-- [ ] Kalibrasi lab (pH ≤ ±0,1 di 3 merek HP) & uji lapangan
-- [ ] Pipeline rilis APK/AAB (R8 + stripping)
+- [x] **Tahap 4** — GDD cron + Fortification Lock + **EWS mikroklimat 72 jam**
+- [x] **Tahap 5** — Kalorimetri, Archimedes, sertifikasi Crypto-QR, **grading
+      curvature/colour/defect**
+- [x] **Tahap 6** — Dashboard geospasial, **CRDT field-level LWW merge**,
+      delta sync idempoten, **anti-fraud forensik (EXIF/ELA/aHash)**
+- [x] **Tahap 7** — Containerization, **CI/CD (GitHub Actions, 5 job)**,
+      **E2E/calibration/chaos test scripts**, kalibrasi elevasi
+- [x] **Pipeline optik deterministik** — MFSR burst stack, trans-illumination,
+      ooze optical flow (Ralstonia vs Fusarium)
+- [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
+- [ ] Model ONNX YOLOv8-Nano / MobileNetV3 terkuantisasi (INT8/FP16) sebagai
+      pengganti bertahap dari inti sinyal deterministik
+- [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
+- [ ] Pipeline rilis APK/AAB (R8 + native stripping)
 
----
+## 9. Verifikasi Langsung (bukti)
+
+```
+make verify  →
+  unit:        pytest 136 passed · go test 2 suites ok · kotlin 27 · vitest 21
+  e2e smoke:   16 passed  (TWI→soil→Bayes→EWS→grade→calo→archimedes→CRDT→sync→cert)
+  calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
+  chaos:       7 passed   (offline physics, reconnect, idempotent retry,
+                           ML-outage HTTP 502 not crash, auto-recover)
+```
 
 *Dibangun sebagai referensi implementasi DAPE — Deterministic Agro-Physics
 Engine. Fisika sudah benar & teruji; sisanya adalah kalibrasi lapangan.*

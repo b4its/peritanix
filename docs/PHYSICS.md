@@ -9,6 +9,14 @@ identical:
 
 Tests live beside each: `tests/test_*.py`, `tests/physics.test.ts`, `*Test.kt`.
 
+> **Scope note (honesty).** Where the design doc names learned models
+> ("trans-illumination CNN", "Deep Burst Super-Resolution"), this codebase
+> implements the **deterministic signal-processing core** those models consume
+> (optical-density maps, phase-correlation alignment, Lucas–Kanade flow,
+> Otsu segmentation). The learned weights are a drop-in replacement at the same
+> interface — see each module's docstring. This keeps the engine reproducible,
+> auditable and offline-capable today while leaving a clean ML upgrade path.
+
 ---
 
 ## 1. Topographic Wetness Index (TWI)
@@ -131,3 +139,84 @@ cross-platform signatures): integral values keep a single decimal place
 (`52` → `52.0`); non-integral use the shortest round-trip form (`0.82` → `0.82`).
 
 The Go verifier, the Kotlin signer, and the TypeScript encoder must all agree.
+
+## 9. Multi-Frame Super-Resolution (MFSR)
+
+Align a burst by **phase correlation** (peak of the normalised cross-power
+spectrum) then shift-and-add, rejecting frames whose **Laplacian variance** is
+below a fraction of the sharpest frame:
+
+```
+mfsr_sharpness_gain = VarLaplacian(stacked) / mean_i VarLaplacian(frame_i)
+```
+
+## 10. Trans-illumination mesophyll attenuation
+
+Optical density of transmitted light, with `I0` a bright reference percentile:
+
+```
+OD = -log10(I / I0)
+attenuation_pct = area(OD > baseline + k·σ) / leaf_area × 100
+```
+
+A dark (dense) patch ⇒ higher OD ⇒ latent fungal colonisation suspicion when
+`3 % ≤ attenuation ≤ 60 %`. Otsu's method gives a parameter-free lesion split.
+
+## 11. Ooze optical flow (Ralstonia vs Fusarium)
+
+Dense **Lucas–Kanade** flow between consecutive frames. Descriptors:
+
+```
+mean_speed      = mean(|v|)               over moving pixels
+coherence       = |mean(v)| / mean(|v|)   (1 = perfectly aligned)
+directionality  = |mean(e^{iθ})|          (resultant length of flow angles)
+streaming_score = 0.5·coherence + 0.5·directionality
+```
+
+`streaming_score ≥ 0.6` ⇒ bacterial streaming ⇒ **Ralstonia**; else **Fusarium**.
+
+## 12. Post-harvest grading
+
+```
+curvature_ratio = arc_length(spine) / chord_length(spine)   (≈1 = straight)
+red_pct         = clamp((a* − 25)/(45 − 25), 0, 1) × 100
+defect_pct      = lesion_area / total_area × 100
+```
+
+Grade table (defects disqualify first — one patek fruit spoils a crate):
+`defect ≥ 15 %` → BS; else `red ≥ 90 & defect < 3 & curv ≤ 1.12` → A+;
+`red ≥ 75 & defect < 5 & curv ≤ 1.25` → A; `red ≥ 50 & defect < 10` → B; else BS.
+
+## 13. Microclimate EWS (72 h fungal blast)
+
+Per-hour risk = RH membership × temperature membership:
+
+```
+rh_m = ramp(RH; 80, 90)                    # saturates quickly ≥ 90 %
+t_m  = ramp(T; 15, 27) · (1 − ramp(T; 33, 38))
+risk_h = rh_m · t_m
+```
+
+Extrapolate RH/T with a damped linear trend, take the peak over the horizon.
+`peak ≥ 0.7` ⇒ high risk, withhold irrigation; else normal schedule.
+
+## 14. Image forensics (anti-fraud)
+
+```
+ELA: recompress at quality Q, ela_variance = Var(|original − recompressed|)
+aHash: 64-bit average hash of the 8×8 grayscale; duplicate if
+       Hamming(hash, known) ≤ threshold
+EXIF:  camera Model/Make + DateTimeOriginal required for provenance
+```
+
+Verdicts: `REJECT` (duplicate), `SUSPECT` (high ELA + ≥2 flags),
+`REVIEW` (weak provenance), `PASS`.
+
+## 15. CRDT merge (offline multi-worker)
+
+Each field carries an LWW timestamp `(updated_ts, rev, device_id)` ordered
+lexicographically with `device_id` as the deterministic tie-break. A
+`VersionVector` (device → count) detects concurrency:
+`Concurrent(a,b) = ¬a.Dominates(b) ∧ ¬b.Dominates(a)`.
+`Merge` is **commutative, associative, idempotent** — proven by Go tests — so
+replicas converge regardless of sync order.

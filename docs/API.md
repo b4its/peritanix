@@ -159,6 +159,73 @@ Single batch by code.
 
 ---
 
+## Multi-modal optics (TAHAP 3.2)
+
+### `POST /api/v1/optics/mfsr`
+Multi-frame super-resolution burst stacking.
+```json
+{ "frames": [[[..rows..]], ...], "sharpness_reject_ratio": 0.5 }
+```
+→ `{ "frames_used": 11, "frames_rejected": 1, "shifts": [[dx,dy],...], "sharpness_gain": 1.42, "stacked_sharpness": ... }`
+
+### `POST /api/v1/optics/trans-illumination`
+Mesophyll attenuation from a contact-flash leaf image.
+```json
+{ "intensity": [[..]], "sigma_k": 2.0 }
+```
+→ `{ "attenuation_pct": 5.2, "lesion_fraction": 4.1, "max_od": 0.38, "latent_fungal_suspected": true }`
+
+### `POST /api/v1/optics/ooze`
+Stem-dip ooze test — distinguishes Ralstonia vs Fusarium.
+```json
+{ "frames": [[[..]], ...] }
+```
+→ `{ "streaming_score": 0.71, "coherence": 0.66, "directionality": 0.76, "verdict": "Ralstonia (bacterial streaming)", "confidence": 0.86 }`
+
+---
+
+## Grading & EWS (TAHAP 4/5)
+
+### `POST /api/v1/postharvest/grade`
+```json
+{ "contour": [[x,y],...], "mean_a_channel": 45, "lesion_area": 1, "total_area": 100 }
+```
+→ `{ "curvature_ratio": 1.02, "red_pct": 100, "defect_pct": 1, "grade": "A+", "reasons": [...] }`
+
+### `POST /api/v1/agronomy/ews`
+```json
+{ "rh_series": [86,88,90,92,94,93,91], "t_series": [25,26,27,26,25,26,27], "horizon_h": 72 }
+```
+→ `{ "peak_risk": 0.92, "peak_hour_offset": 12, "action": "RISIKO TINGGI...", "irrigation_minutes_per_bed": 0 }`
+
+---
+
+## Anti-fraud forensics (TAHAP 6.3)
+
+### `POST /api/v1/forensics/image-audit`
+```json
+{ "image_base64": "....", "known_hashes": ["ab12..."], "ela_threshold": 120, "duplicate_hamming_max": 4 }
+```
+→ `{ "exif_ok": true, "ela_variance": 43.2, "ela_suspicious": false, "perceptual_hash": "9f3c...", "duplicate_of": null, "verdict": "PASS", "flags": [] }`
+
+---
+
+## CRDT merge (TAHAP 6.2)
+
+### `POST /api/v1/sync/merge`
+Field-level Last-Write-Wins with version-vector concurrency detection. The
+operation is commutative/associative/idempotent, so clients retry freely.
+
+```json
+{
+  "local":  { "id": "L1", "vv": {"A": 2}, "fields": { "ph": { "value": 6.5, "ts": {"updated_ts":1000,"rev":3,"device_id":"A"} } } },
+  "remote": { "id": "L1", "vv": {"B": 2}, "fields": { "ph": { "value": 5.8, "ts": {"updated_ts":1100,"rev":1,"device_id":"B"} } } }
+}
+```
+→ `{ "merged": { "vv": {"A":2,"B":2}, "fields": { "ph": {"value":5.8,...} } }, "concurrent": true }`
+
+---
+
 ## Certificates (public, no auth)
 
 ### `POST /api/v1/certificates/verify`
@@ -216,5 +283,11 @@ All require `X-Internal-Token`.
 | POST | `/internal/physics/fertilizer-plan` | Prescriptive NPK/KNO3/Ca/dolomite |
 | POST | `/internal/ml/bayesian-diagnosis` | V,S,T Bayes fusion |
 | POST | `/internal/agronomy/gdd` | GDD accumulation + phase |
+| POST | `/internal/agronomy/grade-fruit` | Curvature/colour/defect grading |
+| POST | `/internal/agronomy/ews-microclimate` | 72h fungal-blast EWS |
+| POST | `/internal/optics/mfsr-stack` | Burst alignment + stacking |
+| POST | `/internal/optics/trans-illumination` | Mesophyll attenuation |
+| POST | `/internal/optics/ooze-optical-flow` | Ralstonia vs Fusarium |
+| POST | `/internal/forensics/image-audit` | EXIF + ELA + aHash duplicate |
 | POST | `/internal/postharvest/calorimetry` | Black's-law hot-water ratio |
 | POST | `/internal/postharvest/archimedes` | Sink ratio + grade |
