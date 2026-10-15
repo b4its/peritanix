@@ -30,6 +30,7 @@
 		<nav>
 			<a href="/dashboard">Dashboard</a>
 			<a href="/lands/new">+ Lahan</a>
+			<a href="/harvest">Panen</a>
 			<a href="/verify">Verifikasi QR</a>
 		</nav>
 		<span class="net" class:on={online} class:off={!online}>

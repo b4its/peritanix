@@ -282,6 +282,43 @@ export async function protocolCatalog(): Promise<{ protocols: Protocol[] }> {
 	return req('/api/v1/protocols');
 }
 
+export interface ArchimedesResult {
+	sink_ratio: number;
+	physics_grade: string;
+	brine_relative_density: number | null;
+}
+
+export async function archimedes(input: {
+	sink_count: number;
+	neutral_count: number;
+	float_count: number;
+	salt_g?: number;
+	water_ml?: number;
+}): Promise<ArchimedesResult> {
+	return req('/api/v1/postharvest/archimedes', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export interface HarvestDecisionResult {
+	recommended_action: string;
+	best_window_days: number;
+	expected_grade: string;
+	quality_score: number;
+	spoilage_risk: string;
+	rationale: string[];
+}
+
+export async function harvestDecision(input: {
+	accumulated_gdd: number;
+	current_phase?: string;
+	archimedes_sink_ratio?: number;
+	curvature_ratio?: number;
+	red_pct?: number;
+	defect_pct?: number;
+	price_trend_14d?: number;
+}): Promise<HarvestDecisionResult> {
+	return req('/api/v1/postharvest/decision', { method: 'POST', body: JSON.stringify(input) });
+}
+
 export interface AuthResult {
 	token: string;
 	user: { id: string; name: string; role: string };

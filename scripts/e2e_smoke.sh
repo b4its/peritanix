@@ -233,6 +233,20 @@ RR=$(curl -sf "$API/api/v1/ml/retrain-readiness")
 RN=$(echo "$RR" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['models']))")
 assert_gt0 "$RN" "retrain readiness lists models"
 
+# --- 21. Harvest decision engine --------------------------------------------
+echo "[21] Harvest decision engine"
+HD=$(curl -sf -X POST "$API/api/v1/postharvest/decision" -H 'Content-Type: application/json' \
+  -d '{"accumulated_gdd":1150,"current_phase":"HARVEST","archimedes_sink_ratio":0.85,"red_pct":95,"curvature_ratio":1.05,"defect_pct":1}')
+ACT=$(echo "$HD" | jqv "['recommended_action']")
+assert_eq "$ACT" "SELL_NOW" "prime fruit -> SELL_NOW"
+QG=$(echo "$HD" | jqv "['expected_grade']")
+assert_eq "$QG" "A+" "prime fruit -> A+"
+# Defect-heavy lot must never be held for price.
+HD2=$(curl -sf -X POST "$API/api/v1/postharvest/decision" -H 'Content-Type: application/json' \
+  -d '{"accumulated_gdd":1150,"current_phase":"HARVEST","archimedes_sink_ratio":0.6,"red_pct":80,"defect_pct":20,"price_trend_14d":0.3}')
+ACT2=$(echo "$HD2" | jqv "['recommended_action']")
+assert_eq "$ACT2" "PROCESS_OR_SORT" "high defect -> PROCESS_OR_SORT"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
