@@ -1,9 +1,38 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { verifyCertificate, type VerifyResult } from '$lib/api';
+	import { barcodeDetectorSupported, startQrScan } from '$lib/qrscan';
 
 	let raw = $state('');
 	let result = $state<VerifyResult | null>(null);
 	let err = $state('');
+	let scanErr = $state('');
+	let scanning = $state(false);
+	let videoEl: HTMLVideoElement;
+	let stopScan: (() => void) | null = null;
+	const scannerSupported = barcodeDetectorSupported();
+
+	async function toggleScan() {
+		if (scanning) {
+			stopScan?.();
+			scanning = false;
+			return;
+		}
+		scanErr = '';
+		try {
+			stopScan = await startQrScan(videoEl, (text) => {
+				raw = text;
+				scanning = false;
+				verify();
+			});
+			scanning = true;
+		} catch (e: any) {
+			scanErr = e.message;
+			scanning = false;
+		}
+	}
+
+	onDestroy(() => stopScan?.());
 
 	// Decoded payload structure expected in the QR: {payload, signature, public_key}
 	async function verify() {
@@ -39,7 +68,25 @@
 </p>
 
 <div class="card" style="margin-top:1rem">
-	<h2>Tempel Isi QR</h2>
+	<h2>Pindai QR dengan Kamera</h2>
+	{#if scannerSupported}
+		<div style="position:relative;max-width:360px">
+			<video bind:this={videoEl} style="width:100%;border-radius:8px;background:#000;min-height:200px"></video>
+		</div>
+		<button class="btn" style="margin-top:0.75rem" onclick={toggleScan}>
+			{scanning ? '⏹ Stop' : '📷 Mulai Pindai'}
+		</button>
+		{#if scanErr}<p class="error">{scanErr}</p>{/if}
+	{:else}
+		<p class="muted">
+			Browser ini tidak mendukung BarcodeDetector. Tempel isi QR secara manual
+			di bawah (atau gunakan Chrome/Edge/Android).
+		</p>
+	{/if}
+</div>
+
+<div class="card" style="margin-top:1rem">
+	<h2>Atau Tempel Isi QR</h2>
 	<textarea
 		bind:value={raw}
 		rows="8"
