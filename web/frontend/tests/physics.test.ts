@@ -12,7 +12,9 @@ import {
 	gddDay,
 	phaseForGdd,
 	archimedesSinkRatio,
-	gradeFromSinkRatio
+	gradeFromSinkRatio,
+	hourlyBlastRisk,
+	microclimateRisk
 } from '../src/lib/physics';
 
 describe('calorimetry', () => {
@@ -79,5 +81,30 @@ describe('archimedes', () => {
 	it('grade boundaries', () => {
 		expect(gradeFromSinkRatio(0.85)).toBe('A+');
 		expect(gradeFromSinkRatio(0.5)).toBe('B');
+	});
+});
+
+describe('microclimate EWS mirror', () => {
+	it('high risk when humid and warm', () => {
+		expect(hourlyBlastRisk(90, 26)).toBeGreaterThan(0.6);
+	});
+	it('zero risk when dry', () => {
+		expect(hourlyBlastRisk(50, 26)).toBe(0);
+	});
+	it('zero risk when cold', () => {
+		expect(hourlyBlastRisk(95, 10)).toBe(0);
+	});
+	it('humid series triggers high risk + low irrigation', () => {
+		const r = microclimateRisk([88, 90, 92, 94, 93, 91], [25, 26, 27, 26, 25, 26]);
+		expect(r.peak_risk).toBeGreaterThan(0.5);
+		expect(r.irrigation_minutes_per_bed).toBeLessThanOrEqual(10);
+	});
+	it('dry series low risk + normal irrigation', () => {
+		const r = microclimateRisk([50, 48, 52, 49, 51, 50], [30, 31, 32, 30, 31, 32]);
+		expect(r.peak_risk).toBeLessThan(0.4);
+		expect(r.irrigation_minutes_per_bed).toBe(20);
+	});
+	it('rejects mismatched series', () => {
+		expect(() => microclimateRisk([80, 85, 90], [25, 26])).toThrow();
 	});
 });

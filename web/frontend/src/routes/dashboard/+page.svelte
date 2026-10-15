@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { listLands, landGeoJSON, type Land } from '$lib/api';
+	import { listLands, landGeoJSON, fortificationCompliance, type Land } from '$lib/api';
 
 	let lands = $state<Land[]>([]);
 	let geo = $state<any>(null);
 	let mapEl: HTMLDivElement;
 	let map: any;
 	let err = $state('');
+
+	const compliance = $derived(fortificationCompliance(lands));
 
 	onMount(async () => {
 		if (!browser) return;
@@ -52,14 +54,25 @@
 
 <div class="grid" style="margin-top:1rem">
 	<div class="card">
-		<h2>Peta Lahan</h2>
-		<p class="muted">{lands.length} poligon lahan terdaftar (GeoJSON dari PostGIS).</p>
+		<h2>Fortification Compliance Monitor</h2>
+		<p class="muted">Lahan dalam fase Antesis (wajib Ca+B+Si, Urea diblokir):</p>
+		{#if compliance.locked.length === 0}
+			<p class="muted">Tidak ada lahan terkunci saat ini.</p>
+		{:else}
+			<ul>
+				{#each compliance.locked as l}
+					<li>
+						<strong>{l.name}</strong> —
+						<span class="badge medium">FORTIFICATION_LOCKED</span>
+						(GDD {(l.accumulated_gdd ?? 0).toFixed(0)})
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 	<div class="card">
-		<h2>Peringatan</h2>
-		<p class="muted">
-			Titik penyakit, TWI, dan proyeksi panen tampil di halaman detail lahan.
-		</p>
+		<h2>Peta Lahan</h2>
+		<p class="muted">{lands.length} poligon lahan terdaftar (GeoJSON dari PostGIS).</p>
 	</div>
 	<div class="card">
 		<h2>Catatan</h2>

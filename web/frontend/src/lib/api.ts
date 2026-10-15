@@ -129,3 +129,57 @@ export async function syncDelta(device_id: string, operations: unknown[]): Promi
 		body: JSON.stringify({ device_id, operations })
 	});
 }
+
+export interface EwsResult {
+	blast_risk_72h: number;
+	peak_risk: number;
+	peak_hour_offset: number;
+	mean_rh: number;
+	mean_t: number;
+	action: string;
+	irrigation_minutes_per_bed: number;
+}
+
+/** Microclimate fungal-blast early warning (offline fallback in physics.ts). */
+export async function ewsMicroclimate(
+	land_id: string,
+	rh_series: number[],
+	t_series: number[]
+): Promise<EwsResult> {
+	return req('/api/v1/agronomy/ews', {
+		method: 'POST',
+		body: JSON.stringify({ land_id, rh_series, t_series })
+	});
+}
+
+export interface GradeResult {
+	curvature_ratio: number;
+	red_pct: number;
+	defect_pct: number;
+	grade: string;
+	reasons: string[];
+}
+
+/** Grade a harvested fruit batch. */
+export async function gradeFruit(
+	land_id: string,
+	contour: [number, number][],
+	mean_a_channel: number,
+	lesion_area: number,
+	total_area: number
+): Promise<GradeResult> {
+	return req('/api/v1/postharvest/grade', {
+		method: 'POST',
+		body: JSON.stringify({ land_id, contour, mean_a_channel, lesion_area, total_area })
+	});
+}
+
+/** Fortification compliance is derived from a land's current phase. */
+export function fortificationCompliance(lands: Land[]): {
+	compliant: Land[];
+	locked: Land[];
+	total: number;
+} {
+	const locked = lands.filter((l) => l.current_phase === 'FORTIFICATION_LOCKED');
+	return { compliant: locked, locked, total: lands.length };
+}

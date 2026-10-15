@@ -7,10 +7,12 @@
 		soilList,
 		calorimetry,
 		recomputeGDD,
+		ewsMicroclimate,
 		type Land,
 		type DiseaseLog,
 		type SoilAssessment,
-		type CalorimetryResult
+		type CalorimetryResult,
+		type EwsResult
 	} from '$lib/api';
 	import { db, enqueue } from '$lib/db';
 
@@ -18,6 +20,8 @@
 	let diseases = $state<DiseaseLog[]>([]);
 	let soils = $state<SoilAssessment[]>([]);
 	let err = $state('');
+	let ews = $state<EwsResult | null>(null);
+	let ewsErr = $state('');
 
 	// Offline calorimetry calculator
 	let elevation = $state(850);
@@ -31,8 +35,27 @@
 			diseases = await landDiseases(id);
 			soils = await soilList(id);
 			elevation = land.elevation_m || 850;
+			await loadEws(id);
 		} catch (e: any) {
 			err = e.message;
+		}
+	}
+
+	async function loadEws(id: string) {
+		ewsErr = '';
+		// Demo microclimate window (a humid warm spell).
+		const rh = [86, 88, 90, 92, 94, 93, 91];
+		const t = [25, 26, 27, 26, 25, 26, 27];
+		try {
+			ews = await ewsMicroclimate(id, rh, t);
+		} catch (e: any) {
+			try {
+				const { microclimateRisk } = await import('$lib/physics');
+				ews = microclimateRisk(rh, t);
+				ewsErr = '⚠️ Dihitung offline (server tak terjangkau).';
+			} catch (e2: any) {
+				ewsErr = e2.message;
+			}
 		}
 	}
 
@@ -137,6 +160,31 @@
 					</p>
 					<p class="muted">Pasir {s.sand_pct}% · Debu {s.silt_pct}% · Liat {s.clay_pct}%</p>
 				{/each}
+			{/if}
+		</div>
+
+		<div class="card">
+			<h2>Peringatan Dini Jamur (EWS 72 jam)</h2>
+			{#if ewsErr}<p class="error">{ewsErr}</p>{/if}
+			{#if ews}
+				<p>
+					Risiko ledakan Antraknosa puncak:
+					<strong>{(ews.peak_risk * 100).toFixed(0)}%</strong>
+					{#if ews.peak_risk >= 0.7}
+						<span class="badge low">TINGGI</span>
+					{:else if ews.peak_risk >= 0.4}
+						<span class="badge medium">SEDANG</span>
+					{:else}
+						<span class="badge high">RENDAH</span>
+					{/if}
+				</p>
+				<p class="muted">{ews.action}</p>
+				<p class="muted">
+					Irigasi: <strong>{ews.irrigation_minutes_per_bed} menit/bedengan</strong> ·
+					RH rata-rata {ews.mean_rh}% · Suhu {ews.mean_t}°C
+				</p>
+			{:else}
+				<p class="muted">Memuat…</p>
 			{/if}
 		</div>
 	</div>

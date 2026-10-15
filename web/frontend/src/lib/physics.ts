@@ -120,3 +120,79 @@ export function gradeFromSinkRatio(r: number): string {
 	if (r >= 0.45) return 'B';
 	return 'BS';
 }
+
+// --- Microclimate fungal-blast EWS (offline mirror) ------------------------
+
+function rampUp(x: number, lo: number, hi: number): number {
+	if (hi <= lo) throw new Error('hi must exceed lo');
+	return Math.min(1, Math.max(0, (x - lo) / (hi - lo)));
+}
+function rampDown(x: number, lo: number, hi: number): number {
+	return 1 - rampUp(x, lo, hi);
+}
+
+/** Fungal-blast risk for one hour in [0,1] (matches the FastAPI engine). */
+export function hourlyBlastRisk(rh: number, t: number): number {
+	const rhM = rampUp(rh, 80, 90);
+	const tM = rampUp(t, 15, 27) * rampDown(t, 33, 38);
+	return rhM * tM;
+}
+
+export interface EwsMirrorResult {
+	blast_risk_72h: number;
+	peak_risk: number;
+	peak_hour_offset: number;
+	mean_rh: number;
+	mean_t: number;
+	action: string;
+	irrigation_minutes_per_bed: number;
+}
+
+export function microclimateRisk(
+	rhSeries: number[],
+	tSeries: number[],
+	horizonH = 72
+): EwsMirrorResult {
+	if (rhSeries.length !== tSeries.length || rhSeries.length < 3) {
+		throw new Error('rh and t series must be equal length and >= 3 samples');
+	}
+	const risks = rhSeries.map((rh, i) => hourlyBlastRisk(rh, tSeries[i]));
+	const peak0 = risks[risks.length - 1];
+
+	let peak = peak0;
+	let peakOff = 0;
+	const rhLast = rhSeries[rhSeries.length - 1];
+	const tLast = tSeries[tSeries.length - 1];
+	for (let h = 1; h <= horizonH; h++) {
+		// No-trend offline fallback: hold the last observation.
+		const r = hourlyBlastRisk(rhLast, tLast);
+		if (r > peak) {
+			peak = r;
+			peakOff = h;
+		}
+	}
+	const mean_rh = rhSeries.reduce((a, b) => a + b, 0) / rhSeries.length;
+	const mean_t = tSeries.reduce((a, b) => a + b, 0) / tSeries.length;
+
+	let action: string;
+	let minutes: number;
+	if (peak >= 0.7) {
+		action = 'RISIKO TINGGI ledakan Antraknosa 72 jam. Fungisida protektif (Mankozeb) sore ini, kurangi penyiraman.';
+		minutes = 0;
+	} else if (peak >= 0.4) {
+		action = 'Risiko sedang. Pantau kelembaban tajuk, hindari penyiraman berlebih.';
+		minutes = 10;
+	} else {
+		action = 'Risiko rendah. Penyiraman normal.';
+		minutes = 20;
+	}
+	return {
+		blast_risk_72h: peak0,
+		peak_risk: peak,
+		peak_hour_offset: peakOff,
+		mean_rh,
+		mean_t,
+		action,
+		irrigation_minutes_per_bed: minutes
+	};
+}
