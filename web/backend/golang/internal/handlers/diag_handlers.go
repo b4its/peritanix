@@ -8,15 +8,15 @@ import (
 // --- Diagnostics ------------------------------------------------------------
 
 type diagReq struct {
-	LandID        string             `json:"land_id"`
-	Lon           float64            `json:"lon"`
-	Lat           float64            `json:"lat"`
-	LocalTWI      *float64           `json:"local_twi"`
-	Visual        map[string]float64 `json:"visual"`
-	Spatial       map[string]float64 `json:"spatial"`
-	OozeFlow      map[string]any     `json:"ooze_optical_flow"`
-	TransAtten    *float64           `json:"trans_illumination_attenuation_pct"`
-	SeverityPct   *float64           `json:"severity_pct"`
+	LandID      string             `json:"land_id"`
+	Lon         float64            `json:"lon"`
+	Lat         float64            `json:"lat"`
+	LocalTWI    *float64           `json:"local_twi"`
+	Visual      map[string]float64 `json:"visual"`
+	Spatial     map[string]float64 `json:"spatial"`
+	OozeFlow    map[string]any     `json:"ooze_optical_flow"`
+	TransAtten  *float64           `json:"trans_illumination_attenuation_pct"`
+	SeverityPct *float64           `json:"severity_pct"`
 }
 
 // diagEvaluate orchestrates spatial context -> Bayesian fusion -> persist.
@@ -77,8 +77,8 @@ func (d *Deps) diagEvaluate(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"diagnosis":      log,
-		"bayesian":       res,
+		"diagnosis":       log,
+		"bayesian":        res,
 		"nearby_infected": nearby,
 	})
 }

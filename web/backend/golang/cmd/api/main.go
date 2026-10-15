@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/peritanix/dape-backend/internal/auth"
 	"github.com/peritanix/dape-backend/internal/config"
 	"github.com/peritanix/dape-backend/internal/handlers"
 	"github.com/peritanix/dape-backend/internal/infra/mlclient"
@@ -74,6 +75,7 @@ func main() {
 		ML:      ml,
 		Cache:   cache,
 		Store:   store,
+		Auth:    auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTLHours),
 	}
 	handlers.Register(app, deps)
 

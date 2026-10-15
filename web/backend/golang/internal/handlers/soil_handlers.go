@@ -12,13 +12,13 @@ func nowTS() int64 { return time.Now().Unix() }
 // --- Soil -------------------------------------------------------------------
 
 type soilSyncReq struct {
-	LandID              string  `json:"land_id"`
-	SandThickness       float64 `json:"sand_thickness"`
-	SiltThickness       float64 `json:"silt_thickness"`
-	ClayThickness       float64 `json:"clay_thickness"`
-	MeasuredRGB         []float64 `json:"measured_rgb"`
-	WhiteRefRGB         []float64 `json:"white_ref_rgb"`
-	DarkChamberLuxCheck bool    `json:"dark_chamber_lux_check"`
+	LandID              string           `json:"land_id"`
+	SandThickness       float64          `json:"sand_thickness"`
+	SiltThickness       float64          `json:"silt_thickness"`
+	ClayThickness       float64          `json:"clay_thickness"`
+	MeasuredRGB         []float64        `json:"measured_rgb"`
+	WhiteRefRGB         []float64        `json:"white_ref_rgb"`
+	DarkChamberLuxCheck bool             `json:"dark_chamber_lux_check"`
 	PHCurve             []map[string]any `json:"ph_curve"`
 }
 

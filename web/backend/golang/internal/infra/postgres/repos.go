@@ -54,6 +54,28 @@ func (r *UserRepo) scanUser(ctx context.Context, q string, arg any) (*domain.Use
 	return u, nil
 }
 
+// Register creates a user with a bcrypt password hash.
+func (r *UserRepo) Register(ctx context.Context, name, phone, role, passwordHash string) (*domain.User, error) {
+	const q = `
+		INSERT INTO users (name, role, phone, password_hash)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at`
+	u := &domain.User{Name: name, Phone: phone, Role: role}
+	if err := r.s.Pool.QueryRow(ctx, q, name, role, phone, passwordHash).
+		Scan(&u.ID, &u.CreatedAt); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+// GetCredential returns the password hash for login by phone.
+func (r *UserRepo) GetCredential(ctx context.Context, phone string) (string, string, string, error) {
+	const q = `SELECT id, COALESCE(password_hash,''), role FROM users WHERE phone=$1 LIMIT 1`
+	var id, hash, role string
+	err := r.s.Pool.QueryRow(ctx, q, phone).Scan(&id, &hash, &role)
+	return id, hash, role, err
+}
+
 // --- SoilRepo ---------------------------------------------------------------
 
 // SoilRepo is the Postgres-backed soil assessment repository.

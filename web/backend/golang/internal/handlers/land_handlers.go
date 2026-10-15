@@ -23,9 +23,9 @@ type landInitReq struct {
 }
 
 type landInitResp struct {
-	Land     *domain.Land  `json:"land"`
-	TWI      map[string]any `json:"twi_cache"`
-	CacheKB  float64       `json:"cache_kb"`
+	Land    *domain.Land   `json:"land"`
+	TWI     map[string]any `json:"twi_cache"`
+	CacheKB float64        `json:"cache_kb"`
 }
 
 // landInit creates a plot, registers the key, and fetches the TWI/flow cache.

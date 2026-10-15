@@ -19,9 +19,9 @@ type Client struct {
 	token   string
 	http    *http.Client
 
-	mu           sync.Mutex
-	failures     int
-	openUntil    time.Time
+	mu        sync.Mutex
+	failures  int
+	openUntil time.Time
 }
 
 // New constructs an ML client.
@@ -101,11 +101,11 @@ func (c *Client) post(ctx context.Context, path string, in, out any) error {
 
 // BBox is a geospatial bounding box request.
 type BBox struct {
-	LandID  string  `json:"land_id"`
-	MinLon  float64 `json:"min_lon"`
-	MinLat  float64 `json:"min_lat"`
-	MaxLon  float64 `json:"max_lon"`
-	MaxLat  float64 `json:"max_lat"`
+	LandID string  `json:"land_id"`
+	MinLon float64 `json:"min_lon"`
+	MinLat float64 `json:"min_lat"`
+	MaxLon float64 `json:"max_lon"`
+	MaxLat float64 `json:"max_lat"`
 }
 
 // ExtractDEM requests a TWI raster package for a bounding box.

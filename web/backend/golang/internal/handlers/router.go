@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/peritanix/dape-backend/internal/auth"
 	"github.com/peritanix/dape-backend/internal/config"
 	"github.com/peritanix/dape-backend/internal/domain"
 	"github.com/peritanix/dape-backend/internal/infra/crypto"
@@ -15,74 +16,91 @@ import (
 
 // Deps bundles all handler dependencies.
 type Deps struct {
-	Cfg      config.Config
-	Lands    domain.LandRepo
-	Users    domain.UserRepo
-	Soil     domain.SoilRepo
-	Disease  domain.DiseaseRepo
-	Harvest  domain.HarvestRepo
-	ML       *mlclient.Client
-	Cache    *rds.Client
-	Store    *postgres.Store
+	Cfg     config.Config
+	Lands   domain.LandRepo
+	Users   domain.UserRepo
+	Soil    domain.SoilRepo
+	Disease domain.DiseaseRepo
+	Harvest domain.HarvestRepo
+	ML      *mlclient.Client
+	Cache   *rds.Client
+	Store   *postgres.Store
+	Auth    *auth.Issuer
 }
 
 // Register mounts all routes on the app.
+//
+// Public routes: health, auth (register/login), certificate verification and
+// the read-only geospatial/GDD endpoints a buyer or dashboard needs. Mutating
+// routes are wrapped by the JWT middleware when Cfg.AuthRequired is true
+// (default false in development so local scripts run without a token).
 func Register(app *fiber.App, d *Deps) {
 	api := app.Group("/api/v1")
 
+	// --- Public: meta + auth ------------------------------------------------
 	api.Get("/health", d.health)
 	api.Get("/stats", d.stats)
+	api.Post("/auth/register", d.register)
+	api.Post("/auth/login", d.login)
+	api.Get("/auth/me", d.Auth.Middleware(), d.me)
 
-	// Lands
-	api.Post("/lands/init", d.landInit)
+	// --- Public reads -------------------------------------------------------
 	api.Get("/lands", d.landList)
 	api.Get("/lands/geojson", d.landGeoJSON)
 	api.Get("/lands/:id", d.landGet)
-	api.Post("/lands/:id/recompute-gdd", d.landRecomputeGDD)
-
-	// Soil
-	api.Post("/soil/sync", d.soilSync)
 	api.Get("/lands/:id/soil", d.soilList)
-
-	// Diagnostics
-	api.Post("/diagnostics/evaluate", d.diagEvaluate)
 	api.Get("/lands/:id/diseases", d.diseaseList)
 	api.Get("/lands/:id/diseases/geojson", d.diseaseGeoJSON)
+	api.Get("/harvest/batches/:code", d.harvestGet)
+	api.Post("/certificates/verify", d.certVerify) // public verifier — no auth
+
+	// --- Mutating group (guarded when auth is required) ---------------------
+	mut := api.Group("")
+	if d.Cfg.AuthRequired {
+		mut.Use(d.Auth.Middleware())
+	}
+
+	// Lands
+	mut.Post("/lands/init", d.landInit)
+	mut.Post("/lands/:id/recompute-gdd", d.landRecomputeGDD)
+
+	// Soil
+	mut.Post("/soil/sync", d.soilSync)
+
+	// Diagnostics
+	mut.Post("/diagnostics/evaluate", d.diagEvaluate)
 
 	// Post-harvest
-	api.Post("/postharvest/calorimetry", d.calorimetry)
-	api.Post("/postharvest/archimedes", d.archimedes)
-	api.Post("/harvest/batches", d.harvestCreate)
-	api.Get("/harvest/batches/:code", d.harvestGet)
+	mut.Post("/postharvest/calorimetry", d.calorimetry)
+	mut.Post("/postharvest/archimedes", d.archimedes)
+	mut.Post("/harvest/batches", d.harvestCreate)
 
 	// Multi-modal optics (burst, trans-illumination, ooze)
-	api.Post("/optics/mfsr", d.mfsrStack)
-	api.Post("/optics/trans-illumination", d.transIllumination)
-	api.Post("/optics/ooze", d.oozeOpticalFlow)
+	mut.Post("/optics/mfsr", d.mfsrStack)
+	mut.Post("/optics/trans-illumination", d.transIllumination)
+	mut.Post("/optics/ooze", d.oozeOpticalFlow)
 
 	// Post-harvest grading + microclimate EWS
-	api.Post("/postharvest/grade", d.gradeFruit)
-	api.Post("/agronomy/ews", d.ewsMicroclimate)
+	mut.Post("/postharvest/grade", d.gradeFruit)
+	mut.Post("/agronomy/ews", d.ewsMicroclimate)
 
 	// Anti-fraud image forensics
-	api.Post("/forensics/image-audit", d.imageAudit)
-
-	// Certificates (public verifier — no auth)
-	api.Post("/certificates/verify", d.certVerify)
+	mut.Post("/forensics/image-audit", d.imageAudit)
 
 	// Offline sync
-	api.Post("/sync/delta", d.syncDelta)
-	api.Post("/sync/merge", d.syncMerge)
+	mut.Post("/sync/delta", d.syncDelta)
+	mut.Post("/sync/merge", d.syncMerge)
+
 }
 
 func (d *Deps) health(c *fiber.Ctx) error {
 	mlOK := d.ML.Health(c.Context()) == nil
 	return c.JSON(fiber.Map{
-		"status":   "ok",
-		"service":  "dape-api",
-		"env":      d.Cfg.Env,
-		"ml":       mlOK,
-		"time":     time.Now().UTC(),
+		"status":  "ok",
+		"service": "dape-api",
+		"env":     d.Cfg.Env,
+		"ml":      mlOK,
+		"time":    time.Now().UTC(),
 	})
 }
 

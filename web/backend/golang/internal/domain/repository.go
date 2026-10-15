@@ -16,6 +16,10 @@ type UserRepo interface {
 	Create(ctx context.Context, u *User) error
 	GetByID(ctx context.Context, id string) (*User, error)
 	GetByPublicKey(ctx context.Context, pubkey string) (*User, error)
+	// Register creates a user with a password hash in one call.
+	Register(ctx context.Context, name, phone, role, passwordHash string) (*User, error)
+	// GetCredential returns the password hash for a phone (login).
+	GetCredential(ctx context.Context, phone string) (userID, passwordHash, role string, err error)
 }
 
 // SoilRepo is the persistence port for soil assessments.

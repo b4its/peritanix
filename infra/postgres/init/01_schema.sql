@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone               VARCHAR(32),
     -- Ed25519 public key (base64 / hex). Used to verify offline-signed certs.
     ed25519_public_key  TEXT,
+    -- bcrypt password hash for JWT auth (nullable: device-only users may skip).
+    password_hash       TEXT,
     -- Per-device white reference matrix for dark-chamber photometry (JSON array).
     white_reference     JSONB,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),

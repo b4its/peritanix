@@ -23,8 +23,8 @@ import (
 // Certificate is the signed envelope embedded in the QR code.
 type Certificate struct {
 	Payload   map[string]any `json:"payload"`
-	Signature string         `json:"signature"`   // base64 or hex
-	PublicKey string         `json:"public_key"`  // base64 or hex (ed25519, 32 bytes)
+	Signature string         `json:"signature"`  // base64 or hex
+	PublicKey string         `json:"public_key"` // base64 or hex (ed25519, 32 bytes)
 }
 
 // VerifyResult is the outcome of a verification.

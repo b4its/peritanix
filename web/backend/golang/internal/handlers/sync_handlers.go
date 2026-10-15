@@ -90,15 +90,15 @@ func (d *Deps) applyOp(ctx context.Context, op syncOp) error {
 		})
 	case "disease_log":
 		return d.Disease.Create(ctx, &domain.DiseaseLog{
-			LandID:             getStr(op.Data, "land_id"),
-			Lon:                getNum(op.Data, "lon"),
-			Lat:                getNum(op.Data, "lat"),
-			LocalTWI:           getNum(op.Data, "local_twi"),
-			ConfirmedDisease:   getStr(op.Data, "confirmed_disease"),
-			SeverityPct:        getNum(op.Data, "severity_pct"),
-			ConfidenceLevel:    getStr(op.Data, "confidence_level"),
-			ProtocolCode:       getStr(op.Data, "protocol_code"),
-			UpdatedTS:          op.UpdatedTS,
+			LandID:           getStr(op.Data, "land_id"),
+			Lon:              getNum(op.Data, "lon"),
+			Lat:              getNum(op.Data, "lat"),
+			LocalTWI:         getNum(op.Data, "local_twi"),
+			ConfirmedDisease: getStr(op.Data, "confirmed_disease"),
+			SeverityPct:      getNum(op.Data, "severity_pct"),
+			ConfidenceLevel:  getStr(op.Data, "confidence_level"),
+			ProtocolCode:     getStr(op.Data, "protocol_code"),
+			UpdatedTS:        op.UpdatedTS,
 		})
 	case "harvest_batch":
 		return d.Harvest.Create(ctx, &domain.HarvestBatch{

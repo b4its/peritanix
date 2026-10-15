@@ -33,10 +33,10 @@ func TestCanonicalJSONIsOrderIndependent(t *testing.T) {
 
 func TestVerifyValidSignature(t *testing.T) {
 	payload := map[string]any{
-		"land_id":             "aaa-111",
-		"grade_result":        "A",
+		"land_id":               "aaa-111",
+		"grade_result":          "A",
 		"archimedes_sink_ratio": 0.82,
-		"sterilization_c":     52.0,
+		"sterilization_c":       52.0,
 	}
 	sig, pub := sign(payload)
 	res := Verify(Certificate{Payload: payload, Signature: sig, PublicKey: pub})
