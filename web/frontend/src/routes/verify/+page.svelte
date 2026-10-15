@@ -8,7 +8,7 @@
 	let err = $state('');
 	let scanErr = $state('');
 	let scanning = $state(false);
-	let videoEl: HTMLVideoElement;
+	let videoEl = $state<HTMLVideoElement>();
 	let stopScan: (() => void) | null = null;
 	const scannerSupported = barcodeDetectorSupported();
 
@@ -20,6 +20,7 @@
 		}
 		scanErr = '';
 		try {
+			if (!videoEl) throw new Error('Elemen video belum siap.');
 			stopScan = await startQrScan(videoEl, (text) => {
 				raw = text;
 				scanning = false;

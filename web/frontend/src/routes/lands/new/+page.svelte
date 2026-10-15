@@ -8,7 +8,7 @@
 	let map: any;
 	let L: any;
 	let drawn: any = null;
-	let vertices: [number, number][] = []; // [lat, lng]
+	let vertices = $state<[number, number][]>([]); // [lat, lng]
 	let markerLayer: any;
 	let result = $state<LandInitResult | null>(null);
 	let err = $state('');

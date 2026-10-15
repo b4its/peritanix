@@ -22,13 +22,16 @@ fail() { echo "  ✗ $1"; FAIL=$((FAIL + 1)); }
 
 jqv() { python3 -c "
 import sys, json
-d = json.load(sys.stdin)
-path = '''$1'''
-for k in [p for p in path.strip('[]').split('][') if p]:
-    k = k.strip().strip(\"'\").strip('\"')
-    d = d[int(k)] if k.isdigit() else d[k]
-print(d)
-" 2>/dev/null; }
+try:
+    d = json.load(sys.stdin)
+    path = '''$1'''
+    for k in [p for p in path.strip('[]').split('][') if p]:
+        k = k.strip().strip(\"'\").strip('\"')
+        d = d[int(k)] if k.isdigit() else d[k]
+    print(d)
+except Exception:
+    pass
+" 2>/dev/null || true; }
 
 assert_eq() { # actual expected label
   if [ "$1" == "$2" ]; then pass "$3 ($1)"; else fail "$3 (got '$1', want '$2')"; fi
@@ -178,7 +181,9 @@ PHONE="628$(date +%s%N | tail -c 12)"
 # not abort the run under `set -e`.
 REG=$(curl -s -X POST "$API/api/v1/auth/register" -H 'Content-Type: application/json' \
   -d "{\"name\":\"E2E Tester\",\"phone\":\"$PHONE\",\"role\":\"farmer\",\"password\":\"secret123\"}")
-TOKEN=$(echo "$REG" | jqv "['token']")
+# jqv exits non-zero on a non-JSON body (e.g. the plain-text 429 from the rate
+# limiter); treat an empty token as the rate-limited case rather than aborting.
+TOKEN=$(echo "$REG" | jqv "['token']" || true)
 if [ -n "$TOKEN" ]; then
   assert_gt0 "${#TOKEN}" "register returns token"
   ME=$(curl -s "$API/api/v1/auth/me" -H "Authorization: Bearer $TOKEN" | jqv "['role']")

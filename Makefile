@@ -158,14 +158,27 @@ web-urls: ## Print service URLs
 
 web-test: ## Run backend test suites (Go + Python)
 	@printf "$(C_CYAN)[test]$(C_RESET) Python (pytest)\n"
-	$(DC) exec -T ml pytest -q || true
+	$(DC) exec -T ml pytest -q
 	@printf "$(C_CYAN)[test]$(C_RESET) Go (go test)\n"
-	$(DC) exec -T api go test ./... || true
+	$(DC) exec -T api go test ./...
 
-verify: ## Run full verification: unit tests + E2E smoke + calibration + chaos
+web-lint: init ## Lint backends + frontend (ruff, go vet, svelte-check)
+	@printf "$(C_CYAN)[lint]$(C_RESET) Python (ruff)\n"
+	$(DC) exec -T ml ruff check app/ tests/
+	@printf "$(C_CYAN)[lint]$(C_RESET) Go (go vet)\n"
+	$(DC) exec -T api go vet ./...
+	@printf "$(C_CYAN)[lint]$(C_RESET) Web (svelte-check)\n"
+	$(DC) exec -T web npm run check
+	@printf "$(C_GREEN)[lint]$(C_RESET) all clean.\n"
+
+verify: init ## Full verification: lint + unit + E2E + calibration + chaos
+	@printf "$(C_CYAN)[verify]$(C_RESET) lint\n"
+	$(DC) exec -T ml ruff check app/ tests/
+	$(DC) exec -T api go vet ./...
+	$(DC) exec -T web npm run check
 	@printf "$(C_CYAN)[verify]$(C_RESET) unit tests\n"
-	$(DC) exec -T ml pytest -q || true
-	$(DC) exec -T api go test ./... || true
+	$(DC) exec -T ml pytest -q
+	$(DC) exec -T api go test ./...
 	@printf "$(C_CYAN)[verify]$(C_RESET) end-to-end smoke\n"
 	bash scripts/e2e_smoke.sh
 	@printf "$(C_CYAN)[verify]$(C_RESET) agronomic calibration\n"
