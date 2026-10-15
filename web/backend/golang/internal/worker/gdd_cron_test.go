@@ -6,10 +6,10 @@ func TestGDDStep(t *testing.T) {
 	cases := []struct {
 		tMin, tMax, want float64
 	}{
-		{20, 30, 10},   // (30+20)/2 - 15 = 10
-		{10, 12, 0},    // clamped below base
-		{15, 15, 0},    // exactly base
-		{25, 35, 15},   // (35+25)/2 - 15 = 15
+		{20, 30, 10}, // (30+20)/2 - 15 = 10
+		{10, 12, 0},  // clamped below base
+		{15, 15, 0},  // exactly base
+		{25, 35, 15}, // (35+25)/2 - 15 = 15
 	}
 	for _, c := range cases {
 		if got := gddStep(c.tMin, c.tMax); got != c.want {

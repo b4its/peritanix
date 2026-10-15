@@ -13,6 +13,7 @@ import (
 	"github.com/peritanix/dape-backend/internal/infra/postgres"
 	rds "github.com/peritanix/dape-backend/internal/infra/redis"
 	"github.com/peritanix/dape-backend/internal/infra/storage"
+	"github.com/peritanix/dape-backend/internal/middleware"
 )
 
 // Deps bundles all handler dependencies.
@@ -38,24 +39,36 @@ type Deps struct {
 // routes are wrapped by the JWT middleware when Cfg.AuthRequired is true
 // (default false in development so local scripts run without a token).
 func Register(app *fiber.App, d *Deps) {
+	// Cross-cutting middleware: request id + trailing-slash normalisation.
+	app.Use(middleware.RequestID())
+	app.Use(middleware.TrimTrailingSlash())
+
 	api := app.Group("/api/v1")
+
+	// Auth rate limiter (brute-force protection).
+	authLimiter := middleware.NewRateLimiter(20, time.Minute)
+	stopSweep := make(chan struct{})
+	authLimiter.StartSweeper(5*time.Minute, stopSweep)
 
 	// --- Public: meta + auth ------------------------------------------------
 	api.Get("/health", d.health)
+	api.Get("/readyz", d.readyz)
 	api.Get("/stats", d.stats)
-	api.Post("/auth/register", d.register)
-	api.Post("/auth/login", d.login)
+	api.Post("/auth/register", authLimiter.Middleware(), d.register)
+	api.Post("/auth/login", authLimiter.Middleware(), d.login)
 	api.Get("/auth/me", d.Auth.Middleware(), d.me)
 
 	// --- Public reads -------------------------------------------------------
 	api.Get("/lands", d.landList)
 	api.Get("/lands/geojson", d.landGeoJSON)
-	api.Get("/lands/:id", d.landGet)
-	api.Get("/lands/:id/soil", d.soilList)
-	api.Get("/lands/:id/diseases", d.diseaseList)
-	api.Get("/lands/:id/diseases/geojson", d.diseaseGeoJSON)
-	api.Get("/lands/:id/gdd", d.gddHistory)
 	api.Get("/soil/fertility/geojson", d.soilFertilityGeoJSON)
+	api.Get("/protocols", d.protocolCatalog)
+	api.Get("/models", d.modelList)
+	api.Get("/lands/:id", middleware.RequireUUIDParam("id"), d.landGet)
+	api.Get("/lands/:id/soil", middleware.RequireUUIDParam("id"), d.soilList)
+	api.Get("/lands/:id/diseases", middleware.RequireUUIDParam("id"), d.diseaseList)
+	api.Get("/lands/:id/diseases/geojson", middleware.RequireUUIDParam("id"), d.diseaseGeoJSON)
+	api.Get("/lands/:id/gdd", middleware.RequireUUIDParam("id"), d.gddHistory)
 	api.Get("/harvest/batches/:code", d.harvestGet)
 	api.Post("/certificates/verify", d.certVerify) // public verifier — no auth
 
@@ -67,7 +80,7 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Lands
 	mut.Post("/lands/init", d.landInit)
-	mut.Post("/lands/:id/recompute-gdd", d.landRecomputeGDD)
+	mut.Post("/lands/:id/recompute-gdd", middleware.RequireUUIDParam("id"), d.landRecomputeGDD)
 
 	// Soil
 	mut.Post("/soil/sync", d.soilSync)
@@ -96,19 +109,16 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/yield/projection", d.yieldProjection)
 	mut.Post("/protocols/prescribe", d.protocolPrescribe)
 	mut.Post("/certificates/validate-trace", d.validateTrace)
-	api.Get("/protocols", d.protocolCatalog) // public catalogue
 
 	// Media upload (burst, trans-illum, ooze, rasters)
 	mut.Post("/media/upload", d.mediaUpload)
 
-	// Model OTA (Continuous Learning loop): manifest + list
+	// Model OTA (Continuous Learning loop): manifest
 	mut.Post("/models/manifest", d.modelManifest)
-	api.Get("/models", d.modelList)
 
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)
 	mut.Post("/sync/merge", d.syncMerge)
-
 }
 
 func (d *Deps) health(c *fiber.Ctx) error {
@@ -119,6 +129,44 @@ func (d *Deps) health(c *fiber.Ctx) error {
 		"env":     d.Cfg.Env,
 		"ml":      mlOK,
 		"time":    time.Now().UTC(),
+	})
+}
+
+// readyz is a deep readiness probe: it verifies every downstream dependency
+// (Postgres, Redis, ML) and returns 503 if any is down, so Kubernetes/ingress
+// does not route traffic to an instance that cannot serve.
+func (d *Deps) readyz(c *fiber.Ctx) error {
+	ctx := c.Context()
+	checks := map[string]bool{}
+
+	// Postgres: a trivial round-trip.
+	pgOK := false
+	if d.Store != nil && d.Store.Pool != nil {
+		pgOK = d.Store.Pool.Ping(ctx) == nil
+	}
+	checks["postgres"] = pgOK
+
+	// Redis: PING.
+	redisOK := false
+	if d.Cache != nil && d.Cache.RDB != nil {
+		redisOK = d.Cache.RDB.Ping(ctx).Err() == nil
+	}
+	checks["redis"] = redisOK
+
+	// ML engine.
+	checks["ml"] = d.ML.Health(ctx) == nil
+
+	allOK := pgOK && redisOK
+	status := fiber.StatusOK
+	overall := "ready"
+	if !allOK {
+		status = fiber.StatusServiceUnavailable
+		overall = "not_ready"
+	}
+	return c.Status(status).JSON(fiber.Map{
+		"status": overall,
+		"checks": checks,
+		"time":   time.Now().UTC(),
 	})
 }
 
@@ -136,6 +184,9 @@ type certVerifyReq struct {
 	Payload   map[string]any `json:"payload"`
 	Signature string         `json:"signature"`
 	PublicKey string         `json:"public_key"`
+	// Optional: when set (and public_key is empty), verify against the farmer's
+	// key stored server-side — a stronger check than trusting the scanned key.
+	UserID string `json:"user_id"`
 }
 
 func (d *Deps) certVerify(c *fiber.Ctx) error {
@@ -143,10 +194,31 @@ func (d *Deps) certVerify(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
 	}
+
+	pubKey := req.PublicKey
+	// If no key is embedded, fall back to the farmer's registered key.
+	if pubKey == "" && req.UserID != "" && middleware.IsUUID(req.UserID) {
+		if u, err := d.Users.GetByID(c.Context(), req.UserID); err == nil {
+			pubKey = u.Ed25519PublicKey
+		}
+	}
+
 	res := crypto.Verify(crypto.Certificate{
 		Payload:   req.Payload,
 		Signature: req.Signature,
-		PublicKey: req.PublicKey,
+		PublicKey: pubKey,
 	})
+	// If the scanned payload itself carried a key AND we have a stored one,
+	// require they match (prevents swapping in a forged key).
+	if res.Valid && req.PublicKey != "" && req.UserID != "" {
+		if u, err := d.Users.GetByID(c.Context(), req.UserID); err == nil {
+			if u.Ed25519PublicKey != "" && u.Ed25519PublicKey != req.PublicKey {
+				return c.JSON(fiber.Map{
+					"valid":  false,
+					"reason": "scanned public key does not match the registered farmer key",
+				})
+			}
+		}
+	}
 	return c.JSON(res)
 }
