@@ -30,6 +30,14 @@ any critical dependency is down (used by Kubernetes/ingress to gate traffic).
 { "status": "ready", "checks": { "postgres": true, "redis": true, "ml": true } }
 ```
 
+### `GET /api/v1/version`
+Build/runtime info for ops.
+→ `{ "service": "dape-api", "version": "1.0.0-dev", "commit": "unknown", "env": "development", "go_version": "go1.23.12", "auth_required": false }`
+
+### `GET /api/v1/models/runtime`
+Proxy of the ML ONNX runtime status (availability + which models are loadable).
+→ `{ "onnxruntime_available": true, "models_dir": "models", "models": [ { "name": "...", "version": "1.0.0", "loadable": false, "fallback": "deterministic rule engine" } ] }`
+
 Every response carries an `X-Request-ID` header (echoed or generated), and
 `/api/v1/lands/:id*` routes reject non-UUID ids with `400`. `/auth/*` is
 rate-limited (20/min per IP → `429`).

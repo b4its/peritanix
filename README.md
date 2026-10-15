@@ -221,8 +221,8 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 | Python (fastapi) | **202** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, **harvest decision** |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **45** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area geo + **on-device vision likelihoods** |
-| E2E script | **41** | Full stack incl. hardening, analytics, feedback, **harvest decision** |
+| Vitest (web) | **53** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area + on-device vision + **canonical JSON (cross-platform)** |
+| E2E script | **44** | Full stack incl. hardening, analytics, feedback, harvest, **version/runtime** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -324,6 +324,10 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Halaman diagnosis web** — capture foto → analisis offline → Bayes → resep
 - [x] **Akun JWT web** — login/register + penyimpanan token + auto-attach header
 - [x] **Gradle wrapper** Android (build portabel tanpa Gradle sistem) + LICENSE
+- [x] **Penerbitan sertifikat di browser** — sign Ed25519 (WebCrypto) + QR; 
+      **terverifikasi 3-arah** (Kotlin↔Go↔TypeScript canonical JSON identik)
+- [x] **Klien OTA model** — cek manifest, unduh hanya versi yang berubah
+- [x] **Observability** — `/api/v1/version` + `/api/v1/models/runtime`
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -334,14 +338,18 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 45
-  e2e smoke:   41 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
+  unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 53
+  e2e smoke:   44 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
                            →CRDT→sync→cert→yield→protocol→trace→media→JWT→
-                           models→fertility→gdd→hardening→feedback→harvest)
+                           models→fertility→gdd→hardening→feedback→harvest→version)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
 ```
+
+**Cross-platform crypto (bukti):** sertifikat yang ditandatangani KOTLIN dan
+TYPESCRIPT (browser) keduanya diverifikasi `valid:true` oleh backend Go — aturan
+float canonical JSON (`52 → "52.0"`) identik di ketiga stack.
 
 *Dibangun sebagai referensi implementasi DAPE — Deterministic Agro-Physics
 Engine. Fisika sudah benar & teruji; sisanya adalah kalibrasi lapangan.*

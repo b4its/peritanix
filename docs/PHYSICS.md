@@ -140,6 +140,14 @@ cross-platform signatures): integral values keep a single decimal place
 
 The Go verifier, the Kotlin signer, and the TypeScript encoder must all agree.
 
+> **Verified three-way.** A certificate signed by the **Kotlin** mobile core and
+> one signed by the **TypeScript** browser (WebCrypto Ed25519) both verify as
+> `valid: true` on the Go backend. Each implementation has tests pinning the
+> float rule (`52 -> "52.0"`), so the contract cannot silently drift:
+> - `web/backend/golang/internal/infra/crypto/ed25519_test.go`
+> - `mobile/src/test/kotlin/.../CryptoTest.kt`
+> - `web/frontend/tests/sign.test.ts`
+
 ## 9. Multi-Frame Super-Resolution (MFSR)
 
 Align a burst by **phase correlation** (peak of the normalised cross-power

@@ -247,6 +247,16 @@ HD2=$(curl -sf -X POST "$API/api/v1/postharvest/decision" -H 'Content-Type: appl
 ACT2=$(echo "$HD2" | jqv "['recommended_action']")
 assert_eq "$ACT2" "PROCESS_OR_SORT" "high defect -> PROCESS_OR_SORT"
 
+# --- 22. Version + model runtime --------------------------------------------
+echo "[22] Version + model runtime"
+VER=$(curl -sf "$API/api/v1/version" | jqv "['service']")
+assert_eq "$VER" "dape-api" "version reports service"
+RT=$(curl -sf "$API/api/v1/models/runtime")
+ONNX=$(echo "$RT" | jqv "['onnxruntime_available']")
+assert_eq "$ONNX" "True" "onnxruntime available"
+MRT=$(echo "$RT" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['models']))")
+assert_gt0 "$MRT" "model runtime lists models"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
