@@ -222,7 +222,7 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **213** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, **economics** |
+| Python (fastapi) | **219** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
 | Vitest (web) | **53** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
@@ -339,6 +339,8 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       uplift hasil), transparan & dapat dikalibrasi
 - [x] **Registry sertifikat** — batch panen tersimpan + lookup by code
 - [x] **Backup terjadwal** — k8s CronJob harian (pg_dump + sha256, retain 14)
+- [x] **DEM SRTM nyata** — crop GeoTIFF via rasterio (fallback sintetik deterministik)
+- [x] **Semua 6 service sehat** — healthcheck untuk files + web
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -349,13 +351,14 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 213 passed · go test 7 pkgs ok · kotlin 27 · vitest 53
-  e2e smoke:   50 passed  (…→hardening→feedback→harvest→version→
-                           sensor-ingest→EWS→economics→batch-registry)
+  unit:        pytest 219 passed · go test 7 pkgs ok · kotlin 27 · vitest 53
+  e2e smoke:   50 passed  (…→sensor-ingest→EWS→economics→batch-registry)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
   loadtest:    make loadtest  (k6: reads 10 VUs + compute 3 VUs, p95<800ms)
+
+docker compose ps → 6/6 services (healthy)
 ```
 
 **Cross-platform crypto (bukti):** sertifikat yang ditandatangani KOTLIN dan
