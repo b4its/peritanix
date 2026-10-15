@@ -234,6 +234,16 @@ Stem-dip ooze test — distinguishes Ralstonia vs Fusarium.
 ```
 → `{ "curvature_ratio": 1.02, "red_pct": 100, "defect_pct": 1, "grade": "A+", "reasons": [...] }`
 
+### `POST /api/v1/postharvest/decision`
+Fuses GDD phase + archimedes + grading + market trend into one recommendation.
+```json
+{ "accumulated_gdd": 1150, "current_phase": "HARVEST", "archimedes_sink_ratio": 0.85,
+  "curvature_ratio": 1.05, "red_pct": 95, "defect_pct": 1, "price_trend_14d": 0.0 }
+```
+→ `{ "recommended_action": "SELL_NOW", "best_window_days": 5, "expected_grade": "A+", "quality_score": 0.92, "spoilage_risk": "LOW", "rationale": ["GDD 1150 (fase HARVEST)", ...] }`
+
+Actions: `SELL_NOW` | `HOLD_14D` | `PROCESS_OR_SORT` | `REJECT_LOT`.
+
 ### `POST /api/v1/agronomy/ews`
 ```json
 { "rh_series": [86,88,90,92,94,93,91], "t_series": [25,26,27,26,25,26,27], "horizon_h": 72 }
@@ -407,6 +417,7 @@ All require `X-Internal-Token`.
 | POST | `/internal/decision/protocol` | Prescriptive pesticide protocol |
 | GET  | `/internal/decision/protocols` | Full protocol catalogue |
 | POST | `/internal/decision/validate-trace` | Immersion trace anti-cheat |
+| POST | `/internal/decision/harvest-decision` | Sell/hold/sort fusion |
 | POST | `/internal/models/manifest` | OTA model manifest |
 | GET  | `/internal/models/list` | All registered models |
 | GET  | `/internal/models/runtime` | ONNX runtime + loadable-model status |

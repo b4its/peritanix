@@ -290,3 +290,23 @@ size, quantisation). The registry version is a deterministic digest of
 `(name, version)` pairs. A client's OTA manifest flags only the models whose
 version changed, so a farmer on metered data downloads the minimum. Integrity
 is verified by re-hashing the artefact and comparing to the card's sha256.
+
+## 21. Harvest decision engine
+
+A transparent rule engine over the post-harvest physics (not a black box):
+
+```
+quality_score = 0.35·sink_ratio + 0.30·(red/100) + 0.25·(1−defect/100)
+                       + 0.10·(1 − (curv−1)/0.5)      [each term clamped 0..1]
+
+defect ≥ 15 %            -> PROCESS_OR_SORT   (patek dominates)
+red < 50 % (immature)    -> HOLD_14D          (ripen via GDD)
+uptrend ≥ 12 % & grade∈{A+,A} & risk≤MED
+                         -> HOLD_14D          (sell into strength)
+grade = A+ & risk = LOW  -> SELL_NOW          (peak, lock contract)
+otherwise                -> SELL_NOW          (time-sensitive)
+```
+
+A GDD-phase gate overrides `SELL_NOW` when the land is still VEGETATIVE /
+FLOWERING (thermal time has not reached harvest), so a few red samples cannot
+trigger a premature harvest.

@@ -216,11 +216,11 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **188** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry, **ONNX inference** |
+| Python (fastapi) | **202** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, **harvest decision** |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **39** | Mirror fisika + EWS + heatmap/fertility + QR scanner + **WKT/area geo** |
-| E2E script | **38** | Full stack incl. hardening, analytics, **feedback + ONNX runtime** |
+| Vitest (web) | **39** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area geo |
+| E2E script | **41** | Full stack incl. hardening, analytics, feedback, **harvest decision** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -315,6 +315,10 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Onboarding lahan** — halaman gambar poligon GPS → `lands/init`
 - [x] **Continuous learning** — capture feedback (lab/expert) + retrain-readiness
 - [x] **Backup/restore DB** — `make db-backup` / `make db-restore` (pg_dump+sha256)
+- [x] **Harvest decision engine** — GDD + grading + archimedes + pasar →
+      SELL_NOW/HOLD/SORT dengan skor mutu & alasan
+- [x] **Structured JSON logging** — slog (JSON di prod) + korelasi request-id
+- [x] **Halaman panen web** — kalorimetri + Archimedes + mutu + keputusan jual
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -325,10 +329,10 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 188 passed · go test 7 pkgs ok · kotlin 27 · vitest 39
-  e2e smoke:   38 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
+  unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 39
+  e2e smoke:   41 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
                            →CRDT→sync→cert→yield→protocol→trace→media→JWT→
-                           models→fertility→gdd→hardening→feedback)
+                           models→fertility→gdd→hardening→feedback→harvest)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
