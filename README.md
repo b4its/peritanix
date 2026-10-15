@@ -228,8 +228,8 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Python (fastapi) | **219** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **53** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
-| E2E script | **50** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, **economics + batch registry** |
+| Vitest (web) | **57** | Mirror fisika + EWS + heatmap/fertility + **TWI colour ramp** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
+| E2E script | **50–52** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, **TWI grid** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 | Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
@@ -345,6 +345,8 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Backup terjadwal** — k8s CronJob harian (pg_dump + sha256, retain 14)
 - [x] **DEM SRTM nyata** — crop GeoTIFF via rasterio (fallback sintetik deterministik)
 - [x] **Semua 6 service sehat** — healthcheck untuk files + web
+- [x] **Kontur TWI di dashboard** — grid cekungan drainase (warna dry→wet→trough)
+- [x] **Verifikasi pembeli lengkap** — cari batch by code + grafik GDD tersinkron
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -355,8 +357,9 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 219 passed · go test 7 pkgs ok · kotlin 27 · vitest 53
-  e2e smoke:   50 passed  (…→sensor-ingest→EWS→economics→batch-registry)
+  lint:        ruff clean · svelte-check 0/0 · go vet clean
+  unit:        pytest 219 passed · go test 7 pkgs ok · kotlin 27 · vitest 57
+  e2e smoke:   52 passed  (…→sensor-ingest→EWS→economics→batch-registry→TWI-grid)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
