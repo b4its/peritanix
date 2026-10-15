@@ -6,43 +6,26 @@ import math
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import BBoxRequest, TwiCell, TwiResponse
+from ..services import gis
 from ..services.physics import twi as twi_mod
 from ..services.physics.twi import flow_accumulation
 
 router = APIRouter(prefix="/internal/gis", tags=["gis"])
 
 
-def _synthetic_dem(rows: int, cols: int, bbox: BBoxRequest) -> list[list[float]]:
-    """Deterministic synthetic DEM when no SRTM tile is available.
-
-    Builds a smooth valley so flow accumulation produces a meaningful TWI field
-    for demo / offline operation. Real deployments substitute a cropped SRTM
-    GeoTIFF via rasterio (see TODO in services/gis.py).
-    """
-    dem: list[list[float]] = []
-    base = 850.0
-    for r in range(rows):
-        row = []
-        for c in range(cols):
-            # Single valley running down the middle (concave -> high TWI)
-            x = (c / max(cols - 1, 1)) * 2 - 1
-            valley = (1 - abs(x)) ** 2 * 25.0
-            slope = (1 - r / max(rows - 1, 1)) * 40.0
-            wave = 3.0 * math.sin(r * 0.7) * math.cos(c * 0.5)
-            row.append(base + slope + valley + wave)
-        dem.append(row)
-    return dem
-
-
 @router.post("/extract-dem", response_model=TwiResponse)
 def extract_dem(req: BBoxRequest) -> TwiResponse:
-    rows, cols = 24, 24
-    dem = _synthetic_dem(rows, cols, req)
+    grid = gis.extract_dem(req.min_lon, req.min_lat, req.max_lon, req.max_lat, out_size=24)
+    dem = grid.elevation
+    rows, cols = grid.rows, grid.cols
     acc = flow_accumulation(dem)
 
-    # Cell size in metres (small raster -> use degree->m approximation)
-    dlat = (req.max_lat - req.min_lat) / rows
-    cell_m = dlat * 111_320.0
+    # Cell size in metres: from the real GeoTIFF when available, else degree->m.
+    if grid.source == "srtm" and grid.cell_size_m > 0:
+        cell_m = grid.cell_size_m
+    else:
+        dlat = (req.max_lat - req.min_lat) / rows
+        cell_m = dlat * 111_320.0
 
     cells: list[TwiCell] = []
     twi_values: list[float] = []
