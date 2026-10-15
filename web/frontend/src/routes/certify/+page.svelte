@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { listLands, type Land } from '$lib/api';
+	import { listLands, saveHarvestBatch, type Land } from '$lib/api';
 	import { generateKeyPair, signCertificate, type SignedCertificate } from '$lib/sign';
 
 	let lands = $state<Land[]>([]);
@@ -12,8 +12,10 @@
 	let sinkRatio = $state(0.82);
 	let grade = $state('A');
 	let payloadHash = $state('');
+	let batchCode = $state('');
 	let cert = $state<SignedCertificate | null>(null);
 	let qrDataUrl = $state('');
+	let saved = $state('');
 	let err = $state('');
 	let copied = $state(false);
 
@@ -27,15 +29,29 @@
 		return keyPair;
 	}
 
+	function defaultBatchCode(): string {
+		const d = new Date();
+		const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+		return `BATCH-${ymd}-${Math.floor(Math.random() * 9000 + 1000)}`;
+	}
+
 	async function issue() {
 		err = '';
 		cert = null;
 		qrDataUrl = '';
+		saved = '';
 		if (!browser) return;
+		if (!landId) {
+			err = 'Pilih lahan dulu.';
+			return;
+		}
 		try {
 			await loadKey();
+			const code = batchCode || defaultBatchCode();
+			batchCode = code;
 			const payload = {
 				land_id: landId,
+				batch_code: code,
 				gdd: gdd,
 				cec_meq: cecMeq,
 				fortification_compliant: fortificationCompliant,
@@ -48,6 +64,26 @@
 			cert = await signCertificate(payload, keyPair!);
 			const QR = (await import('qrcode')).default;
 			qrDataUrl = await QR.toDataURL(JSON.stringify(cert), { width: 320, margin: 1 });
+
+			// Persist to the server so a buyer can look it up by batch code.
+			// (Best-effort: the signature is valid offline regardless.)
+			try {
+				await saveHarvestBatch({
+					land_id: landId,
+					batch_code: code,
+					boiling_point_calc: sterilizationC,
+					hot_water_ratio: `${sinkRatio.toFixed(2)} sink`,
+					archimedes_sink_ratio: sinkRatio,
+					grade_result: grade,
+					payload_hash: payloadHash || 'none',
+					crypto_signature: cert.signature,
+					signer_public_key: cert.public_key
+				});
+				saved = code;
+			} catch (se: any) {
+				saved = '';
+				err = '⚠️ Sertifikat dibuat offline; sinkronisasi riwayat tertunda: ' + se.message;
+			}
 		} catch (e: any) {
 			err = e.message;
 		}
@@ -103,11 +139,18 @@
 			<option value="A+">A+</option><option value="A">A</option>
 			<option value="B">B</option><option value="BS">BS</option>
 		</select>
+		<label class="muted" for="bc" style="display:block;margin-top:0.5rem">Kode batch (opsional)</label>
+		<input id="bc" bind:value={batchCode} placeholder="auto jika kosong" />
 		<label style="display:block;margin-top:0.5rem">
 			<input type="checkbox" bind:checked={fortificationCompliant} />
 			<span class="muted">Patuh Fortification Lock (Ca+B+Si)</span>
 		</label>
 		<button class="btn" style="margin-top:0.75rem" onclick={issue}>🔏 Tandatangani &amp; Buat QR</button>
+		{#if saved}
+			<p style="color:#16a34a;margin-top:0.5rem">
+				✓ Tersimpan di server sebagai <code>{saved}</code>
+			</p>
+		{/if}
 	</div>
 
 	<div class="card">

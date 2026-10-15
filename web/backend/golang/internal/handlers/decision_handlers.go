@@ -202,3 +202,68 @@ func (d *Deps) computeEws(c *fiber.Ctx, landID string, hours int) (map[string]an
 		"land_id": landID, "rh_series": rh, "t_series": temps, "horizon_h": hours,
 	})
 }
+
+// --- Economics (farm-level impact) ------------------------------------------
+
+type economicsReq struct {
+	AreaHa                 float64 `json:"area_ha"`
+	BaselineYieldTHa       float64 `json:"baseline_yield_t_ha"`
+	PricePerKg             float64 `json:"price_per_kg"`
+	FertilizerCostPerHaIDR float64 `json:"fertilizer_cost_per_ha_idr"`
+	FertilizerSavingPct    float64 `json:"fertilizer_saving_pct"`
+	YieldUpliftPct         float64 `json:"yield_uplift_pct"`
+	OutbreakProbability    float64 `json:"outbreak_probability"`
+	LossIfLatePct          float64 `json:"loss_if_late_pct"`
+	LossIfEarlyPct         float64 `json:"loss_if_early_pct"`
+}
+
+// economics turns DAPE recommendations into rupiah (fertilizer saving, avoided
+// crop loss, yield uplift) so a farmer or cooperative can judge the ROI.
+func (d *Deps) economics(c *fiber.Ctx) error {
+	var req economicsReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if req.AreaHa <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "area_ha must be > 0")
+	}
+	// Apply sensible defaults for any omitted field.
+	if req.BaselineYieldTHa == 0 {
+		req.BaselineYieldTHa = 12
+	}
+	if req.PricePerKg == 0 {
+		req.PricePerKg = 25000
+	}
+	if req.FertilizerCostPerHaIDR == 0 {
+		req.FertilizerCostPerHaIDR = 8_000_000
+	}
+	if req.FertilizerSavingPct == 0 {
+		req.FertilizerSavingPct = 0.25
+	}
+	if req.YieldUpliftPct == 0 {
+		req.YieldUpliftPct = 0.10
+	}
+	if req.OutbreakProbability == 0 {
+		req.OutbreakProbability = 0.35
+	}
+	if req.LossIfLatePct == 0 {
+		req.LossIfLatePct = 0.5
+	}
+	if req.LossIfEarlyPct == 0 {
+		req.LossIfEarlyPct = 0.12
+	}
+	res, err := d.ML.Economics(c.Context(), map[string]any{
+		"area_ha": req.AreaHa, "baseline_yield_t_ha": req.BaselineYieldTHa,
+		"price_per_kg":               req.PricePerKg,
+		"fertilizer_cost_per_ha_idr": req.FertilizerCostPerHaIDR,
+		"fertilizer_saving_pct":      req.FertilizerSavingPct,
+		"yield_uplift_pct":           req.YieldUpliftPct,
+		"outbreak_probability":       req.OutbreakProbability,
+		"loss_if_late_pct":           req.LossIfLatePct,
+		"loss_if_early_pct":          req.LossIfEarlyPct,
+	})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "economics engine: "+err.Error())
+	}
+	return c.JSON(res)
+}

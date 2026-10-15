@@ -4,12 +4,13 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import (
+    EconomicsRequest, EconomicsResponse,
     HarvestDecisionRequest, HarvestDecisionResponse,
     ProtocolRequest, ProtocolResponse,
     TraceRequest, TraceResponse,
     YieldRequest, YieldResponse,
 )
-from ..services.agronomy import harvest_decision, protocols, yield_projection
+from ..services.agronomy import economics, harvest_decision, protocols, yield_projection
 from ..services.epidemiology import trace_validation
 
 router = APIRouter(prefix="/internal/decision", tags=["decision"])
@@ -58,6 +59,24 @@ def harvest_decision_ep(req: HarvestDecisionRequest) -> HarvestDecisionResponse:
 @router.get("/protocols")
 def protocols_list() -> dict:
     return {"protocols": [p.__dict__ for p in protocols.catalog()]}
+
+
+@router.post("/economics", response_model=EconomicsResponse)
+def economics_ep(req: EconomicsRequest) -> EconomicsResponse:
+    try:
+        res = economics.analyse(economics.EconomicsInputs(
+            area_ha=req.area_ha, baseline_yield_t_ha=req.baseline_yield_t_ha,
+            price_per_kg=req.price_per_kg,
+            fertilizer_cost_per_ha_idr=req.fertilizer_cost_per_ha_idr,
+            fertilizer_saving_pct=req.fertilizer_saving_pct,
+            yield_uplift_pct=req.yield_uplift_pct,
+            outbreak_probability=req.outbreak_probability,
+            loss_if_late_pct=req.loss_if_late_pct,
+            loss_if_early_pct=req.loss_if_early_pct,
+        ))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return EconomicsResponse(**res.__dict__)
 
 
 @router.post("/validate-trace", response_model=TraceResponse)

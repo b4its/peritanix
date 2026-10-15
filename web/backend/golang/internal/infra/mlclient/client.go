@@ -234,6 +234,13 @@ func (c *Client) HarvestDecision(ctx context.Context, in map[string]any) (map[st
 	return out, err
 }
 
+// Economics computes the farm-level economic impact.
+func (c *Client) Economics(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/economics", in, &out)
+	return out, err
+}
+
 // ProtocolCatalog returns the full pesticide protocol catalogue.
 func (c *Client) ProtocolCatalog(ctx context.Context) (map[string]any, error) {
 	var out map[string]any

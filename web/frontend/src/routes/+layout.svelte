@@ -34,6 +34,7 @@
 			<a href="/harvest">Panen</a>
 			<a href="/certify">Sertifikat</a>
 			<a href="/verify">Verifikasi</a>
+			<a href="/economics">Ekonomi</a>
 			<a href="/models">Model</a>
 			<a href="/account">Akun</a>
 		</nav>

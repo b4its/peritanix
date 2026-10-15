@@ -375,3 +375,31 @@ class HarvestDecisionResponse(BaseModel):
     quality_score: float
     spoilage_risk: str
     rationale: list[str]
+
+
+# --- Economic impact --------------------------------------------------------
+class EconomicsRequest(BaseModel):
+    area_ha: float
+    baseline_yield_t_ha: float = 12.0
+    price_per_kg: float = 25000.0
+    fertilizer_cost_per_ha_idr: float = 8_000_000.0
+    fertilizer_saving_pct: float = 0.25
+    yield_uplift_pct: float = 0.10
+    outbreak_probability: float = 0.35
+    loss_if_late_pct: float = 0.5
+    loss_if_early_pct: float = 0.12
+
+
+class EconomicsResponse(BaseModel):
+    area_ha: float
+    baseline_revenue_idr: float
+    darif_revenue_idr: float
+    fertilizer_saving_idr: float
+    yield_uplift_idr: float
+    avoided_loss_idr: float
+    total_benefit_idr: float
+    estimated_darif_cost_idr: float
+    net_benefit_idr: float
+    roi_pct: float
+    break_even_fraction: float
+    notes: list[str]

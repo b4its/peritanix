@@ -129,6 +129,9 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/climate/ingest", d.climateIngest)
 	api.Get("/lands/:id/ews", middleware.RequireUUIDParam("id"), d.climateEws)
 
+	// Economic impact
+	mut.Post("/economics", d.economics)
+
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)
 	mut.Post("/sync/merge", d.syncMerge)

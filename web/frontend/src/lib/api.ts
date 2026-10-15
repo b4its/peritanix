@@ -415,6 +415,68 @@ export async function modelList(): Promise<{ models: ModelCard[] }> {
 	return req('/api/v1/models');
 }
 
+export interface HarvestBatch {
+	id: string;
+	land_id: string;
+	batch_code: string;
+	boiling_point_calc: number;
+	hot_water_ratio: string;
+	archimedes_sink_ratio: number;
+	grade_result: string;
+	crypto_signature?: string;
+	signer_public_key?: string;
+}
+
+/** Persist a signed harvest batch so buyers/off-takers can look it up later. */
+export async function saveHarvestBatch(batch: {
+	land_id: string;
+	batch_code: string;
+	boiling_point_calc: number;
+	hot_water_ratio: string;
+	archimedes_sink_ratio: number;
+	grade_result: string;
+	payload_hash?: string;
+	crypto_signature?: string;
+	signer_public_key?: string;
+}): Promise<HarvestBatch> {
+	return req('/api/v1/harvest/batches', { method: 'POST', body: JSON.stringify(batch) });
+}
+
+/** Look up a stored harvest batch by its code. */
+export async function getHarvestBatch(code: string): Promise<HarvestBatch> {
+	return req(`/api/v1/harvest/batches/${encodeURIComponent(code)}`);
+}
+
+export interface EconomicsResult {
+	area_ha: number;
+	baseline_revenue_idr: number;
+	darif_revenue_idr: number;
+	fertilizer_saving_idr: number;
+	yield_uplift_idr: number;
+	avoided_loss_idr: number;
+	total_benefit_idr: number;
+	estimated_darif_cost_idr: number;
+	net_benefit_idr: number;
+	roi_pct: number;
+	break_even_fraction: number;
+	notes: string[];
+}
+
+/** Farm-level economic impact (fertilizer saving + avoided loss + uplift). */
+export async function economics(input: {
+	area_ha: number;
+	baseline_yield_t_ha?: number;
+	price_per_kg?: number;
+	fertilizer_cost_per_ha_idr?: number;
+	fertilizer_saving_pct?: number;
+	yield_uplift_pct?: number;
+	outbreak_probability?: number;
+	loss_if_late_pct?: number;
+	loss_if_early_pct?: number;
+}): Promise<EconomicsResult> {
+	return req('/api/v1/economics', { method: 'POST', body: JSON.stringify(input) });
+}
+
 export interface AuthResult {
 	token: string;
 	user: { id: string; name: string; role: string };
