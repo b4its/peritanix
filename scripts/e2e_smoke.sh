@@ -127,6 +127,63 @@ CERT=$(curl -sf -X POST "$API/api/v1/certificates/verify" -H 'Content-Type: appl
 # A zero signature must NOT verify (it is not a valid signature for the payload).
 assert_eq "$(echo "$CERT" | jqv "['valid']")" "False" "invalid signature rejected"
 
+# --- 12. Yield projection ---------------------------------------------------
+echo "[12] Yield projection"
+YIELD=$(curl -sf -X POST "$API/api/v1/yield/projection" -H 'Content-Type: application/json' \
+  -d '{"green_dark":30,"red_blush":15,"red_full":10,"trees_per_bed":500,"sampled_trees":50,"gdd_per_day":14}')
+assert_gt0 "$(echo "$YIELD" | jqv "['projected_14d_kg']")" "14d tonnage projected"
+SF=$(echo "$YIELD" | jqv "['scale_factor']")
+python3 -c "import sys;sys.exit(0 if abs(float('$SF')-10.0)<1e-9 else 1)" && \
+  pass "sampling scale factor ($SF)" || fail "scale factor ($SF)"
+
+# --- 13. Protocol prescription ----------------------------------------------
+echo "[13] Prescriptive protocol"
+PROTO=$(curl -sf -X POST "$API/api/v1/protocols/prescribe" -H 'Content-Type: application/json' \
+  -d '{"verdict_key":"FUNG_MANKOZEB_AZOXY","severity_pct":14}')
+assert_gt0 "$(echo "$PROTO" | jqv "['dose_g_per_l']")" "dose prescribed"
+CAT=$(curl -sf "$API/api/v1/protocols" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['protocols']))")
+assert_gt0 "$CAT" "protocol catalogue size"
+
+# --- 14. Trace validation (anti-cheat) --------------------------------------
+echo "[14] Immersion trace validation"
+python3 -c "
+import json,math
+samples=[{'t':180*i/59,'gx':0.05*math.sin(i),'gy':0.05*math.cos(i*1.3),'gz':0.02*math.sin(i*0.7)} for i in range(60)]
+json.dump({'land_id':'x','samples':samples}, open('/tmp/good_trace.json','w'))
+samples2=[{'t':180*i/59,'gx':0,'gy':0,'gz':0} for i in range(60)]
+json.dump({'land_id':'x','samples':samples2}, open('/tmp/const_trace.json','w'))
+"
+GOOD=$(curl -sf -X POST "$API/api/v1/certificates/validate-trace" -H 'Content-Type: application/json' -d @/tmp/good_trace.json | jqv "['valid']")
+BAD=$(curl -sf -X POST "$API/api/v1/certificates/validate-trace" -H 'Content-Type: application/json' -d @/tmp/const_trace.json | jqv "['valid']")
+assert_eq "$GOOD" "True" "real immersion trace accepted"
+assert_eq "$BAD" "False" "constant trace (cheat) rejected"
+
+# --- 15. Media upload -------------------------------------------------------
+echo "[15] Media upload to object storage"
+B64=$(printf 'DAPE-e2e-media' | base64)
+UP=$(curl -sf -X POST "$API/api/v1/media/upload" -H 'Content-Type: application/json' \
+  -d "{\"land_id\":\"$LAND_ID\",\"kind\":\"trans_illum\",\"filename\":\"leaf.jpg\",\"content_type\":\"image/jpeg\",\"content_base64\":\"$B64\"}")
+UKEY=$(echo "$UP" | jqv "['key']")
+assert_gt0 "$(echo "$UP" | jqv "['bytes']")" "media stored"
+case "$UKEY" in lands/*) pass "storage key namespaced ($UKEY)" ;; *) fail "key ($UKEY)" ;; esac
+
+# --- 16. JWT auth -----------------------------------------------------------
+echo "[16] JWT auth register + login"
+PHONE="628$(date +%s%N | tail -c 12)"
+REG=$(curl -sf -X POST "$API/api/v1/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"name\":\"E2E Tester\",\"phone\":\"$PHONE\",\"role\":\"farmer\",\"password\":\"secret123\"}")
+TOKEN=$(echo "$REG" | jqv "['token']")
+assert_gt0 "${#TOKEN}" "register returns token"
+ME=$(curl -sf "$API/api/v1/auth/me" -H "Authorization: Bearer $TOKEN" | jqv "['role']")
+assert_eq "$ME" "farmer" "authenticated /auth/me"
+# wrong password must fail (expect non-zero exit / 401)
+if curl -sf -o /dev/null -X POST "$API/api/v1/auth/login" -H 'Content-Type: application/json' \
+   -d "{\"phone\":\"$PHONE\",\"password\":\"wrong\"}"; then
+  fail "wrong password accepted"
+else
+  pass "wrong password rejected"
+fi
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

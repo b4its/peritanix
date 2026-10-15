@@ -133,10 +133,10 @@ web-reseed: init ## DESTRUCTIVE: wipe DB volume, re-migrate and re-seed
 	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' $$($(DC) ps -q postgres) 2>/dev/null)" = "healthy" ]; do sleep 2; done
 	@printf "$(C_GREEN)[reseed]$(C_RESET) migrations + seed re-applied on fresh volume.\n"
 
-web-migrate: init ## Apply SQL migrations to a running postgres
+web-migrate: init ## Apply SQL migrations to a running postgres (idempotent)
 	$(DC) exec -T postgres psql -U $(shell grep -E '^POSTGRES_USER=' .env | cut -d= -f2) \
 		-d $(shell grep -E '^POSTGRES_DB=' .env | cut -d= -f2) \
-		-f /docker-entrypoint-initdb.d/01_schema.sql
+		-f /docker-entrypoint-initdb.d/04_migrations.sql
 
 web-ps: init ## Show web stack container status
 	$(DC) ps

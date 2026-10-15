@@ -12,6 +12,7 @@ import (
 	"github.com/peritanix/dape-backend/internal/infra/mlclient"
 	"github.com/peritanix/dape-backend/internal/infra/postgres"
 	rds "github.com/peritanix/dape-backend/internal/infra/redis"
+	"github.com/peritanix/dape-backend/internal/infra/storage"
 )
 
 // Deps bundles all handler dependencies.
@@ -26,6 +27,7 @@ type Deps struct {
 	Cache   *rds.Client
 	Store   *postgres.Store
 	Auth    *auth.Issuer
+	Storage storage.Store
 }
 
 // Register mounts all routes on the app.
@@ -92,6 +94,9 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/protocols/prescribe", d.protocolPrescribe)
 	mut.Post("/certificates/validate-trace", d.validateTrace)
 	api.Get("/protocols", d.protocolCatalog) // public catalogue
+
+	// Media upload (burst, trans-illum, ooze, rasters)
+	mut.Post("/media/upload", d.mediaUpload)
 
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)

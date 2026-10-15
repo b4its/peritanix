@@ -20,6 +20,7 @@ import (
 	"github.com/peritanix/dape-backend/internal/infra/mlclient"
 	"github.com/peritanix/dape-backend/internal/infra/postgres"
 	rds "github.com/peritanix/dape-backend/internal/infra/redis"
+	"github.com/peritanix/dape-backend/internal/infra/storage"
 	"github.com/peritanix/dape-backend/internal/worker"
 )
 
@@ -43,6 +44,12 @@ func main() {
 	defer cache.Close()
 
 	ml := mlclient.New(cfg.MLBaseURL, cfg.InternalToken)
+
+	// Object storage: HTTP store when an endpoint is configured, else no-op.
+	var objStore storage.Store = storage.NewNoopStore(cfg.MinioPublic)
+	if cfg.MinioEndpoint != "" {
+		objStore = storage.NewHTTPStore("http://"+cfg.MinioEndpoint, cfg.MinioBucket)
+	}
 
 	// --- HTTP app ---
 	app := fiber.New(fiber.Config{
@@ -76,6 +83,7 @@ func main() {
 		Cache:   cache,
 		Store:   store,
 		Auth:    auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTLHours),
+		Storage: objStore,
 	}
 	handlers.Register(app, deps)
 
