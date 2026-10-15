@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Python physics/ML engine — strict deterministic tests
+  # ---------------------------------------------------------------------------
+  ml-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        working-directory: web/backend/fastapi
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pytest
+        working-directory: web/backend/fastapi
+        run: pytest -v
+
+  # ---------------------------------------------------------------------------
+  # Go backend — CRDT, crypto, build
+  # ---------------------------------------------------------------------------
+  go-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: Build
+        working-directory: web/backend/golang
+        run: go build ./...
+      - name: Vet
+        working-directory: web/backend/golang
+        run: go vet ./...
+      - name: Test
+        working-directory: web/backend/golang
+        run: go test ./... -v
+
+  # ---------------------------------------------------------------------------
+  # Frontend — physics mirror tests + production build
+  # ---------------------------------------------------------------------------
+  web-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: web/frontend
+        run: npm ci || npm install --no-audit --no-fund
+      - name: Unit tests
+        working-directory: web/frontend
+        run: npm test
+      - name: Build
+        working-directory: web/frontend
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Kotlin core — physics + crypto JVM tests
+  # ---------------------------------------------------------------------------
+  mobile-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test
+        working-directory: mobile
+        run: gradle --no-daemon test
+
+  # ---------------------------------------------------------------------------
+  # Integration — full docker stack + live API smoke
+  # ---------------------------------------------------------------------------
+  integration:
+    runs-on: ubuntu-latest
+    needs: [ml-tests, go-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env
+        run: cp .env.example .env
+      - name: Start stack
+        run: |
+          docker compose --env-file .env up -d --build postgres redis files ml api
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:58080/api/v1/health | grep -q '"status":"ok"'; then
+              echo "API healthy"; exit 0
+            fi
+            sleep 3
+          done
+          echo "API did not become healthy"; docker compose logs api; exit 1
+      - name: Run E2E smoke
+        run: bash scripts/e2e_smoke.sh
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

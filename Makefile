@@ -158,6 +158,27 @@ web-test: ## Run backend test suites (Go + Python)
 	@printf "$(C_CYAN)[test]$(C_RESET) Go (go test)\n"
 	$(DC) exec -T api go test ./... || true
 
+verify: ## Run full verification: unit tests + E2E smoke + calibration + chaos
+	@printf "$(C_CYAN)[verify]$(C_RESET) unit tests\n"
+	$(DC) exec -T ml pytest -q || true
+	$(DC) exec -T api go test ./... || true
+	@printf "$(C_CYAN)[verify]$(C_RESET) end-to-end smoke\n"
+	bash scripts/e2e_smoke.sh
+	@printf "$(C_CYAN)[verify]$(C_RESET) agronomic calibration\n"
+	bash scripts/calibration_test.sh
+	@printf "$(C_CYAN)[verify]$(C_RESET) offline + chaos\n"
+	bash scripts/offline_chaos_test.sh
+	@printf "$(C_GREEN)[verify]$(C_RESET) all checks passed.\n"
+
+e2e: ## Run only the end-to-end smoke test
+	bash scripts/e2e_smoke.sh
+
+calibrate: ## Run only the agronomic calibration test
+	bash scripts/calibration_test.sh
+
+chaos: ## Run only the offline + chaos test
+	bash scripts/offline_chaos_test.sh
+
 web-down: init ## Stop the web stack (keep volumes)
 	$(DC) down
 
