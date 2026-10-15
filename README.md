@@ -136,8 +136,10 @@ peritanix/
 │   │           ├── handlers/     # REST
 │   │           ├── infra/        # postgres, redis, mlclient, crypto, storage
 │   │           └── worker/       # GDD cron
-│   └── frontend/             # SvelteKit PWA (+ 26 vitest)
-└── mobile/                   # Kotlin/JVM core (+ 27 JUnit)
+│   └── frontend/             # SvelteKit PWA (+ 45 vitest)
+│       └── src/routes/       # dashboard, lands/new, diagnose, harvest,
+│                             # verify, account, lands/[id]
+└── mobile/                   # Kotlin/JVM core (+ 27 JUnit) + android/ (Compose)
 ```
 
 ---
@@ -219,7 +221,7 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 | Python (fastapi) | **202** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, **harvest decision** |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **39** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area geo |
+| Vitest (web) | **45** | Mirror fisika + EWS + heatmap/fertility + QR scanner + WKT/area geo + **on-device vision likelihoods** |
 | E2E script | **41** | Full stack incl. hardening, analytics, feedback, **harvest decision** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
@@ -319,6 +321,9 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       SELL_NOW/HOLD/SORT dengan skor mutu & alasan
 - [x] **Structured JSON logging** — slog (JSON di prod) + korelasi request-id
 - [x] **Halaman panen web** — kalorimetri + Archimedes + mutu + keputusan jual
+- [x] **Halaman diagnosis web** — capture foto → analisis offline → Bayes → resep
+- [x] **Akun JWT web** — login/register + penyimpanan token + auto-attach header
+- [x] **Gradle wrapper** Android (build portabel tanpa Gradle sistem) + LICENSE
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -329,7 +334,7 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 39
+  unit:        pytest 202 passed · go test 7 pkgs ok · kotlin 27 · vitest 45
   e2e smoke:   41 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
                            →CRDT→sync→cert→yield→protocol→trace→media→JWT→
                            models→fertility→gdd→hardening→feedback→harvest)
