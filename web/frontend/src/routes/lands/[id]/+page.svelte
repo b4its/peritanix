@@ -8,6 +8,7 @@
 		calorimetry,
 		recomputeGDD,
 		ewsMicroclimate,
+		landEws,
 		yieldProjection,
 		prescribeProtocol,
 		gddHistory,
@@ -59,7 +60,17 @@
 
 	async function loadEws(id: string) {
 		ewsErr = '';
-		// Demo microclimate window (a humid warm spell).
+		// Prefer EWS computed from real stored sensor readings; fall back to a
+		// demo window (then to the offline mirror) when none are available.
+		try {
+			const stored = await landEws(id);
+			if (!stored.insufficient_data) {
+				ews = stored;
+				return;
+			}
+		} catch {
+			/* fall through to demo */
+		}
 		const rh = [86, 88, 90, 92, 94, 93, 91];
 		const t = [25, 26, 27, 26, 25, 26, 27];
 		try {

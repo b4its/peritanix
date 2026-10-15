@@ -230,6 +230,30 @@ export async function ewsMicroclimate(
 	});
 }
 
+/** EWS computed from the land's stored sensor readings. */
+export async function landEws(land_id: string): Promise<EwsResult & { insufficient_data?: boolean }> {
+	return req(`/api/v1/lands/${land_id}/ews`);
+}
+
+export interface ClimateReading {
+	observed_at: string;
+	rh: number;
+	temp_c: number;
+	soil_moist?: number;
+}
+
+/** Ingest a batch of sensor readings (ESP32/BLE logger pulled by the phone). */
+export async function climateIngest(
+	land_id: string,
+	readings: ClimateReading[],
+	device_id = 'web'
+): Promise<{ ingested: number; ews?: EwsResult }> {
+	return req('/api/v1/climate/ingest', {
+		method: 'POST',
+		body: JSON.stringify({ land_id, device_id, readings })
+	});
+}
+
 export interface GradeResult {
 	curvature_ratio: number;
 	red_pct: number;
