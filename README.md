@@ -232,6 +232,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | E2E script | **50** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, **economics + batch registry** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
+| Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
 
 Semua suite memverifikasi **nilai analitik eksak** dalam toleransi ketat —
 bukan sekadar "jalan tanpa error". Tes ini menemukan **6 bug nyata** selama
