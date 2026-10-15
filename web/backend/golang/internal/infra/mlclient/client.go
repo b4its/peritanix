@@ -206,6 +206,48 @@ func (c *Client) ImageAudit(ctx context.Context, in map[string]any) (map[string]
 	return out, err
 }
 
+// YieldProjection estimates harvestable mass over the horizon.
+func (c *Client) YieldProjection(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/yield-projection", in, &out)
+	return out, err
+}
+
+// ProtocolPrescribe returns an actionable agrochemical protocol.
+func (c *Client) ProtocolPrescribe(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/protocol", in, &out)
+	return out, err
+}
+
+// ValidateTrace checks an immersion gyroscope trace.
+func (c *Client) ValidateTrace(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/validate-trace", in, &out)
+	return out, err
+}
+
+// ProtocolCatalog returns the full pesticide protocol catalogue.
+func (c *Client) ProtocolCatalog(ctx context.Context) (map[string]any, error) {
+	var out map[string]any
+	// GET request
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL+"/internal/decision/protocols", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Internal-Token", c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Health pings the ML service.
 func (c *Client) Health(ctx context.Context) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)

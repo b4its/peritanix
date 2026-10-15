@@ -87,6 +87,12 @@ func Register(app *fiber.App, d *Deps) {
 	// Anti-fraud image forensics
 	mut.Post("/forensics/image-audit", d.imageAudit)
 
+	// Decision support: yield projection, protocols, trace validation
+	mut.Post("/yield/projection", d.yieldProjection)
+	mut.Post("/protocols/prescribe", d.protocolPrescribe)
+	mut.Post("/certificates/validate-trace", d.validateTrace)
+	api.Get("/protocols", d.protocolCatalog) // public catalogue
+
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)
 	mut.Post("/sync/merge", d.syncMerge)

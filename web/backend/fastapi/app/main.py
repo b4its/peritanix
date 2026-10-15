@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from .config import get_settings
 from .routers import (
     agronomy,
+    decision,
     forensics,
     gdd_physiology,
     gis_twi,
@@ -70,3 +71,4 @@ app.include_router(postharvest.router)
 app.include_router(optics.router)
 app.include_router(agronomy.router)
 app.include_router(forensics.router)
+app.include_router(decision.router)

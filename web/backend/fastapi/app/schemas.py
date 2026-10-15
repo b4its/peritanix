@@ -250,3 +250,79 @@ class ForensicResponse(BaseModel):
     hamming_distance: int | None
     verdict: str
     flags: list[str]
+
+
+# --- Yield projection -------------------------------------------------------
+class YieldRequest(BaseModel):
+    land_id: str = ""
+    green_dark: int = 0
+    red_blush: int = 0
+    red_full: int = 0
+    trees_per_bed: int
+    sampled_trees: int
+    horizon_days: int = 14
+    gdd_per_day: float = 12.0
+    green_dark_g: float = 12.0
+    red_blush_g: float = 14.0
+    red_full_g: float = 15.0
+
+
+class YieldResponse(BaseModel):
+    total_trees: int
+    sampled_trees: int
+    scale_factor: float
+    day_mass_kg: list[float]
+    cumulative_kg: list[float]
+    projected_14d_kg: float
+    confidence_pct: float
+    per_class_now: dict[str, float]
+    notes: list[str]
+
+
+# --- Prescriptive protocols -------------------------------------------------
+class ProtocolRequest(BaseModel):
+    verdict_key: str
+    severity_pct: float = 0.0
+    confidence: str = "MEDIUM"
+
+
+class ProtocolResponse(BaseModel):
+    code: str
+    disease: str
+    active_ingredient: str
+    dose_g_per_l: float
+    unit: str
+    interval_days: int
+    window: str
+    safety: str
+    organic_fallback: str
+    severity_pct: float
+    action_line: str
+    steps: list[str]
+
+
+# --- Physical-evidence trace validation -------------------------------------
+class TraceSample(BaseModel):
+    t: float
+    gx: float
+    gy: float
+    gz: float
+    ax: float = 0.0
+    ay: float = 0.0
+    az: float = 0.0
+
+
+class TraceRequest(BaseModel):
+    samples: list[TraceSample]
+    target_s: float = 180.0
+    duration_tol_s: float = 20.0
+    min_motion_variance: float = 1e-4
+
+
+class TraceResponse(BaseModel):
+    valid: bool
+    duration_s: float
+    samples: int
+    motion_variance: float
+    score: float
+    reasons: list[str]
