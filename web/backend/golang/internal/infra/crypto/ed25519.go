@@ -14,7 +14,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -175,7 +177,15 @@ func writeCanonical(buf *strings.Builder, v any) error {
 	return nil
 }
 
-// formatFloat renders a float without a trailing exponent for typical values.
+// formatFloat renders a float deterministically to match the Kotlin and
+// TypeScript canonical encoders. Integral values keep a ".0" suffix (Kotlin
+// Double.toString() and JS Number.toString() both do this for e.g. 52.0 -> "52"
+// in JS but "52.0" in Kotlin; we standardise on the Kotlin/Go-float form).
 func formatFloat(f float64) string {
-	return fmt.Sprintf("%v", f)
+	if f == math.Trunc(f) && !math.IsInf(f, 0) {
+		// Preserve a single decimal place for integral values so all platforms
+		// agree: 52 -> "52.0".
+		return strconv.FormatFloat(f, 'f', 1, 64)
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }

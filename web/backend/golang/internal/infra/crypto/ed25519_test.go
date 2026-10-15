@@ -26,7 +26,7 @@ func TestCanonicalJSONIsOrderIndependent(t *testing.T) {
 	if string(ja) != string(jb) {
 		t.Fatalf("canonical JSON differs:\n%s\n%s", ja, jb)
 	}
-	if string(ja) != `{"a":1,"b":2,"c":{"y":false,"z":true}}` {
+	if string(ja) != `{"a":1.0,"b":2.0,"c":{"y":false,"z":true}}` {
 		t.Fatalf("unexpected canonical form: %s", ja)
 	}
 }
