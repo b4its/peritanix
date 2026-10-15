@@ -1,0 +1,64 @@
+# =============================================================================
+# Scheduled PostgreSQL backup (k8s CronJob) — dumps to a PVC each night.
+# Restore: kubectl exec + pg_restore (or use scripts/db_restore.sh locally).
+# =============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dape-db-backup
+  namespace: dape
+spec:
+  schedule: "0 2 * * *"          # 02:00 daily
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgis/postgis:16-3.4
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  OUT=/backups/dape-${TS}.dump
+                  echo "[backup] dumping to ${OUT}"
+                  PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+                    -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+                    -Fc -f "${OUT}"
+                  sha256sum "${OUT}" > "${OUT}.sha256"
+                  # Keep only the 14 most recent dumps.
+                  ls -1t /backups/*.dump | tail -n +15 | xargs -r rm -f
+                  ls -1t /backups/*.dump.sha256 | tail -n +15 | xargs -r rm -f
+                  echo "[backup] done"
+              env:
+                - name: POSTGRES_HOST
+                  valueFrom: { configMapKeyRef: { name: dape-config, key: POSTGRES_HOST } }
+                - name: POSTGRES_DB
+                  valueFrom: { configMapKeyRef: { name: dape-config, key: POSTGRES_DB } }
+                - name: POSTGRES_USER
+                  valueFrom: { configMapKeyRef: { name: dape-config, key: POSTGRES_USER } }
+                - name: POSTGRES_PASSWORD
+                  valueFrom: { secretKeyRef: { name: dape-secrets, key: POSTGRES_PASSWORD } }
+              volumeMounts:
+                - { name: backups, mountPath: /backups }
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: dape-backups
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dape-backups
+  namespace: dape
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi

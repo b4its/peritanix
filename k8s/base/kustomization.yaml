@@ -6,3 +6,4 @@ resources:
   - 10-data.yaml
   - 20-app.yaml
   - 30-ingress-hpa.yaml
+  - 40-backup-cronjob.yaml

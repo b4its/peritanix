@@ -280,6 +280,18 @@ python3 -c "import sys;sys.exit(0 if float('$PEAK')>0.5 else 1)" && pass "sensor
 EWS2=$(curl -sf "$API/api/v1/lands/$LAND_ID/ews" | jqv "['peak_risk']")
 python3 -c "import sys;sys.exit(0 if float('$EWS2')>0.5 else 1)" && pass "land EWS reads stored readings" || fail "land EWS ($EWS2)"
 
+# --- 24. Economics + harvest batch registry ---------------------------------
+echo "[24] Economics + harvest batch"
+EC=$(curl -sf -X POST "$API/api/v1/economics" -H 'Content-Type: application/json' -d '{"area_ha":0.5}')
+NET=$(echo "$EC" | jqv "['net_benefit_idr']")
+python3 -c "import sys;sys.exit(0 if float('$NET')>0 else 1)" && pass "net benefit positive (Rp $NET)" || fail "economics net ($NET)"
+BH="BATCH-$RANDOM-$RANDOM"
+HB=$(curl -sf -X POST "$API/api/v1/harvest/batches" -H 'Content-Type: application/json' \
+  -d "{\"land_id\":\"$LAND_ID\",\"batch_code\":\"$BH\",\"boiling_point_calc\":96.7,\"hot_water_ratio\":\"6:9\",\"archimedes_sink_ratio\":0.82,\"grade_result\":\"A\"}")
+assert_eq "$(echo "$HB" | jqv "['batch_code']")" "$BH" "harvest batch saved"
+GOT=$(curl -sf "$API/api/v1/harvest/batches/$BH" | jqv "['batch_code']")
+assert_eq "$GOT" "$BH" "harvest batch lookup by code"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
