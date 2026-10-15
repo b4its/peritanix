@@ -66,6 +66,22 @@ type FeedbackRepo interface {
 	Counts(ctx context.Context) (map[string]int64, error)
 }
 
+// ClimateReading is one microclimate observation from a field sensor logger.
+type ClimateReading struct {
+	ObservedAt string  `json:"observed_at"` // RFC3339
+	RH         float64 `json:"rh"`
+	TempC      float64 `json:"temp_c"`
+	SoilMoist  float64 `json:"soil_moist,omitempty"`
+}
+
+// ClimateRepo persists microclimate readings and returns recent windows.
+type ClimateRepo interface {
+	// Ingest upserts a batch of readings for a land (idempotent per timestamp).
+	Ingest(ctx context.Context, landID, deviceID string, readings []ClimateReading) (int, error)
+	// Series returns the last `hours` readings (chronological).
+	Series(ctx context.Context, landID string, hours int) ([]ClimateReading, error)
+}
+
 // DiseaseRepo is the persistence port for disease logs.
 type DiseaseRepo interface {
 	Create(ctx context.Context, d *DiseaseLog) error

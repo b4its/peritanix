@@ -51,3 +51,18 @@ RETURNS TABLE(model_name VARCHAR, n BIGINT) AS $$
     GROUP BY model_name
     ORDER BY COUNT(*) DESC;
 $$ LANGUAGE sql STABLE;
+
+-- Microclimate sensor readings (ESP32/BLE logger pulled by the phone, then
+-- synced in bulk). Feeds the 72h fungal-blast EWS.
+CREATE TABLE IF NOT EXISTS climate_readings (
+    id          BIGSERIAL PRIMARY KEY,
+    land_id     UUID NOT NULL REFERENCES lands(id) ON DELETE CASCADE,
+    observed_at TIMESTAMPTZ NOT NULL,
+    rh          FLOAT NOT NULL,          -- relative humidity %
+    temp_c      FLOAT NOT NULL,          -- air temperature C
+    soil_moist  FLOAT,                   -- optional soil moisture %
+    device_id   VARCHAR(64),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (land_id, observed_at)
+);
+CREATE INDEX IF NOT EXISTS idx_climate_land_time ON climate_readings (land_id, observed_at DESC);

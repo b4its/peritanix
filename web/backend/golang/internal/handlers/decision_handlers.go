@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/peritanix/dape-backend/internal/domain"
 )
 
 // --- Yield projection (Opsi 3) ----------------------------------------------
@@ -137,4 +138,67 @@ func (d *Deps) harvestDecision(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadGateway, "harvest engine: "+err.Error())
 	}
 	return c.JSON(res)
+}
+
+// --- Microclimate sensor ingest (ESP32/BLE logger) --------------------------
+
+type climateIngestReq struct {
+	LandID   string                  `json:"land_id"`
+	DeviceID string                  `json:"device_id"`
+	Readings []domain.ClimateReading `json:"readings"`
+}
+
+// climateIngest stores a batch of sensor readings pulled from the field logger
+// by the phone (BLE), then returns the current EWS assessment for that land.
+func (d *Deps) climateIngest(c *fiber.Ctx) error {
+	var req climateIngestReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if req.LandID == "" || len(req.Readings) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "land_id and readings required")
+	}
+	n, err := d.Climate.Ingest(c.Context(), req.LandID, req.DeviceID, req.Readings)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	// Immediately compute the EWS from the full recent window.
+	ews, eerr := d.computeEws(c, req.LandID, 72)
+	resp := fiber.Map{"ingested": n, "land_id": req.LandID}
+	if eerr == nil {
+		resp["ews"] = ews
+	}
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// climateEws returns the 72h EWS from the land's stored readings.
+func (d *Deps) climateEws(c *fiber.Ctx) error {
+	ews, err := d.computeEws(c, c.Params("id"), 72)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, err.Error())
+	}
+	return c.JSON(ews)
+}
+
+// computeEws loads readings and calls the ML EWS engine.
+func (d *Deps) computeEws(c *fiber.Ctx, landID string, hours int) (map[string]any, error) {
+	series, err := d.Climate.Series(c.Context(), landID, hours)
+	if err != nil {
+		return nil, err
+	}
+	if len(series) < 3 {
+		return map[string]any{
+			"land_id": landID, "insufficient_data": true,
+			"readings": len(series),
+		}, nil
+	}
+	rh := make([]float64, len(series))
+	temps := make([]float64, len(series))
+	for i, rd := range series {
+		rh[i] = rd.RH
+		temps[i] = rd.TempC
+	}
+	return d.ML.EwsMicroclimate(c.Context(), map[string]any{
+		"land_id": landID, "rh_series": rh, "t_series": temps, "horizon_h": hours,
+	})
 }

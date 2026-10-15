@@ -109,6 +109,7 @@ func main() {
 		Storage:  objStore,
 		GDD:      postgres.NewGDDRepo(store),
 		Feedback: postgres.NewFeedbackRepo(store),
+		Climate:  postgres.NewClimateRepo(store),
 	}
 	handlers.Register(app, deps)
 

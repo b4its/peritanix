@@ -26,6 +26,7 @@ type Deps struct {
 	Harvest  domain.HarvestRepo
 	GDD      domain.GDDRepo
 	Feedback domain.FeedbackRepo
+	Climate  domain.ClimateRepo
 	ML       *mlclient.Client
 	Cache    *rds.Client
 	Store    *postgres.Store
@@ -123,6 +124,10 @@ func Register(app *fiber.App, d *Deps) {
 	// Continuous learning: capture ground-truth feedback + retrain readiness
 	mut.Post("/ml/feedback", d.feedbackCapture)
 	api.Get("/ml/retrain-readiness", d.retrainReadiness)
+
+	// Microclimate sensor ingest (ESP32/BLE logger) + EWS
+	mut.Post("/climate/ingest", d.climateIngest)
+	api.Get("/lands/:id/ews", middleware.RequireUUIDParam("id"), d.climateEws)
 
 	// Offline sync
 	mut.Post("/sync/delta", d.syncDelta)
