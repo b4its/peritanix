@@ -215,10 +215,13 @@ docker compose --env-file .env --profile storage up -d
 make verify        # full pipeline: unit tests + E2E + calibration + chaos
 make web-test      # Python (pytest) + Go (go test)
 make mobile-test   # Kotlin JVM (JUnit)
-make e2e           # end-to-end smoke (16 assertions across all layers)
+make e2e           # end-to-end smoke (50 assertions across all layers)
 make calibrate     # lab-reference validation (52C mix, flash correction, TWI, GDD)
 make chaos         # offline physics + reconnect + ML-outage graceful degradation
+make loadtest      # k6 load test (reads + compute, p95<800ms)
 ```
+
+**Lint:** `ruff check app/ tests/` (Python, CI-enforced) · `go vet ./...` (Go).
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
