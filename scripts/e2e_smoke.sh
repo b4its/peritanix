@@ -197,6 +197,15 @@ assert_gt0 "$N" "model manifest lists models"
 RV=$(echo "$MAN" | jqv "['registry_version']")
 assert_gt0 "${#RV}" "registry version present"
 
+# --- 18. Analytics endpoints (fertility + GDD) ------------------------------
+echo "[18] Analytics endpoints"
+FERT=$(curl -sf "$API/api/v1/soil/fertility/geojson")
+FN=$(echo "$FERT" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
+assert_gt0 "$FN" "soil-fertility features present"
+GDD=$(curl -sf "$API/api/v1/lands/$LAND_ID/gdd?days=30")
+GN=$(echo "$GDD" | python3 -c "import sys,json;print(len(json.load(sys.stdin).get('series') or []))")
+python3 -c "import sys;sys.exit(0 if int('$GN')>=0 else 1)" && pass "gdd history returned ($GN points)" || fail "gdd history"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

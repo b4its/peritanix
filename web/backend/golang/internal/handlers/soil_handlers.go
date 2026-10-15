@@ -127,6 +127,9 @@ func (d *Deps) gddHistory(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
+	if pts == nil {
+		pts = []domain.GDDPoint{} // serialize as [] not null
+	}
 	return c.JSON(fiber.Map{"land_id": c.Params("id"), "series": pts})
 }
 
