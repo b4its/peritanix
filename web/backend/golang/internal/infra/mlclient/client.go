@@ -285,6 +285,26 @@ func (c *Client) ModelList(ctx context.Context) (map[string]any, error) {
 	return out, nil
 }
 
+// ModelRuntime returns the ONNX runtime status (availability + loadable models).
+func (c *Client) ModelRuntime(ctx context.Context) (map[string]any, error) {
+	var out map[string]any
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL+"/internal/models/runtime", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Internal-Token", c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Health pings the ML service.
 func (c *Client) Health(ctx context.Context) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)

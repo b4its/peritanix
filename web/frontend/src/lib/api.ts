@@ -358,6 +358,39 @@ export async function harvestDecision(input: {
 	return req('/api/v1/postharvest/decision', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export interface ModelCard {
+	name: string;
+	version: string;
+	sha256: string;
+	size_bytes: number;
+	size_mb: number;
+	quantisation: string;
+	purpose: string;
+	update_available?: boolean;
+	url?: string;
+}
+
+export interface ModelRuntime {
+	onnxruntime_available: boolean;
+	models_dir: string;
+	models: { name: string; version: string; loadable: boolean; fallback: string | null }[];
+}
+
+/** Fetch the OTA model manifest for a client's current version set. */
+export async function modelManifest(
+	clientVersions: Record<string, string> = {}
+): Promise<{ registry_version: string; update_count: number; models: ModelCard[] }> {
+	return req('/api/v1/models/manifest', {
+		method: 'POST',
+		body: JSON.stringify({ client_versions: clientVersions })
+	});
+}
+
+/** List registered models (public). */
+export async function modelList(): Promise<{ models: ModelCard[] }> {
+	return req('/api/v1/models');
+}
+
 export interface AuthResult {
 	token: string;
 	user: { id: string; name: string; role: string };

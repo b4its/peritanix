@@ -54,6 +54,7 @@ func Register(app *fiber.App, d *Deps) {
 	// --- Public: meta + auth ------------------------------------------------
 	api.Get("/health", d.health)
 	api.Get("/readyz", d.readyz)
+	api.Get("/version", d.version)
 	api.Get("/stats", d.stats)
 	api.Post("/auth/register", authLimiter.Middleware(), d.register)
 	api.Post("/auth/login", authLimiter.Middleware(), d.login)
@@ -117,6 +118,7 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Model OTA (Continuous Learning loop): manifest
 	mut.Post("/models/manifest", d.modelManifest)
+	api.Get("/models/runtime", d.modelRuntime)
 
 	// Continuous learning: capture ground-truth feedback + retrain readiness
 	mut.Post("/ml/feedback", d.feedbackCapture)
