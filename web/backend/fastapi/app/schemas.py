@@ -355,3 +355,23 @@ class ModelManifestResponse(BaseModel):
     registry_version: str
     update_count: int
     models: list[ModelCardOut]
+
+
+# --- Harvest decision engine ------------------------------------------------
+class HarvestDecisionRequest(BaseModel):
+    accumulated_gdd: float
+    current_phase: str = "FRUITING"
+    archimedes_sink_ratio: float = 0.0
+    curvature_ratio: float = 1.0
+    red_pct: float = 0.0
+    defect_pct: float = 0.0
+    price_trend_14d: float = 0.0
+
+
+class HarvestDecisionResponse(BaseModel):
+    recommended_action: str
+    best_window_days: int
+    expected_grade: str
+    quality_score: float
+    spoilage_risk: str
+    rationale: list[str]

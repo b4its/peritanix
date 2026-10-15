@@ -101,3 +101,40 @@ func (d *Deps) validateTrace(c *fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// --- Harvest decision (post-harvest action fusion) --------------------------
+
+type harvestDecisionReq struct {
+	AccumulatedGDD      float64 `json:"accumulated_gdd"`
+	CurrentPhase        string  `json:"current_phase"`
+	ArchimedesSinkRatio float64 `json:"archimedes_sink_ratio"`
+	CurvatureRatio      float64 `json:"curvature_ratio"`
+	RedPct              float64 `json:"red_pct"`
+	DefectPct           float64 `json:"defect_pct"`
+	PriceTrend14d       float64 `json:"price_trend_14d"`
+}
+
+// harvestDecision fuses GDD phase + grading + archimedes + market signal into
+// a single sell/hold/sort recommendation.
+func (d *Deps) harvestDecision(c *fiber.Ctx) error {
+	var req harvestDecisionReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if req.CurrentPhase == "" {
+		req.CurrentPhase = "FRUITING"
+	}
+	if req.CurvatureRatio == 0 {
+		req.CurvatureRatio = 1.0
+	}
+	res, err := d.ML.HarvestDecision(c.Context(), map[string]any{
+		"accumulated_gdd": req.AccumulatedGDD, "current_phase": req.CurrentPhase,
+		"archimedes_sink_ratio": req.ArchimedesSinkRatio,
+		"curvature_ratio":       req.CurvatureRatio, "red_pct": req.RedPct,
+		"defect_pct": req.DefectPct, "price_trend_14d": req.PriceTrend14d,
+	})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "harvest engine: "+err.Error())
+	}
+	return c.JSON(res)
+}

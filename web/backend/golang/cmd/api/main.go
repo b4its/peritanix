@@ -3,7 +3,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/peritanix/dape-backend/internal/auth"
@@ -21,6 +20,7 @@ import (
 	"github.com/peritanix/dape-backend/internal/infra/postgres"
 	rds "github.com/peritanix/dape-backend/internal/infra/redis"
 	"github.com/peritanix/dape-backend/internal/infra/storage"
+	"github.com/peritanix/dape-backend/internal/middleware"
 	"github.com/peritanix/dape-backend/internal/worker"
 )
 
@@ -33,13 +33,15 @@ func main() {
 	// --- Infra ---
 	store, err := postgres.New(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("postgres: %v", err)
+		slog.Error("postgres connect failed", "err", err)
+		os.Exit(1)
 	}
 	defer store.Close()
 
 	cache, err := rds.New(ctx, cfg.RedisAddr)
 	if err != nil {
-		log.Fatalf("redis: %v", err)
+		slog.Error("redis connect failed", "err", err)
+		os.Exit(1)
 	}
 	defer cache.Close()
 
@@ -58,10 +60,31 @@ func main() {
 	})
 
 	app.Use(recover.New())
-	app.Use(logger.New(logger.Config{
-		Format:     "[api] ${time} ${status} ${latency} ${method} ${path}\n",
-		TimeFormat: time.RFC3339,
-	}))
+	// Structured JSON logging with request-id correlation. In development a
+	// human-readable handler is used; in production a JSON handler so logs are
+	// machine-parseable (ELK/Loki).
+	if cfg.Env == "production" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})))
+	} else {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})))
+	}
+	app.Use(func(c *fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next()
+		slog.Info("http",
+			"request_id", middleware.GetRequestID(c),
+			"method", c.Method(),
+			"path", c.Path(),
+			"status", c.Response().StatusCode(),
+			"latency_ms", time.Since(start).Milliseconds(),
+			"ip", c.IP(),
+		)
+		return err
+	})
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Internal-Token",
@@ -96,15 +119,16 @@ func main() {
 	// --- Serve ---
 	go func() {
 		if err := app.Listen(":" + cfg.HTTPPort); err != nil {
-			log.Fatalf("listen: %v", err)
+			slog.Error("listen failed", "err", err)
+			os.Exit(1)
 		}
 	}()
-	log.Printf("[api] DAPE backend listening on :%s (env=%s)", cfg.HTTPPort, cfg.Env)
+	slog.Info("api listening", "port", cfg.HTTPPort, "env", cfg.Env)
 
 	// --- Graceful shutdown ---
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("[api] shutting down...")
+	slog.Info("shutting down")
 	_ = app.ShutdownWithTimeout(10 * time.Second)
 }

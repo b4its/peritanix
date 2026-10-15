@@ -4,7 +4,7 @@ package worker
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -21,11 +21,11 @@ func StartGDDCron(cfg config.Config, deps *handlers.Deps) {
 	// Runs every day at 00:00 local time.
 	_, err := c.AddFunc("0 0 * * *", func() { recomputeAllGDD(deps) })
 	if err != nil {
-		log.Printf("[gdd-cron] schedule error: %v", err)
+		slog.Error("gdd-cron schedule error", "err", err)
 		return
 	}
 	c.Start()
-	log.Println("[gdd-cron] scheduled daily 00:00 GDD recomputation")
+	slog.Info("gdd-cron scheduled", "at", "00:00 daily")
 
 	// Run once shortly after boot so `make web-up` produces fresh GDD without
 	// waiting until midnight.
@@ -38,7 +38,7 @@ func recomputeAllGDD(deps *handlers.Deps) {
 	ctx := context.Background()
 	lands, err := deps.Lands.ListAll(ctx)
 	if err != nil {
-		log.Printf("[gdd-cron] list lands: %v", err)
+		slog.Error("gdd-cron list lands", "err", err)
 		return
 	}
 	for _, l := range lands {
@@ -50,13 +50,13 @@ func recomputeAllGDD(deps *handlers.Deps) {
 		}
 		res, err := deps.ML.GDD(ctx, in)
 		if err != nil {
-			log.Printf("[gdd-cron] land %s: %v", l.ID, err)
+			slog.Warn("gdd-cron compute", "land", l.ID, "err", err)
 			continue
 		}
 		gdd, _ := res["accumulated_gdd"].(float64)
 		phase, _ := res["current_phase"].(string)
 		if err := deps.Lands.UpdateGDD(ctx, l.ID, gdd, domain.LandPhase(phase)); err != nil {
-			log.Printf("[gdd-cron] update land %s: %v", l.ID, err)
+			slog.Error("gdd-cron update", "land", l.ID, "err", err)
 			continue
 		}
 		// Persist today's point into the time series for the dashboard chart.
@@ -64,9 +64,9 @@ func recomputeAllGDD(deps *handlers.Deps) {
 		dayGDD := gddStep(tMin, tMax)
 		today := time.Now().Format("2006-01-02")
 		if err := deps.GDD.AppendDaily(ctx, l.ID, today, tMin, tMax, dayGDD, gdd); err != nil {
-			log.Printf("[gdd-cron] append daily land %s: %v", l.ID, err)
+			slog.Warn("gdd-cron append", "land", l.ID, "err", err)
 		}
-		log.Printf("[gdd-cron] land %s -> gdd=%.1f phase=%s", l.ID, gdd, phase)
+		slog.Info("gdd-cron updated", "land", l.ID, "gdd", gdd, "phase", phase)
 	}
 }
 

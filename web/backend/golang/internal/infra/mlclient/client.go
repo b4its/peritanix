@@ -227,6 +227,13 @@ func (c *Client) ValidateTrace(ctx context.Context, in map[string]any) (map[stri
 	return out, err
 }
 
+// HarvestDecision fuses post-harvest physics into a sell/hold recommendation.
+func (c *Client) HarvestDecision(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/harvest-decision", in, &out)
+	return out, err
+}
+
 // ProtocolCatalog returns the full pesticide protocol catalogue.
 func (c *Client) ProtocolCatalog(ctx context.Context) (map[string]any, error) {
 	var out map[string]any

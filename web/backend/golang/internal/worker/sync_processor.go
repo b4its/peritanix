@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -38,7 +38,7 @@ func StartSyncProcessor(deps *handlers.Deps) {
 	go func() {
 		ticker := time.NewTicker(syncPollInterval)
 		defer ticker.Stop()
-		log.Printf("[sync-processor] started (poll %s)", syncPollInterval)
+		slog.Info("sync-processor started", "poll", syncPollInterval)
 		for range ticker.C {
 			drainQueue(deps)
 		}
@@ -57,12 +57,12 @@ func drainQueue(deps *handlers.Deps) {
 			return // queue empty
 		}
 		if err != nil {
-			log.Printf("[sync-processor] pop error: %v", err)
+			slog.Error("sync-processor pop", "err", err)
 			return
 		}
 		var op queuedOp
 		if err := json.Unmarshal([]byte(raw), &op); err != nil {
-			log.Printf("[sync-processor] bad op payload: %v", err)
+			slog.Warn("sync-processor bad payload", "err", err)
 			continue
 		}
 		op.Attempt++
@@ -76,12 +76,11 @@ func drainQueue(deps *handlers.Deps) {
 			continue // already applied elsewhere
 		}
 		if err := deps.ApplySyncOp(ctx, op.Entity, op.Data); err != nil {
-			log.Printf("[sync-processor] apply %s attempt %d: %v", op.Entity, op.Attempt, err)
+			slog.Warn("sync-processor apply", "entity", op.Entity, "attempt", op.Attempt, "err", err)
 			if op.Attempt < syncMaxAttempt {
 				requeue(deps, op)
 			} else {
-				log.Printf("[sync-processor] dropping op %s after %d attempts",
-					op.IdempotencyKey, op.Attempt)
+				slog.Error("sync-processor dropping op", "key", op.IdempotencyKey, "attempts", op.Attempt)
 			}
 		}
 	}
@@ -92,7 +91,7 @@ func requeue(deps *handlers.Deps, op queuedOp) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := deps.Cache.RDB.RPush(ctx, syncQueueKey, b).Err(); err != nil {
-		log.Printf("[sync-processor] requeue error: %v", err)
+		slog.Error("sync-processor requeue", "err", err)
 	}
 }
 

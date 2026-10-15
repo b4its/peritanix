@@ -4,11 +4,12 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import (
+    HarvestDecisionRequest, HarvestDecisionResponse,
     ProtocolRequest, ProtocolResponse,
     TraceRequest, TraceResponse,
     YieldRequest, YieldResponse,
 )
-from ..services.agronomy import protocols, yield_projection
+from ..services.agronomy import harvest_decision, protocols, yield_projection
 from ..services.epidemiology import trace_validation
 
 router = APIRouter(prefix="/internal/decision", tags=["decision"])
@@ -37,6 +38,21 @@ def yield_projection_ep(req: YieldRequest) -> YieldResponse:
 def protocol_ep(req: ProtocolRequest) -> ProtocolResponse:
     res = protocols.prescribe(req.verdict_key, req.severity_pct, req.confidence)
     return ProtocolResponse(**res.__dict__)
+
+
+@router.post("/harvest-decision", response_model=HarvestDecisionResponse)
+def harvest_decision_ep(req: HarvestDecisionRequest) -> HarvestDecisionResponse:
+    inp = harvest_decision.HarvestInputs(
+        accumulated_gdd=req.accumulated_gdd,
+        current_phase=req.current_phase,
+        archimedes_sink_ratio=req.archimedes_sink_ratio,
+        curvature_ratio=req.curvature_ratio,
+        red_pct=req.red_pct,
+        defect_pct=req.defect_pct,
+        price_trend_14d=req.price_trend_14d,
+    )
+    d = harvest_decision.decision_from_gdd_phase(req.accumulated_gdd, inp)
+    return HarvestDecisionResponse(**d.__dict__)
 
 
 @router.get("/protocols")

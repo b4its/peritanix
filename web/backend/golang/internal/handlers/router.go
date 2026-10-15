@@ -110,6 +110,7 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/yield/projection", d.yieldProjection)
 	mut.Post("/protocols/prescribe", d.protocolPrescribe)
 	mut.Post("/certificates/validate-trace", d.validateTrace)
+	mut.Post("/postharvest/decision", d.harvestDecision)
 
 	// Media upload (burst, trans-illum, ooze, rasters)
 	mut.Post("/media/upload", d.mediaUpload)
