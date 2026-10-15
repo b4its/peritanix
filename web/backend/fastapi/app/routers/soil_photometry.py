@@ -57,6 +57,31 @@ def photometry(req: PhotometryRequest) -> PhotometryResponse:
 def fertilizer_plan(req: FertilizerRequest) -> FertilizerResponse:
     plan = fert_mod.prescribe(req.ph, req.cec_meq, req.hst,
                               req.target_yield_t_ha, req.soil_class)
+
+    # Prefer a trained ONNX model if one is registered; otherwise the
+    # deterministic rule engine is authoritative (and fully auditable).
+    import numpy as np
+    from pathlib import Path
+    from ..config import get_settings
+    from ..services.models import inference
+
+    feats = np.array([[req.ph, req.cec_meq, float(req.hst),
+                       req.target_yield_t_ha]], dtype=np.float32)
+    res = inference.infer(Path(get_settings().dape_models_dir),
+                          "fertilizer_lightgbm", {"input": feats})
+    if res.available and "output" in res.outputs:
+        out = res.outputs["output"]
+        try:
+            row = out[0]
+            return FertilizerResponse(
+                npk_16_16_16_g_per_l=round(float(row[0]), 2),
+                kno3_g_per_l=round(float(row[1]), 2),
+                calcium_g_per_l=round(float(row[2]), 2),
+                recommendation="(ONNX model) " + plan.recommendation,
+            )
+        except Exception:
+            pass  # fall through to the rule engine
+
     return FertilizerResponse(
         npk_16_16_16_g_per_l=plan.npk_16_16_16_g_per_l,
         kno3_g_per_l=plan.kno3_g_per_l,

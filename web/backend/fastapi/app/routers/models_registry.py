@@ -35,3 +35,28 @@ def list_models() -> ModelManifestResponse:
         update_count=man["update_count"],
         models=[ModelCardOut(**m) for m in man["models"]],
     )
+
+
+@router.get("/runtime")
+def runtime_status() -> dict:
+    """Report the inference runtime: onnxruntime presence + which models are
+    actually loadable (have a non-placeholder artefact on disk)."""
+    from ..services.models import inference
+
+    reg = registry.Registry.from_dir(_MODELS_DIR)
+    models = []
+    for card in reg.all():
+        art = _MODELS_DIR / card.name / f"{card.version}.onnx"
+        loadable = card.version not in ("", "0.0.0") and art.exists()
+        models.append({
+            "name": card.name,
+            "version": card.version,
+            "loadable": loadable,
+            "quantisation": card.quantisation,
+            "fallback": None if loadable else "deterministic rule engine",
+        })
+    return {
+        "onnxruntime_available": inference.ort_available(),
+        "models_dir": str(_MODELS_DIR),
+        "models": models,
+    }
