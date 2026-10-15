@@ -62,6 +62,9 @@ jobs:
       - name: Install
         working-directory: web/frontend
         run: npm ci || npm install --no-audit --no-fund
+      - name: Type/accessibility check (svelte-check)
+        working-directory: web/frontend
+        run: npm run check
       - name: Unit tests
         working-directory: web/frontend
         run: npm test
