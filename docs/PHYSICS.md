@@ -220,3 +220,46 @@ lexicographically with `device_id` as the deterministic tie-break. A
 `Concurrent(a,b) = ¬a.Dominates(b) ∧ ¬b.Dominates(a)`.
 `Merge` is **commutative, associative, idempotent** — proven by Go tests — so
 replicas converge regardless of sync order.
+
+## 16. Yield projection (Opsi 3)
+
+Counts of three ripeness classes are scaled to the bed
+(`scale = trees_per_bed / sampled_trees`) and advanced with a GDD-driven
+phenology transfer matrix:
+
+```
+r_gb = min(1, gdd_per_day / gdd_green_to_blush)   # green -> blush rate
+r_bf = min(1, gdd_per_day / gdd_blush_to_full)    # blush -> full rate
+green_dark' = green_dark·(1−r_gb)
+red_blush'  = red_blush·(1−r_bf) + green_dark·r_gb
+red_full'   = red_full           + red_blush·r_bf   (picked daily)
+day_mass_kg = red_full · red_full_g / 1000
+```
+
+Confidence heuristic grows with the sampled fraction:
+`confidence = min(97, 60 + 200 · sampled/total)`.
+
+## 17. Prescriptive protocols (Opsi 1D)
+
+Severity scales the dose linearly within the labelled range — **never
+exceeding it**:
+
+```
+dose = dose_min + (dose_max − dose_min) · clamp(severity/100, 0, 1)
+```
+
+A transparent rule engine (not an LLM — doses must not be hallucinated). 9
+protocols incl. Antraknosa (Mankozeb+Azoksistrobin), Ralstonia (eradication),
+Thrips/Mites/Begomovirus, deficiency. Each carries safety + organic fallback.
+
+## 18. Immersion trace anti-cheat
+
+```
+duration = max(t) − min(t)                     must be ≈ 180 s (±20)
+motion_variance = Var(|gyro|)                  must exceed a floor
+reject if the gyro signal is constant (all-equal) -> timer skipped
+score = 0.5·duration_closeness + 0.5·motion_norm
+```
+
+A heuristic deterrent combined with the SHA-256 image hash and Ed25519
+signature in the certificate.

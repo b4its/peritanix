@@ -25,6 +25,29 @@ Liveness for the Go process.
 
 ---
 
+## Auth (JWT)
+
+Public: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`.
+When `AUTH_REQUIRED=true`, all mutating routes require `Authorization: Bearer <token>`.
+
+### `POST /api/v1/auth/register`
+```json
+{ "name": "Pak Budi", "phone": "6281200000001", "role": "farmer", "password": "secret123" }
+```
+→ `201 { "token": "<jwt>", "user": { "id": "...", "name": "...", "role": "farmer" } }`
+(409 if the phone already exists; password must be ≥ 6 chars.)
+
+### `POST /api/v1/auth/login`
+```json
+{ "phone": "6281200000001", "password": "secret123" }
+```
+→ `{ "token": "<jwt>", "user": { ... } }` or `401`.
+
+### `GET /api/v1/auth/me`  *(requires Bearer)*
+→ the authenticated user.
+
+---
+
 ## Lands
 
 ### `POST /api/v1/lands/init`
@@ -226,6 +249,45 @@ operation is commutative/associative/idempotent, so clients retry freely.
 
 ---
 
+## Decision support (Opsi 1D & 3)
+
+### `POST /api/v1/yield/projection`
+Fruit-count sampling → daily harvest curve + 14-day tonnage.
+```json
+{ "green_dark": 30, "red_blush": 15, "red_full": 10, "trees_per_bed": 500, "sampled_trees": 50, "gdd_per_day": 14 }
+```
+→ `{ "projected_14d_kg": 8.15, "cumulative_kg": [...], "day_mass_kg": [...], "confidence_pct": 80, "scale_factor": 10 }`
+
+### `POST /api/v1/protocols/prescribe`
+```json
+{ "verdict_key": "FUNG_MANKOZEB_AZOXY", "severity_pct": 14 }
+```
+→ `{ "action_line": "...dosis 2.07 g/L...", "dose_g_per_l": 2.07, "steps": [...], "organic_fallback": "..." }`
+
+### `GET /api/v1/protocols`
+Full pesticide-protocol catalogue (public).
+
+### `POST /api/v1/certificates/validate-trace`
+Immersion gyroscope-trace anti-cheat.
+```json
+{ "samples": [ { "t": 0, "gx": 0.05, "gy": 0.02, "gz": -0.01 }, ... ] }
+```
+→ `{ "valid": true, "duration_s": 180, "motion_variance": 1.2e-3, "score": 0.9 }`
+
+---
+
+## Media (TAHAP 3.2)
+
+### `POST /api/v1/media/upload`
+Base64 media → object storage under `dape-raw`.
+```json
+{ "land_id": "aaaa...", "kind": "trans_illum", "filename": "leaf.jpg", "content_type": "image/jpeg", "content_base64": "..." }
+```
+→ `{ "key": "lands/<id>/trans_illum/leaf.jpg", "url": "http://files:9000/dape-raw/...", "bytes": 1234 }`
+kinds: `burst | trans_illum | ooze | twi_raster | archimedes | photometry`; 10 MB cap.
+
+---
+
 ## Certificates (public, no auth)
 
 ### `POST /api/v1/certificates/verify`
@@ -289,5 +351,9 @@ All require `X-Internal-Token`.
 | POST | `/internal/optics/trans-illumination` | Mesophyll attenuation |
 | POST | `/internal/optics/ooze-optical-flow` | Ralstonia vs Fusarium |
 | POST | `/internal/forensics/image-audit` | EXIF + ELA + aHash duplicate |
+| POST | `/internal/decision/yield-projection` | 14-day harvest tonnage projection |
+| POST | `/internal/decision/protocol` | Prescriptive pesticide protocol |
+| GET  | `/internal/decision/protocols` | Full protocol catalogue |
+| POST | `/internal/decision/validate-trace` | Immersion trace anti-cheat |
 | POST | `/internal/postharvest/calorimetry` | Black's-law hot-water ratio |
 | POST | `/internal/postharvest/archimedes` | Sink ratio + grade |

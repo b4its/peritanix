@@ -208,11 +208,11 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **136** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, **MFSR, trans-illumination, ooze flow, grading, EWS, forensics** |
-| Go (backend) | **17** | Ed25519 verify + canonical JSON (8), **CRDT laws: commutative/associative/idempotent (9)** |
+| Python (fastapi) | **158** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, **yield projection, protocols, trace validation** |
+| Go (backend) | **26** | Ed25519 verify + canonical JSON, CRDT laws, **JWT auth (mint/parse/alg-none/expiry/bcrypt), media filename sanitisation** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
 | Vitest (web) | **21** | Mirror fisika browser + microclimate EWS |
-| E2E script | **16** | Full stack: TWI→soil→Bayes→EWS→grading→calorimetry→Archimedes→CRDT→sync→crypto |
+| E2E script | **27** | Full stack incl. yield, protocol, trace, media, JWT |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -282,6 +282,13 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       **E2E/calibration/chaos test scripts**, kalibrasi elevasi
 - [x] **Pipeline optik deterministik** — MFSR burst stack, trans-illumination,
       ooze optical flow (Ralstonia vs Fusarium)
+- [x] **JWT auth** — register/login/me + middleware (AUTH_REQUIRED di produksi)
+- [x] **Estimasi panen** — counting ripeness hijau/semburat/merah → proyeksi
+      tonase 14 hari (kurva fenologi berbasis GDD)
+- [x] **Katalog protokol preskriptif** — 9 protokol pestisida, dosis berskala
+      keparahan, langkah eradikasi, alternatif organik
+- [x] **Validasi bukti fisik** — trace giroskop perendaman anti-cheat
+- [x] **Media upload** — object storage (files/MinIO) dengan key ternamespace
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Model ONNX YOLOv8-Nano / MobileNetV3 terkuantisasi (INT8/FP16) sebagai
       pengganti bertahap dari inti sinyal deterministik
@@ -292,8 +299,9 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ```
 make verify  →
-  unit:        pytest 136 passed · go test 2 suites ok · kotlin 27 · vitest 21
-  e2e smoke:   16 passed  (TWI→soil→Bayes→EWS→grade→calo→archimedes→CRDT→sync→cert)
+  unit:        pytest 158 passed · go test 4 pkgs ok · kotlin 27 · vitest 21
+  e2e smoke:   27 passed  (TWI→soil→Bayes→EWS→grade→calo→archimedes→CRDT→sync
+                           →cert→yield→protocol→trace→media→JWT)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
