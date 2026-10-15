@@ -370,6 +370,17 @@ Per-model labelled-example counts vs the retraining threshold.
 
 ---
 
+## Economics
+
+### `POST /api/v1/economics`
+Transparent farm-level impact (fertilizer saving + avoided crop loss + yield uplift).
+```json
+{ "area_ha": 0.5, "price_per_kg": 25000, "outbreak_probability": 0.35 }
+```
+→ `{ "total_benefit_idr": 35950000, "net_benefit_idr": 35775000, "roi_pct": 20442.9, "break_even_fraction": 0.009, "notes": [...] }`
+
+---
+
 ## Certificates (public, no auth)
 
 ### `POST /api/v1/certificates/verify`
@@ -443,6 +454,7 @@ All require `X-Internal-Token`.
 | GET  | `/internal/decision/protocols` | Full protocol catalogue |
 | POST | `/internal/decision/validate-trace` | Immersion trace anti-cheat |
 | POST | `/internal/decision/harvest-decision` | Sell/hold/sort fusion |
+| POST | `/internal/decision/economics` | Farm-level ROI model |
 | POST | `/internal/models/manifest` | OTA model manifest |
 | GET  | `/internal/models/list` | All registered models |
 | GET  | `/internal/models/runtime` | ONNX runtime + loadable-model status |
