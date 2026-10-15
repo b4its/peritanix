@@ -71,10 +71,13 @@ services:
     networks: [dape-net]
 
   # ---------------------------------------------------------------------------
-  # MinIO (S3-compatible)
+  # MinIO (S3-compatible) — optional, enabled via `--profile storage`.
+  # In restricted environments that cannot pull minio/*, the default dev stack
+  # uses the `files` service below as a filesystem-backed object store.
   # ---------------------------------------------------------------------------
   minio:
     image: minio/minio:latest
+    profiles: ["storage"]
     container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-minio
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
@@ -93,9 +96,10 @@ services:
       retries: 20
     networks: [dape-net]
 
-  # Creates the bucket and exits.
+  # Creates the bucket and exits (storage profile only).
   minio-init:
     image: minio/mc:latest
+    profiles: ["storage"]
     container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-minio-init
     depends_on:
       minio:
@@ -107,6 +111,39 @@ services:
       mc anonymous set download local/${MINIO_BUCKET_RAW} &&
       echo '[minio-init] bucket ${MINIO_BUCKET_RAW} ready';
       "
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # Files — filesystem-backed object store used by default in dev.
+  # Drop-in replacement exposing the same HTTP contract (PUT/GET /dape-raw/...).
+  # ---------------------------------------------------------------------------
+  files:
+    image: python:3.12-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-files
+    restart: unless-stopped
+    working_dir: /srv
+    command:
+      - python
+      - -c
+      - |
+        import http.server, socketserver, os
+        os.makedirs('/srv/dape-raw', exist_ok=True)
+        os.chdir('/srv')
+        class H(http.server.SimpleHTTPRequestHandler):
+            def do_PUT(self):
+                n = int(self.headers.get('Content-Length', 0))
+                path = self.path.lstrip('/')
+                os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+                with open(path, 'wb') as f:
+                    f.write(self.rfile.read(n))
+                self.send_response(201); self.end_headers()
+        socketserver.TCPServer.allow_reuse_address = True
+        with socketserver.TCPServer(('0.0.0.0', 9000), H) as s:
+            s.serve_forever()
+    ports:
+      - "${MINIO_HOST_PORT:-59000}:9000"
+    volumes:
+      - miniodata:/srv
     networks: [dape-net]
 
   # ---------------------------------------------------------------------------
@@ -132,9 +169,6 @@ services:
       - "${FASTAPI_HOST_PORT:-58000}:8000"
     volumes:
       - ./web/backend/fastapi:/app
-    depends_on:
-      minio:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)\""]
       interval: 10s

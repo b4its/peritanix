@@ -97,7 +97,7 @@ web-up: init ## Start the full web stack (build if needed) and wait for health
 	@$(MAKE) --no-print-directory web-urls
 
 web-wait: ## Wait until api + ml + postgres are healthy
-	@for svc in postgres redis minio ml api; do \
+	@for svc in postgres redis ml api; do \
 		printf "  waiting for %-10s" "$$svc"; \
 		for i in $$(seq 1 60); do \
 			cid=$$($(DC) ps -q $$svc 2>/dev/null); \
