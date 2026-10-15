@@ -23,6 +23,17 @@ Liveness for the Go process.
 { "status": "ok", "service": "dape-api", "env": "development", "ml": true, "time": "..." }
 ```
 
+### `GET /api/v1/readyz`
+Deep readiness: pings Postgres + Redis + ML; `503` with `status: "not_ready"` if
+any critical dependency is down (used by Kubernetes/ingress to gate traffic).
+```json
+{ "status": "ready", "checks": { "postgres": true, "redis": true, "ml": true } }
+```
+
+Every response carries an `X-Request-ID` header (echoed or generated), and
+`/api/v1/lands/:id*` routes reject non-UUID ids with `400`. `/auth/*` is
+rate-limited (20/min per IP → `429`).
+
 ---
 
 ## Auth (JWT)
@@ -321,10 +332,15 @@ scanned payload, so verification works even if the farmer never synced.
 {
   "payload": { "land_id": "...", "grade_result": "A", "sterilization_c": 52.0 },
   "signature": "base64-or-hex",
-  "public_key": "base64-or-hex"
+  "public_key": "base64-or-hex",
+  "user_id": "optional uuid"
 }
 ```
 → `{ "valid": true, "payload": { ... }, "public_key": "..." }`
+
+If `public_key` is omitted and `user_id` is given, the farmer's **stored** key is
+used. If both are present and disagree, verification returns `valid: false`
+(prevents swapping in a forged key).
 
 ---
 

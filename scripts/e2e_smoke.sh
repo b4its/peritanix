@@ -206,6 +206,23 @@ GDD=$(curl -sf "$API/api/v1/lands/$LAND_ID/gdd?days=30")
 GN=$(echo "$GDD" | python3 -c "import sys,json;print(len(json.load(sys.stdin).get('series') or []))")
 python3 -c "import sys;sys.exit(0 if int('$GN')>=0 else 1)" && pass "gdd history returned ($GN points)" || fail "gdd history"
 
+# --- 19. Production hardening ----------------------------------------------
+echo "[19] Hardening: readiness, request-id, UUID guard, rate limit"
+READY=$(curl -sf "$API/api/v1/readyz" | jqv "['status']")
+assert_eq "$READY" "ready" "readyz all-green"
+RID=$(curl -s -D - -o /dev/null "$API/api/v1/health" | grep -i x-request-id | tr -d '\r' | awk '{print $2}')
+assert_gt0 "${#RID}" "X-Request-ID header echoed"
+BAD=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/v1/lands/not-a-uuid")
+assert_eq "$BAD" "400" "invalid UUID -> 400"
+# Rate limiter on auth: fire 25 rapid logins, expect at least one 429.
+LIMITED=0
+for i in $(seq 1 25); do
+  c=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/api/v1/auth/login" \
+    -H 'Content-Type: application/json' -d '{"phone":"x","password":"y"}')
+  [ "$c" = "429" ] && LIMITED=1
+done
+assert_eq "$LIMITED" "1" "auth rate limiter engaged (429)"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
