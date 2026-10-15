@@ -131,3 +131,71 @@ def twi_likelihood(local_twi: float) -> dict[str, float]:
                 "Antraknosa": 1.2, "Defisiensi": 1.0}
     return {"Ralstonia": 0.8, "Phytophthora": 0.8, "Fusarium": 0.9,
             "Antraknosa": 1.0, "Defisiensi": 1.1}
+
+
+def spatial_pattern_likelihood(pattern: str) -> dict[str, float]:
+    """Map a classified spatial pattern to P(S | D_i) multipliers.
+
+    pattern is one of the classify_spatial_pattern outputs:
+      EDGE_WIND_GRADIENT      -> vector/air-borne entry (whitefly virus, thrips)
+      DRAINAGE_TROUGH_CLUSTER -> water/soil-borne (Ralstonia, Phytophthora, Fusarium)
+      UNIFORM_BLOCK           -> nutritional/physiological (deficiency)
+      CLUSTERED_UNSPECIFIED   -> weakly informative
+    Values are odds multipliers (1.0 = uninformative).
+    """
+    table = {
+        "EDGE_WIND_GRADIENT": {
+            "Begomovirus": 2.5, "Keriting_Thrips": 2.0, "Keriting_Mites": 1.6,
+            "Antraknosa": 1.4, "Ralstonia": 0.7, "Phytophthora": 0.7,
+            "Fusarium": 0.8, "Defisiensi": 0.8,
+        },
+        "DRAINAGE_TROUGH_CLUSTER": {
+            "Ralstonia": 2.6, "Phytophthora": 2.6, "Fusarium": 2.2,
+            "Antraknosa": 1.2, "Defisiensi": 0.8,
+            "Begomovirus": 0.6, "Keriting_Thrips": 0.7, "Keriting_Mites": 0.8,
+        },
+        "UNIFORM_BLOCK": {
+            "Defisiensi": 2.8, "Antraknosa": 1.0, "Ralstonia": 0.8,
+            "Phytophthora": 0.8, "Fusarium": 0.9,
+            "Begomovirus": 0.9, "Keriting_Thrips": 0.9, "Keriting_Mites": 0.9,
+        },
+        "CLUSTERED_UNSPECIFIED": {
+            "Antraknosa": 1.3, "Ralstonia": 1.2, "Phytophthora": 1.2,
+            "Fusarium": 1.1, "Defisiensi": 1.0,
+            "Begomovirus": 1.0, "Keriting_Thrips": 1.0, "Keriting_Mites": 1.0,
+        },
+    }
+    return table.get(pattern, {})
+
+
+def edge_proximity_likelihood(distance_to_edge_m: float,
+                              edge_band_m: float = 5.0) -> float:
+    """Odds multiplier from proximity to the land edge.
+
+    Points very close to the edge are more consistent with airborne/vector entry
+    (spores/viruses blow in from outside). Returns a value in (0, 1]:
+    1.0 right at the edge decaying toward 0.3 deep inside.
+    """
+    if distance_to_edge_m < 0:
+        return 1.0  # unknown -> uninformative
+    frac = min(1.0, distance_to_edge_m / max(edge_band_m, 1e-9))
+    return 1.0 - 0.7 * frac
+
+
+def wind_alignment_likelihood(bearing_deg: float, prevailing_wind_deg: float,
+                              tolerance_deg: float = 60.0) -> float:
+    """Odds multiplier for how well a point aligns with the prevailing wind.
+
+    Symptoms downwind of the source are more consistent with vector/air-borne
+    spread. Returns ~1.5 when aligned, ~0.7 when opposed.
+    """
+    if bearing_deg < 0 or prevailing_wind_deg < 0:
+        return 1.0
+    diff = abs(((bearing_deg - prevailing_wind_deg + 180) % 360) - 180)
+    if diff <= tolerance_deg:
+        return 1.5
+    if diff >= 180 - tolerance_deg:
+        return 0.7
+    # Linear interpolation between the two extremes.
+    t = (diff - tolerance_deg) / max(180 - 2 * tolerance_deg, 1e-9)
+    return 1.5 - t * (1.5 - 0.7)

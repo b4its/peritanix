@@ -35,6 +35,26 @@ type DiseaseRepo interface {
 	ListByLand(ctx context.Context, landID string) ([]DiseaseLog, error)
 	GeoJSON(ctx context.Context, landID string) ([]byte, error)
 	NearbyCount(ctx context.Context, landID string, lon, lat float64, radiusM float64) (int, error)
+	// SpatialContext returns nearby count, distance-to-edge (m) and bearing (deg).
+	SpatialContext(ctx context.Context, landID string, lon, lat float64, radiusM float64) (SpatialContext, error)
+	// NearbyPoints returns infection points within radius with their edge distance.
+	NearbyPoints(ctx context.Context, landID string, lon, lat, radiusM float64) ([]NearbyPoint, error)
+}
+
+// NearbyPoint is a diagnosed point near a query location.
+type NearbyPoint struct {
+	Lon       float64 `json:"lon"`
+	Lat       float64 `json:"lat"`
+	Severity  float64 `json:"severity_pct"`
+	DistEdgeM float64 `json:"distance_to_edge_m"`
+	LocalTWI  float64 `json:"local_twi"`
+}
+
+// SpatialContext is the geospatial enrichment for a diagnosis point.
+type SpatialContext struct {
+	NearbyInfected int     `json:"nearby_infected"`
+	DistEdgeM      float64 `json:"distance_to_edge_m"`
+	BearingDeg     float64 `json:"bearing_deg"`
 }
 
 // HarvestRepo is the persistence port for harvest batches.

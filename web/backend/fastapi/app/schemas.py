@@ -82,6 +82,8 @@ class BayesianDiagnosisRequest(BaseModel):
     ooze_optical_flow: dict | None = None
     trans_illumination_attenuation_pct: float | None = None
     severity_pct: float | None = None
+    # PostGIS-derived spatial context (nearby, edge distance, bearing, wind, pattern)
+    spatial_context: dict | None = None
 
 
 class BayesianDiagnosisResponse(BaseModel):

@@ -3,20 +3,22 @@ package handlers
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/peritanix/dape-backend/internal/domain"
+	"github.com/peritanix/dape-backend/internal/epidemiology"
 )
 
 // --- Diagnostics ------------------------------------------------------------
 
 type diagReq struct {
-	LandID      string             `json:"land_id"`
-	Lon         float64            `json:"lon"`
-	Lat         float64            `json:"lat"`
-	LocalTWI    *float64           `json:"local_twi"`
-	Visual      map[string]float64 `json:"visual"`
-	Spatial     map[string]float64 `json:"spatial"`
-	OozeFlow    map[string]any     `json:"ooze_optical_flow"`
-	TransAtten  *float64           `json:"trans_illumination_attenuation_pct"`
-	SeverityPct *float64           `json:"severity_pct"`
+	LandID         string             `json:"land_id"`
+	Lon            float64            `json:"lon"`
+	Lat            float64            `json:"lat"`
+	LocalTWI       *float64           `json:"local_twi"`
+	Visual         map[string]float64 `json:"visual"`
+	Spatial        map[string]float64 `json:"spatial"`
+	OozeFlow       map[string]any     `json:"ooze_optical_flow"`
+	TransAtten     *float64           `json:"trans_illumination_attenuation_pct"`
+	SeverityPct    *float64           `json:"severity_pct"`
+	PrevailingWind *float64           `json:"prevailing_wind_deg"`
 }
 
 // diagEvaluate orchestrates spatial context -> Bayesian fusion -> persist.
@@ -29,17 +31,44 @@ func (d *Deps) diagEvaluate(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "land_id required")
 	}
 
-	// Spatial context from PostGIS: nearby infected count (radius 50 m).
-	nearby, _ := d.Disease.NearbyCount(c.Context(), req.LandID, req.Lon, req.Lat, 50.0)
+	const radiusM = 50.0
+	// 1) PostGIS spatial context: nearby count, edge distance, bearing.
+	sc, _ := d.Disease.SpatialContext(c.Context(), req.LandID, req.Lon, req.Lat, radiusM)
 
-	// Build the payload for the ML Bayesian engine. Ensure maps are non-nil so
-	// they serialize as {} (Pydantic rejects null for dict fields).
+	// 2) Spatial pattern classification (Moran's I + edge/trough bias) from the
+	//    nearby infection points — mirrors the Python classifier.
+	pattern := "CLUSTERED_UNSPECIFIED"
+	if pts, err := d.Disease.NearbyPoints(c.Context(), req.LandID, req.Lon, req.Lat, radiusM); err == nil && len(pts) >= 2 {
+		ep := make([]epidemiology.Point, len(pts))
+		edgeDist := make([]float64, len(pts))
+		twiVals := make([]float64, len(pts))
+		for i, p := range pts {
+			ep[i] = epidemiology.Point{Lon: p.Lon, Lat: p.Lat, Severity: p.Severity}
+			edgeDist[i] = p.DistEdgeM
+			twiVals[i] = p.LocalTWI
+		}
+		pattern, _ = epidemiology.PatternFromPoints(ep, edgeDist, twiVals,
+			radiusM, 5.0, 8.0)
+	}
+
+	// 3) Build the ML payload. Non-nil maps so Pydantic accepts {} not null.
+	spatialContext := map[string]any{
+		"nearby_infected":    sc.NearbyInfected,
+		"distance_to_edge_m": sc.DistEdgeM,
+		"bearing_deg":        sc.BearingDeg,
+		"pattern":            pattern,
+	}
+	if req.PrevailingWind != nil {
+		spatialContext["prevailing_wind_deg"] = *req.PrevailingWind
+	}
+
 	in := map[string]any{
-		"land_id": req.LandID,
-		"point":   []float64{req.Lon, req.Lat},
-		"visual":  nonNilMap(req.Visual),
-		"spatial": nonNilMap(req.Spatial),
-		"prior":   map[string]float64{},
+		"land_id":         req.LandID,
+		"point":           []float64{req.Lon, req.Lat},
+		"visual":          nonNilMap(req.Visual),
+		"spatial":         nonNilMap(req.Spatial),
+		"prior":           map[string]float64{},
+		"spatial_context": spatialContext,
 	}
 	if req.LocalTWI != nil {
 		in["local_twi"] = *req.LocalTWI
@@ -79,7 +108,7 @@ func (d *Deps) diagEvaluate(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"diagnosis":       log,
 		"bayesian":        res,
-		"nearby_infected": nearby,
+		"spatial_context": spatialContext,
 	})
 }
 

@@ -191,6 +191,46 @@ func (r *DiseaseRepo) NearbyCount(ctx context.Context, landID string, lon, lat, 
 	return n, err
 }
 
+// SpatialContext returns nearby count, distance-to-edge and bearing in one call.
+func (r *DiseaseRepo) SpatialContext(ctx context.Context, landID string, lon, lat, radiusM float64) (domain.SpatialContext, error) {
+	const q = `SELECT nearby_infected, dist_edge_m, bearing_deg
+	           FROM spatial_diagnosis_context($1, ST_SetSRID(ST_MakePoint($2,$3),4326), $4)`
+	var sc domain.SpatialContext
+	err := r.s.Pool.QueryRow(ctx, q, landID, lon, lat, radiusM).Scan(
+		&sc.NearbyInfected, &sc.DistEdgeM, &sc.BearingDeg)
+	if err != nil {
+		return sc, err
+	}
+	return sc, nil
+}
+
+// NearbyPoints returns infection points within radius with edge distance & TWI.
+func (r *DiseaseRepo) NearbyPoints(ctx context.Context, landID string, lon, lat, radiusM float64) ([]domain.NearbyPoint, error) {
+	const q = `
+		SELECT ST_X(d.point_location), ST_Y(d.point_location),
+		       COALESCE(d.severity_pct, 0),
+		       distance_to_land_edge_m(d.land_id, d.point_location),
+		       COALESCE(d.local_twi, 0)
+		FROM disease_logs d
+		WHERE d.land_id = $1 AND d.point_location IS NOT NULL
+		  AND ST_DWithin(d.point_location::geography,
+		                 ST_SetSRID(ST_MakePoint($2,$3),4326)::geography, $4)`
+	rows, err := r.s.Pool.Query(ctx, q, landID, lon, lat, radiusM)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.NearbyPoint
+	for rows.Next() {
+		var p domain.NearbyPoint
+		if err := rows.Scan(&p.Lon, &p.Lat, &p.Severity, &p.DistEdgeM, &p.LocalTWI); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 // --- HarvestRepo ------------------------------------------------------------
 
 // HarvestRepo is the Postgres-backed harvest batch repository.

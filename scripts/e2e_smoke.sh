@@ -68,10 +68,14 @@ assert_gt0 "$(echo "$SOIL" | jqv "['assessment']['cec_meq']")" "CEC computed"
 # --- 4. Bayesian diagnosis with spatial evidence ----------------------------
 echo "[4] Bayesian multi-modal diagnosis"
 DIAG=$(curl -sf -X POST "$API/api/v1/diagnostics/evaluate" -H 'Content-Type: application/json' \
-  -d "{\"land_id\":\"$LAND_ID\",\"lon\":107.6115,\"lat\":-6.9115,\"local_twi\":9.2,\"visual\":{\"Antraknosa\":0.7,\"Ralstonia\":0.2,\"Fusarium\":0.1},\"spatial\":{\"Antraknosa\":1.5},\"trans_illumination_attenuation_pct\":60,\"severity_pct\":12}")
+  -d "{\"land_id\":\"$LAND_ID\",\"lon\":107.6115,\"lat\":-6.9115,\"local_twi\":9.2,\"visual\":{\"Antraknosa\":0.7,\"Ralstonia\":0.2,\"Fusarium\":0.1},\"spatial\":{\"Antraknosa\":1.5},\"trans_illumination_attenuation_pct\":60,\"severity_pct\":12,\"prevailing_wind_deg\":90}")
 VERDICT=$(echo "$DIAG" | jqv "['bayesian']['final_verdict']")
 assert_gt0 "$(echo "$DIAG" | jqv "['bayesian']['posterior_probabilities']['Antraknosa']")" "posterior computed"
-echo "    verdict: $VERDICT"
+PATTERN=$(echo "$DIAG" | jqv "['spatial_context']['pattern']")
+echo "    verdict: $VERDICT | spatial pattern: $PATTERN"
+DEDGE=$(echo "$DIAG" | jqv "['spatial_context']['distance_to_edge_m']")
+python3 -c "import sys;sys.exit(0 if float('$DEDGE')>=0 else 1)" && \
+  pass "distance-to-edge computed ($DEDGE m)" || fail "distance-to-edge ($DEDGE)"
 
 # --- 5. Microclimate EWS ----------------------------------------------------
 echo "[5] Microclimate EWS (72h blast risk)"

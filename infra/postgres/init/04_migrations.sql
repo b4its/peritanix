@@ -22,3 +22,8 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users (phone);
 -- Performance index for media/time queries on disease logs.
 CREATE INDEX IF NOT EXISTS idx_disease_created ON disease_logs (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_harvest_created ON harvest_batches (created_at DESC);
+
+-- TAHAP 3.2: spatial-context functions are defined in 02_functions.sql with
+-- CREATE OR REPLACE. On an existing volume, re-applying 02_functions.sql picks
+-- them up. `make web-migrate` runs it explicitly:
+--   psql -f /docker-entrypoint-initdb.d/02_functions.sql

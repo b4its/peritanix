@@ -137,6 +137,10 @@ web-migrate: init ## Apply SQL migrations to a running postgres (idempotent)
 	$(DC) exec -T postgres psql -U $(shell grep -E '^POSTGRES_USER=' .env | cut -d= -f2) \
 		-d $(shell grep -E '^POSTGRES_DB=' .env | cut -d= -f2) \
 		-f /docker-entrypoint-initdb.d/04_migrations.sql
+	@printf "$(C_CYAN)[migrate]$(C_RESET) re-applying spatial functions...\n"
+	$(DC) exec -T postgres psql -U $(shell grep -E '^POSTGRES_USER=' .env | cut -d= -f2) \
+		-d $(shell grep -E '^POSTGRES_DB=' .env | cut -d= -f2) \
+		-f /docker-entrypoint-initdb.d/02_functions.sql
 
 web-ps: init ## Show web stack container status
 	$(DC) ps

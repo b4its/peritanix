@@ -23,10 +23,27 @@ _PROTOCOL = {
 
 @router.post("/bayesian-diagnosis", response_model=BayesianDiagnosisResponse)
 def bayesian_diagnosis(req: BayesianDiagnosisRequest) -> BayesianDiagnosisResponse:
-    # Assemble evidence. Spatial channel: if not supplied, derive a mild prior
-    # from the (already-classified) spatial pattern carried in req.spatial.
+    # Assemble evidence.
     spatial = dict(req.spatial)
     twi_lik = bayesian.twi_likelihood(req.local_twi) if req.local_twi is not None else {}
+
+    # Enrich the spatial channel from the PostGIS-passed context: pattern
+    # classification, edge proximity and wind alignment.
+    sc = req.spatial_context or {}
+    pattern = sc.get("pattern")
+    if pattern:
+        for disease, mult in bayesian.spatial_pattern_likelihood(pattern).items():
+            spatial[disease] = spatial.get(disease, 1.0) * mult
+    if (dist_edge := sc.get("distance_to_edge_m")) is not None:
+        edge_mult = bayesian.edge_proximity_likelihood(dist_edge)
+        # Edge proximity only informs airborne/vector diseases.
+        for d in ("Begomovirus", "Keriting_Thrips", "Keriting_Mites", "Antraknosa"):
+            spatial[d] = spatial.get(d, 1.0) * edge_mult
+    if (bearing := sc.get("bearing_deg")) is not None and \
+       (wind := sc.get("prevailing_wind_deg")) is not None:
+        wind_mult = bayesian.wind_alignment_likelihood(bearing, wind)
+        for d in ("Begomovirus", "Keriting_Thrips", "Keriting_Mites", "Antraknosa"):
+            spatial[d] = spatial.get(d, 1.0) * wind_mult
 
     # Trans-illumination attenuation strengthens fungal (Antraknosa) evidence.
     visual = dict(req.visual)
@@ -48,6 +65,11 @@ def bayesian_diagnosis(req: BayesianDiagnosisRequest) -> BayesianDiagnosisRespon
         "trans_illumination_attenuation_pct": req.trans_illumination_attenuation_pct,
         "ooze_optical_flow": req.ooze_optical_flow,
         "severity_pct": req.severity_pct,
+        "spatial_pattern": pattern,
+        "distance_to_edge_m": sc.get("distance_to_edge_m"),
+        "bearing_deg": sc.get("bearing_deg"),
+        "prevailing_wind_deg": sc.get("prevailing_wind_deg"),
+        "nearby_infected": sc.get("nearby_infected"),
         "evidence_channels": {
             "visual": bool(visual), "spatial": bool(spatial),
             "twi": bool(twi_lik), "prior": bool(req.prior),

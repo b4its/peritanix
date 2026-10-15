@@ -130,3 +130,49 @@ class TestMoransI:
         assert bayes.classify_spatial_pattern(0.4, 0.2, 0.7) == "DRAINAGE_TROUGH_CLUSTER"
         assert bayes.classify_spatial_pattern(0.4, 0.7, 0.2) == "EDGE_WIND_GRADIENT"
         assert bayes.classify_spatial_pattern(0.01, 0.2, 0.2) == "UNIFORM_BLOCK"
+
+
+class TestSpatialPatternLikelihood:
+    def test_edge_pattern_favours_vector_borne(self):
+        lik = bayes.spatial_pattern_likelihood("EDGE_WIND_GRADIENT")
+        assert lik["Begomovirus"] > lik["Ralstonia"]
+
+    def test_trough_pattern_favours_water_borne(self):
+        lik = bayes.spatial_pattern_likelihood("DRAINAGE_TROUGH_CLUSTER")
+        assert lik["Ralstonia"] > lik["Begomovirus"]
+        assert lik["Phytophthora"] > lik["Antraknosa"]
+
+    def test_uniform_block_favours_deficiency(self):
+        lik = bayes.spatial_pattern_likelihood("UNIFORM_BLOCK")
+        assert lik["Defisiensi"] > lik["Ralstonia"]
+
+    def test_unknown_pattern_empty(self):
+        assert bayes.spatial_pattern_likelihood("NOPE") == {}
+
+
+class TestEdgeProximity:
+    def test_at_edge_max(self):
+        assert bayes.edge_proximity_likelihood(0.0) == 1.0
+
+    def test_deep_inside_low(self):
+        assert bayes.edge_proximity_likelihood(100.0, edge_band_m=5.0) == pytest.approx(0.3)
+
+    def test_unknown_uninformative(self):
+        assert bayes.edge_proximity_likelihood(-1.0) == 1.0
+
+    def test_monotonic_decreasing(self):
+        assert bayes.edge_proximity_likelihood(1.0) > bayes.edge_proximity_likelihood(4.0)
+
+
+class TestWindAlignment:
+    def test_aligned_high(self):
+        assert bayes.wind_alignment_likelihood(90.0, 90.0) == 1.5
+
+    def test_opposed_low(self):
+        assert bayes.wind_alignment_likelihood(270.0, 90.0) == 0.7
+
+    def test_unknown_uninformative(self):
+        assert bayes.wind_alignment_likelihood(-1.0, 90.0) == 1.0
+
+    def test_45deg_within_tolerance(self):
+        assert bayes.wind_alignment_likelihood(135.0, 90.0, tolerance_deg=60) == 1.5
