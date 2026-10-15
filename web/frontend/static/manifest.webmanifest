@@ -1,0 +1,17 @@
+{
+	"name": "DAPE — Deterministic Agro-Physics Engine",
+	"short_name": "DAPE",
+	"description": "Precision micro-farming cabai: offline-first Edge AI, sertifikasi kriptografis.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#14261c",
+	"theme_color": "#16a34a",
+	"icons": [
+		{
+			"src": "/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}
