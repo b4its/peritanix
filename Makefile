@@ -183,6 +183,13 @@ calibrate: ## Run only the agronomic calibration test
 chaos: ## Run only the offline + chaos test
 	bash scripts/offline_chaos_test.sh
 
+db-backup: init ## Dump the database to backups/dape-<timestamp>.dump
+	bash scripts/db_backup.sh
+
+db-restore: init ## Restore a dump: make db-restore DUMP=backups/x.dump [CLEAN=--clean]
+	@if [ -z "$(DUMP)" ]; then echo "usage: make db-restore DUMP=backups/x.dump [CLEAN=--clean]"; exit 1; fi
+	bash scripts/db_restore.sh $(DUMP) $(CLEAN)
+
 web-down: init ## Stop the web stack (keep volumes)
 	$(DC) down
 
