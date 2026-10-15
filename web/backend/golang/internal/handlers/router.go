@@ -55,6 +55,18 @@ func Register(app *fiber.App, d *Deps) {
 	api.Post("/harvest/batches", d.harvestCreate)
 	api.Get("/harvest/batches/:code", d.harvestGet)
 
+	// Multi-modal optics (burst, trans-illumination, ooze)
+	api.Post("/optics/mfsr", d.mfsrStack)
+	api.Post("/optics/trans-illumination", d.transIllumination)
+	api.Post("/optics/ooze", d.oozeOpticalFlow)
+
+	// Post-harvest grading + microclimate EWS
+	api.Post("/postharvest/grade", d.gradeFruit)
+	api.Post("/agronomy/ews", d.ewsMicroclimate)
+
+	// Anti-fraud image forensics
+	api.Post("/forensics/image-audit", d.imageAudit)
+
 	// Certificates (public verifier — no auth)
 	api.Post("/certificates/verify", d.certVerify)
 

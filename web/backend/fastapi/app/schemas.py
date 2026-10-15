@@ -154,3 +154,99 @@ class FertilizerResponse(BaseModel):
     kno3_g_per_l: float
     calcium_g_per_l: float
     recommendation: str
+
+
+# --- Multi-modal optics / epidemiology --------------------------------------
+class MfsrRequest(BaseModel):
+    # Grayscale frames as nested lists: [ [ [row], ... ], ... ]
+    frames: list[list[list[float]]]
+    sharpness_reject_ratio: float = 0.5
+
+
+class MfsrResponse(BaseModel):
+    stacked_shape: tuple[int, int]
+    frames_used: int
+    frames_rejected: int
+    shifts: list[tuple[float, float]]
+    sharpness_gain: float
+    stacked_sharpness: float
+
+
+class TransIllumRequest(BaseModel):
+    intensity: list[list[float]]
+    sigma_k: float = 2.0
+
+
+class TransIllumResponse(BaseModel):
+    attenuation_pct: float
+    lesion_fraction: float
+    mean_od: float
+    max_od: float
+    latent_fungal_suspected: bool
+
+
+class OozeRequest(BaseModel):
+    frames: list[list[list[float]]]
+
+
+class OozeResponse(BaseModel):
+    mean_speed: float
+    coherence: float
+    directionality: float
+    streaming_score: float
+    verdict: str
+    confidence: float
+
+
+# --- Post-harvest grading ---------------------------------------------------
+class GradeRequest(BaseModel):
+    contour: list[tuple[float, float]]
+    mean_a_channel: float
+    lesion_area: float
+    total_area: float
+
+
+class GradeResponse(BaseModel):
+    curvature_ratio: float
+    red_pct: float
+    defect_pct: float
+    grade: str
+    reasons: list[str]
+
+
+# --- Microclimate EWS -------------------------------------------------------
+class EwsRequest(BaseModel):
+    rh_series: list[float]
+    t_series: list[float]
+    horizon_h: int = 72
+
+
+class EwsResponse(BaseModel):
+    blast_risk_72h: float
+    peak_risk: float
+    peak_hour_offset: int
+    mean_rh: float
+    mean_t: float
+    action: str
+    irrigation_minutes_per_bed: int
+
+
+# --- Anti-fraud forensics ---------------------------------------------------
+class ForensicRequest(BaseModel):
+    image_base64: str
+    known_hashes: list[str] = Field(default_factory=list)
+    ela_threshold: float = 120.0
+    duplicate_hamming_max: int = 4
+
+
+class ForensicResponse(BaseModel):
+    exif_ok: bool
+    has_camera_model: bool
+    has_capture_time: bool
+    ela_variance: float
+    ela_suspicious: bool
+    perceptual_hash: str
+    duplicate_of: str | None
+    hamming_distance: int | None
+    verdict: str
+    flags: list[str]

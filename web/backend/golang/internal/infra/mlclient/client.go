@@ -164,6 +164,48 @@ func (c *Client) FertilizerPlan(ctx context.Context, in map[string]any) (map[str
 	return out, err
 }
 
+// MfsrStack runs multi-frame super-resolution burst stacking.
+func (c *Client) MfsrStack(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/optics/mfsr-stack", in, &out)
+	return out, err
+}
+
+// TransIllumination analyses mesophyll attenuation from a contact-flash image.
+func (c *Client) TransIllumination(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/optics/trans-illumination", in, &out)
+	return out, err
+}
+
+// OozeOpticalFlow distinguishes Ralstonia vs Fusarium from a stem-dip video.
+func (c *Client) OozeOpticalFlow(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/optics/ooze-optical-flow", in, &out)
+	return out, err
+}
+
+// GradeFruit scores a harvested fruit (curvature/colour/defect).
+func (c *Client) GradeFruit(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/agronomy/grade-fruit", in, &out)
+	return out, err
+}
+
+// EwsMicroclimate returns the 72h fungal-blast early warning.
+func (c *Client) EwsMicroclimate(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/agronomy/ews-microclimate", in, &out)
+	return out, err
+}
+
+// ImageAudit runs anti-fraud forensics on a base64 image.
+func (c *Client) ImageAudit(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/forensics/image-audit", in, &out)
+	return out, err
+}
+
 // Health pings the ML service.
 func (c *Client) Health(ctx context.Context) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/health", nil)
