@@ -40,10 +40,13 @@ export interface DiseaseLog {
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-	const res = await fetch(`${API_BASE}${path}`, {
-		headers: { 'Content-Type': 'application/json' },
-		...init
-	});
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+	// Attach the JWT when the user is signed in (browser only).
+	if (typeof localStorage !== 'undefined') {
+		const token = localStorage.getItem('dape.token');
+		if (token) headers['Authorization'] = `Bearer ${token}`;
+	}
+	const res = await fetch(`${API_BASE}${path}`, { headers, ...init });
 	if (!res.ok) {
 		const body = await res.text().catch(() => '');
 		throw new Error(`${res.status} ${res.statusText}: ${body}`);
@@ -89,6 +92,42 @@ export async function landGeoJSON(): Promise<GeoJSON.FeatureCollection> {
 export async function landDiseases(id: string): Promise<DiseaseLog[]> {
 	const r = await req<{ diseases: DiseaseLog[] }>(`/api/v1/lands/${id}/diseases`);
 	return r.diseases ?? [];
+}
+
+export interface DiagnosisResult {
+	diagnosis: {
+		id: string;
+		confirmed_disease: string;
+		severity_pct: number;
+		confidence_level: string;
+		protocol_code: string;
+	};
+	bayesian: {
+		posterior_probabilities: Record<string, number>;
+		final_verdict: string;
+		confidence_level: string;
+		recommended_protocol_code: string;
+		physics_metrics?: Record<string, unknown>;
+	};
+	spatial_context?: Record<string, unknown>;
+}
+
+/** Submit a multi-modal diagnostic evidence package for Bayesian fusion. */
+export async function evaluateDiagnosis(input: {
+	land_id: string;
+	lon: number;
+	lat: number;
+	local_twi?: number;
+	visual: Record<string, number>;
+	spatial?: Record<string, number>;
+	trans_illumination_attenuation_pct?: number;
+	severity_pct?: number;
+	prevailing_wind_deg?: number;
+}): Promise<DiagnosisResult> {
+	return req('/api/v1/diagnostics/evaluate', {
+		method: 'POST',
+		body: JSON.stringify(input)
+	});
 }
 
 export async function diseaseGeoJSON(id: string): Promise<GeoJSON.FeatureCollection> {
