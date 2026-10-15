@@ -32,12 +32,14 @@ func (d *Deps) diagEvaluate(c *fiber.Ctx) error {
 	// Spatial context from PostGIS: nearby infected count (radius 50 m).
 	nearby, _ := d.Disease.NearbyCount(c.Context(), req.LandID, req.Lon, req.Lat, 50.0)
 
-	// Build the payload for the ML Bayesian engine.
+	// Build the payload for the ML Bayesian engine. Ensure maps are non-nil so
+	// they serialize as {} (Pydantic rejects null for dict fields).
 	in := map[string]any{
 		"land_id": req.LandID,
 		"point":   []float64{req.Lon, req.Lat},
-		"visual":  req.Visual,
-		"spatial": req.Spatial,
+		"visual":  nonNilMap(req.Visual),
+		"spatial": nonNilMap(req.Spatial),
+		"prior":   map[string]float64{},
 	}
 	if req.LocalTWI != nil {
 		in["local_twi"] = *req.LocalTWI
@@ -117,4 +119,12 @@ func mapFloat(v any) map[string]float64 {
 		}
 	}
 	return out
+}
+
+// nonNilMap guarantees a non-nil map so JSON encodes {} instead of null.
+func nonNilMap(m map[string]float64) map[string]float64 {
+	if m == nil {
+		return map[string]float64{}
+	}
+	return m
 }

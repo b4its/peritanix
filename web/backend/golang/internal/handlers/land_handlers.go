@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -73,7 +74,11 @@ func (d *Deps) landInit(c *fiber.Ctx) error {
 				_ = d.Cache.Set(c.Context(), "twi:"+land.ID,
 					fmt.Sprintf("%.1f", kb), 0)
 			}
+		} else {
+			log.Printf("[land-init] extract-dem for %s failed: %v", land.ID, err)
 		}
+	} else {
+		log.Printf("[land-init] could not parse WKT bounds for %s", land.ID)
 	}
 
 	kb, _ := twi["cache_kb"].(float64)

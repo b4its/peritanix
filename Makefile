@@ -41,6 +41,10 @@ COMPOSE_FILES += --env-file $(ENV_FILE)
 endif
 DC := $(COMPOSE) $(COMPOSE_FILES)
 
+# Read COMPOSE_PROJECT_NAME from .env (falls back to the compose default).
+PROJECT ?= $(shell grep -E '^COMPOSE_PROJECT_NAME=' $(ENV_FILE) 2>/dev/null | cut -d= -f2)
+PROJECT := $(if $(PROJECT),$(PROJECT),$(notdir $(CURDIR)))
+
 # Colours
 C_RESET := \033[0m
 C_BOLD  := \033[1m
@@ -121,14 +125,13 @@ web-seed: init ## Load seed data (idempotent; skips if already seeded)
 	@printf "$(C_GREEN)[seed]$(C_RESET) done.\n"
 
 web-reseed: init ## DESTRUCTIVE: wipe DB volume, re-migrate and re-seed
-	@printf "$(C_YELLOW)[reseed]$(C_RESET) recreating postgres volume...\n"
+	@printf "$(C_YELLOW)[reseed]$(C_RESET) recreating postgres volume ($(PROJECT)_pgdata)...\n"
 	$(DC) rm -sfv postgres || true
-	docker volume rm -f $(COMPOSE_PROJECT_NAME)_pgdata 2>/dev/null || true
+	docker volume rm -f $(PROJECT)_pgdata 2>/dev/null || true
 	$(DC) up -d postgres
 	@printf "$(C_CYAN)[reseed]$(C_RESET) waiting for postgres...\n"
 	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' $$($(DC) ps -q postgres) 2>/dev/null)" = "healthy" ]; do sleep 2; done
-	@$(MAKE) --no-print-directory web-seed
-	@printf "$(C_GREEN)[reseed]$(C_RESET) complete.\n"
+	@printf "$(C_GREEN)[reseed]$(C_RESET) migrations + seed re-applied on fresh volume.\n"
 
 web-migrate: init ## Apply SQL migrations to a running postgres
 	$(DC) exec -T postgres psql -U $(shell grep -E '^POSTGRES_USER=' .env | cut -d= -f2) \
