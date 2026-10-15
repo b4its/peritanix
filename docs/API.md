@@ -116,6 +116,14 @@ Response `201`:
 ### `GET /api/v1/lands/:id/soil`
 `{ "assessments": [ ... ] }` (newest first).
 
+### `GET /api/v1/soil/fertility/geojson`
+`application/geo+json` — one point per land carrying its latest soil assessment
+(`soil_class`, `ph`, `ph_class` ∈ optimal|acid|alkaline, `cec_meq`, `nitrate_ppm`).
+
+### `GET /api/v1/lands/:id/gdd?days=30`
+GDD daily time series for the accumulation chart.
+→ `{ "land_id": "...", "series": [ { "day": "2026-10-15", "t_min": 21, "t_max": 32, "gdd_day": 11.5, "gdd_cum": 480 } ] }`
+
 ---
 
 ## Diagnostics

@@ -212,11 +212,11 @@ make chaos         # offline physics + reconnect + ML-outage graceful degradatio
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **182** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, **spatial patterns, ONNX model registry** |
-| Go (backend) | **34** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename sanitisation, **epidemiology (Moran's I / edge / trough bias)** |
+| Python (fastapi) | **182** | TWI, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX model registry |
+| Go (backend) | **37** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename sanitisation, epidemiology (Moran's I / edge / trough bias), **GDD worker** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **26** | Mirror fisika browser + microclimate EWS + **disease heatmap helpers** |
-| E2E script | **30** | Full stack incl. yield, protocol, trace, media, JWT, **spatial context, model OTA** |
+| Vitest (web) | **32** | Mirror fisika browser + microclimate EWS + heatmap/fertility helpers |
+| E2E script | **32** | Full stack incl. yield, protocol, trace, media, JWT, spatial, model OTA, analytics |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
 
@@ -299,19 +299,24 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       unduhan minim-data (Continuous Learning loop)
 - [x] **Kubernetes** — manifests lengkap + kustomize overlays (Ingress TLS, HPA)
 - [x] **Heatmap penyakit + vektor angin** di dashboard web (canvas, tanpa dep)
+- [x] **Peta kesuburan tanah + kurva GDD** di dashboard (layer pH, chart akumulasi)
+- [x] **Worker background sync** — Redis retry queue dengan attempt terbatas
+- [x] **Android Jetpack Compose scaffold** — Compose UI + Room + WorkManager
+      (mengonsumsi core Kotlin sebagai sumber, tanpa duplikasi logika)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry & jalur OTA
       sudah siap; tinggal mengisi artefak `.onnx`
 - [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
-- [ ] Pipeline rilis APK/AAB (R8 + native stripping)
+- [ ] APK/AAB release build (R8 + stripping sudah dikonfigurasi)
 
 ## 9. Verifikasi Langsung (bukti)
 
 ```
 make verify  →
-  unit:        pytest 182 passed · go test 5 pkgs ok · kotlin 27 · vitest 26
-  e2e smoke:   30 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
-                           →CRDT→sync→cert→yield→protocol→trace→media→JWT→models)
+  unit:        pytest 182 passed · go test 6 pkgs ok · kotlin 27 · vitest 32
+  e2e smoke:   32 passed  (TWI→soil→Bayes→spatial→EWS→grade→calo→archimedes
+                           →CRDT→sync→cert→yield→protocol→trace→media→JWT→
+                           models→fertility→gdd)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       7 passed   (offline physics, reconnect, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
