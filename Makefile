@@ -205,7 +205,11 @@ mobile-shell: init ## Shell into the mobile toolchain
 	$(DC) --profile mobile exec mobile bash
 
 mobile-test: init ## Run JVM unit tests for the pure-Kotlin physics core
-	$(DC) --profile mobile run --rm mobile ./gradlew --no-daemon testDebugUnitTest
+	$(DC) --profile mobile run --rm mobile ./gradlew --no-daemon testDebugUnitTest 2>/dev/null || \
+	$(DC) --profile mobile run --rm mobile gradle --no-daemon test
+
+mobile-run: init ## Run the mobile physics smoke CLI
+	$(DC) --profile mobile run --rm mobile gradle --no-daemon -q run --args=""
 
 mobile-down: init ## Stop the mobile toolchain
 	$(DC) --profile mobile down

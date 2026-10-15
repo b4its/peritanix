@@ -24,6 +24,7 @@ volumes:
   gomodcache:
   node_modules:
   web_build:
+  gradle_cache:
 
 services:
   # ---------------------------------------------------------------------------
@@ -243,4 +244,21 @@ services:
     depends_on:
       api:
         condition: service_started
+    networks: [dape-net]
+
+  # ---------------------------------------------------------------------------
+  # Mobile toolchain (Kotlin/JVM core) — enabled via `--profile mobile`.
+  # Runs the pure-physics + crypto unit tests and CLI without the Android SDK.
+  # ---------------------------------------------------------------------------
+  mobile:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+      target: dev
+    profiles: ["mobile"]
+    container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-mobile
+    working_dir: /app
+    volumes:
+      - ./mobile:/app
+      - gradle_cache:/root/.gradle
     networks: [dape-net]
