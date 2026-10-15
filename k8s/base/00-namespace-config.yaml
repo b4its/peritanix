@@ -1,0 +1,55 @@
+# =============================================================================
+# DAPE / Peritanix — Kubernetes (base)
+# -----------------------------------------------------------------------------
+# Apply:  kubectl apply -k k8s/overlays/prod
+# Local:  kubectl apply -k k8s/base   (expects images built/pushed)
+#
+# Layout:
+#   namespace + config/secret
+#   postgres (StatefulSet) + redis + minio
+#   ml (FastAPI) + api (Go) deployments + services
+#   web (SvelteKit) deployment + service
+#   ingress (HTTPS) for web/api
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dape
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dape-config
+  namespace: dape
+data:
+  DAPE_ENV: "production"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "dape"
+  POSTGRES_USER: "dape"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  MINIO_HOST: "minio"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET_RAW: "dape-raw"
+  FASTAPI_HOST: "ml"
+  FASTAPI_PORT: "8000"
+  GO_HOST: "api"
+  GO_PORT: "8080"
+  AUTH_REQUIRED: "true"
+  DAPE_TBASE_C: "15.0"
+  DAPE_TARGET_CALORIMETRY_C: "52.0"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dape-secrets
+  namespace: dape
+type: Opaque
+stringData:
+  # CHANGE THESE IN PRODUCTION.
+  POSTGRES_PASSWORD: "dape_secret"
+  MINIO_ROOT_USER: "dape_minio"
+  MINIO_ROOT_PASSWORD: "dape_minio_secret"
+  JWT_SECRET: "change-me-in-production-please-32chars-min"
+  FASTAPI_INTERNAL_TOKEN: "internal-shared-secret-change-me"

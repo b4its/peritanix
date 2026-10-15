@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dape
+resources:
+  - 00-namespace-config.yaml
+  - 10-data.yaml
+  - 20-app.yaml
+  - 30-ingress-hpa.yaml
