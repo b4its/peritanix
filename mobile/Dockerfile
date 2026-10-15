@@ -34,7 +34,10 @@ CMD ["sleep", "infinity"]
 
 # ---------------------------------------------------------------------------
 # Android build target (optional; requires the Android SDK to be mounted).
+# Mount the SDK at /opt/android-sdk and the app is at /app/android.
 FROM base AS android
-ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=/opt/android-sdk \
+    ANDROID_HOME=/opt/android-sdk
 RUN mkdir -p ${ANDROID_SDK_ROOT}
+WORKDIR /app/android
 CMD ["gradle", "--no-daemon", "assembleDebug"]

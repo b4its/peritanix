@@ -46,3 +46,31 @@ make mobile-apk     # copy APK to ./dist
 
 On-device the private key lives in the Android Keystore; this module uses a
 seed for testability, with the same Ed25519 algorithm (BouncyCastle).
+
+### Android app (`android/`)
+
+A Jetpack Compose app that **consumes the shared core as source** (no logic
+duplication — the physics/crypto above is the single source of truth):
+
+```
+android/app/src/main/java/id/peritanix/dape/android/
+├── ui/MainActivity.kt      # Compose UI (Lands / Diagnostics / Harvest tabs)
+└── data/
+    ├── DapeDatabase.kt     # Room entities + DAO (sync_queue, lands, diagnoses)
+    ├── SyncQueueStore.kt   # offline queue + WorkManager scheduling
+    └── SyncWorker.kt       # constraints-gated delta sync (Wi-Fi/4G)
+```
+
+Key configuration:
+- `minSdk 26`, `targetSdk 35`, Jetpack Compose (BOM), Room + KSP, WorkManager.
+- NDK `abiFilters` for the future OpenCV C++ (burst aligner / sediment detector).
+- `proguard-rules.pro` **keeps** `id.peritanix.dape.physics.**` and `.crypto.**`
+  unobfuscated, because the canonical JSON float formatting must stay
+  byte-identical to the Go verifier for offline certificate verification.
+
+```bash
+cd mobile/android && ./gradlew assembleDebug   # requires Android SDK
+```
+
+The APK build is optional for local development; `make mobile-test` (pure JVM)
+is the always-available path.

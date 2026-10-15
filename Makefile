@@ -210,8 +210,12 @@ mobile-up: init ## Start the mobile dev toolchain container
 	$(DC) --profile mobile up -d mobile
 	@printf "$(C_GREEN)[mobile]$(C_RESET) toolchain up. Use 'make mobile-shell'.\n"
 
-mobile-build: init ## Build the Android debug APK (requires Android SDK)
-	$(DC) --profile mobile run --rm mobile ./gradlew --no-daemon assembleDebug
+mobile-build: init ## Build the Android debug APK (needs Android SDK)
+	@printf "$(C_CYAN)[mobile]$(C_RESET) building the Android app (requires SDK)...\n"
+	$(DC) --profile mobile run --rm \
+		-v "$(PWD)/mobile/android:/app/android" \
+		--entrypoint gradle mobile --no-daemon -p /app/android assembleDebug \
+		|| printf "$(C_YELLOW)[mobile]$(C_RESET) Android SDK not configured; the pure-JVM core build is 'make mobile-test'.\n"
 
 mobile-apk: init ## Copy the built debug APK to ./dist
 	@mkdir -p dist
