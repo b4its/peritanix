@@ -297,6 +297,14 @@ assert_eq "$(echo "$HB" | jqv "['batch_code']")" "$BH" "harvest batch saved"
 GOT=$(curl -sf "$API/api/v1/harvest/batches/$BH" | jqv "['batch_code']")
 assert_eq "$GOT" "$BH" "harvest batch lookup by code"
 
+# --- 25. Land TWI grid (dashboard contour) ----------------------------------
+echo "[25] Land TWI grid"
+TWI=$(curl -sf "$API/api/v1/lands/$LAND_ID/twi")
+TC=$(echo "$TWI" | python3 -c "import sys,json;print(len(json.load(sys.stdin)['cells']))")
+assert_gt0 "$TC" "TWI grid cells returned"
+TKB=$(echo "$TWI" | jqv "['cache_kb']")
+python3 -c "import sys;sys.exit(0 if float('$TKB')<500 else 1)" && pass "TWI cache < 500KB ($TKB)" || fail "TWI cache ($TKB)"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

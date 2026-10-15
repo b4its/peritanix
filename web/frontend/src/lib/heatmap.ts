@@ -175,6 +175,56 @@ export function fertilityColor(phClass: string): string {
 	}
 }
 
+/**
+ * TWI cell colour: blue = wet (drainage trough, high risk), green = dry.
+ * Uses a simple two-stop ramp on the normalised TWI value.
+ */
+export function twiColor(twi: number, maxTwi: number): string {
+	const t = Math.max(0, Math.min(1, maxTwi > 0 ? twi / maxTwi : 0));
+	// green (low) -> amber -> red (high risk)
+	if (t < 0.5) {
+		const g = Math.round(140 + t * 2 * (180 - 140));
+		return `rgba(22,163,74,${0.15 + t * 0.4})`;
+	}
+	const r = Math.round(217 + (t - 0.5) * 2 * (220 - 217));
+	const g = Math.round(180 - (t - 0.5) * 2 * 140);
+	return `rgba(${r},${Math.max(38, g)},38,${0.3 + t * 0.4})`;
+}
+
+/** Build a Leaflet grid of coloured rectangles from a TWI grid. */
+export function twiLayer(L: any, grid: { cells: any[]; grid_rows: number; grid_cols: number; max_twi: number }): any {
+	const group = L.layerGroup();
+	const cells = grid.cells || [];
+	if (cells.length === 0) return group;
+	// Infer cell half-size from neighbours (uniform grid).
+	const lons = cells.map((c) => c.lon);
+	const lats = cells.map((c) => c.lat);
+	const dLon = (Math.max(...lons) - Math.min(...lons)) / Math.max(grid.grid_cols - 1, 1);
+	const dLat = (Math.max(...lats) - Math.min(...lats)) / Math.max(grid.grid_rows - 1, 1);
+	const hx = (dLon || 0.0005) / 2;
+	const hy = (dLat || 0.0005) / 2;
+	for (const c of cells) {
+		L.rectangle(
+			[
+				[c.lat - hy, c.lon - hx],
+				[c.lat + hy, c.lon + hx]
+			],
+			{
+				stroke: false,
+				fillColor: twiColor(c.twi, grid.max_twi),
+				fillOpacity: 0.75
+			}
+		)
+			.bindPopup(
+				`TWI: ${c.twi.toFixed(2)} (${c.risk})<br/>` +
+					`Elevasi: ${c.elevation_m.toFixed(0)} m<br/>` +
+					`Bedengan disarankan: ${c.bed_height_cm} cm`
+			)
+			.addTo(group);
+	}
+	return group;
+}
+
 /** Build a Leaflet circle-marker layer from a fertility FeatureCollection. */
 export function fertilityLayer(L: any, fc: any): any {
 	const group = L.layerGroup();

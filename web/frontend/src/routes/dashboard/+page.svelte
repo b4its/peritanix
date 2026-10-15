@@ -6,13 +6,16 @@
 		landGeoJSON,
 		landDiseases,
 		soilFertilityGeoJSON,
+		landTWI,
 		type Land,
-		type DiseaseLog
+		type DiseaseLog,
+		type TwiGrid
 	} from '$lib/api';
 	import {
 		heatCanvasLayer,
 		windVectorLayer,
 		fertilityLayer,
+		twiLayer,
 		diseaseHeatPoints,
 		type WindVector
 	} from '$lib/heatmap';
@@ -21,10 +24,13 @@
 	let diseases = $state<DiseaseLog[]>([]);
 	let geo = $state<any>(null);
 	let fertility = $state<any>(null);
+	let twiGrids = $state<TwiGrid[]>([]);
 	let mapEl: HTMLDivElement;
 	let map: any;
+	let L: any;
 	let err = $state('');
-	let showFertility = $state(true);
+	let showTWI = $state(true);
+	let twiLayerRef: any = null;
 
 	// A demo prevailing wind (SE trades, blowing from ~135°).
 	let wind: WindVector[] = [];
@@ -42,7 +48,7 @@
 		} catch (e: any) {
 			err = e.message;
 		}
-		const L = (await import('leaflet')).default;
+		L = (await import('leaflet')).default;
 		await import('leaflet/dist/leaflet.css');
 		map = L.map(mapEl).setView([-6.9035, 107.6035], 15);
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -60,6 +66,8 @@
 				}
 			}).addTo(map);
 		}
+		// TWI drainage-trough layer (per land), toggled on by default.
+		await loadTWI();
 		// Soil-fertility layer (coloured by pH class).
 		if (fertility) {
 			fertilityLayer(L, fertility).addTo(map);
@@ -73,6 +81,34 @@
 		wind = [{ lat: -6.9035, lng: 107.6035, direction_deg: 135, speed: 1 }];
 		windVectorLayer(L, wind).addTo(map);
 	});
+
+	async function loadTWI() {
+		if (!L || !map) return;
+		const grids: TwiGrid[] = [];
+		for (const l of lands.slice(0, 6)) {
+			const g = await landTWI(l.id).catch(() => null);
+			if (g) grids.push(g);
+		}
+		twiGrids = grids;
+		redrawTWI();
+	}
+
+	function redrawTWI() {
+		if (!L || !map) return;
+		if (twiLayerRef) {
+			map.removeLayer(twiLayerRef);
+			twiLayerRef = null;
+		}
+		if (!showTWI) return;
+		for (const g of twiGrids) {
+			twiLayer(L, g).addTo(map);
+		}
+	}
+
+	function toggleTWI() {
+		showTWI = !showTWI;
+		redrawTWI();
+	}
 </script>
 
 <svelte:head>
@@ -88,7 +124,16 @@
 <p class="muted" style="margin-top:0.5rem">
 	Layer: <strong>{diseases.length}</strong> titik penyakit (heatmap) ·
 	<strong>{fertility?.features?.length ?? 0}</strong> titik kesuburan (pH) ·
+	<strong>{twiGrids.reduce((s, g) => s + g.cells.length, 0)}</strong> sel TWI ·
 	vektor angin dominan 135° (dari tenggara).
+</p>
+<p class="muted">
+	<button class="btn secondary" onclick={toggleTWI}>
+		{showTWI ? '🙈 Sembunyikan' : '👁 Tampilkan'} kontur TWI
+	</button>
+	&nbsp; Legenda TWI: <span style="color:#16a34a">● kering</span> →
+	<span style="color:#d97706">● lembap</span> →
+	<span style="color:#dc2626">● cekungan/genangan (risiko Phytophthora)</span>
 </p>
 <p class="muted">
 	Legenda pH: <span style="color:#16a34a">● optimal</span> ·

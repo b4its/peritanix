@@ -72,6 +72,7 @@ func Register(app *fiber.App, d *Deps) {
 	api.Get("/lands/:id/diseases", middleware.RequireUUIDParam("id"), d.diseaseList)
 	api.Get("/lands/:id/diseases/geojson", middleware.RequireUUIDParam("id"), d.diseaseGeoJSON)
 	api.Get("/lands/:id/gdd", middleware.RequireUUIDParam("id"), d.gddHistory)
+	api.Get("/lands/:id/twi", middleware.RequireUUIDParam("id"), d.landTWI)
 	api.Get("/harvest/batches/:code", d.harvestGet)
 	api.Post("/certificates/verify", d.certVerify) // public verifier — no auth
 

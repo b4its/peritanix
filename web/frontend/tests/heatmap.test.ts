@@ -66,3 +66,26 @@ describe('fertilityLayer', () => {
 		expect(fertilityLayer(fakeL, {})).toBeDefined();
 	});
 });
+
+import { twiColor } from '../src/lib/heatmap';
+
+describe('twiColor', () => {
+	it('returns a valid rgba string', () => {
+		expect(twiColor(6, 12)).toMatch(/^rgba\(/);
+	});
+	it('high TWI is redder than low TWI', () => {
+		const low = twiColor(2, 12);
+		const high = twiColor(11, 12);
+		// red channel should dominate at the high end
+		const rLow = parseInt(low.slice(5, low.indexOf(',')));
+		const rHigh = parseInt(high.slice(5, high.indexOf(',')));
+		expect(rHigh).toBeGreaterThanOrEqual(rLow);
+	});
+	it('clamps out-of-range input', () => {
+		expect(twiColor(-5, 12)).toMatch(/^rgba\(/);
+		expect(twiColor(100, 12)).toMatch(/^rgba\(/);
+	});
+	it('handles maxTwi=0 safely', () => {
+		expect(twiColor(5, 0)).toMatch(/^rgba\(/);
+	});
+});

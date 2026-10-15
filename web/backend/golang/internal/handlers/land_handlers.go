@@ -101,6 +101,26 @@ func (d *Deps) landGet(c *fiber.Ctx) error {
 	return c.JSON(l)
 }
 
+// landTWI re-extracts the DEM/TWI grid for a land's bbox so the dashboard can
+// render the topographic wetness contour (drainage troughs).
+func (d *Deps) landTWI(c *fiber.Ctx) error {
+	l, err := d.Lands.GetByID(c.Context(), c.Params("id"))
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "land not found")
+	}
+	minLon, minLat, maxLon, maxLat, ok := parseWKTBounds(l.BoundaryWKT)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnprocessableEntity, "cannot derive bbox")
+	}
+	res, err := d.ML.ExtractDEM(c.Context(), mlclient.BBox{
+		LandID: l.ID, MinLon: minLon, MinLat: minLat, MaxLon: maxLon, MaxLat: maxLat,
+	})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "twi engine: "+err.Error())
+	}
+	return c.JSON(res)
+}
+
 func (d *Deps) landGeoJSON(c *fiber.Ctx) error {
 	js, err := d.Lands.ListGeoJSON(c.Context())
 	if err != nil {

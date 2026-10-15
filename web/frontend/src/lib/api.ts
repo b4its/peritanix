@@ -152,6 +152,32 @@ export interface GDDPoint {
 	gdd_cum: number;
 }
 
+export interface TwiCell {
+	lon: number;
+	lat: number;
+	elevation_m: number;
+	upslope_area: number;
+	twi: number;
+	risk: string;
+	bed_height_cm: number;
+}
+
+export interface TwiGrid {
+	land_id: string;
+	grid_rows: number;
+	grid_cols: number;
+	cells: TwiCell[];
+	mean_twi: number;
+	max_twi: number;
+	max_risk: string;
+	cache_kb: number;
+}
+
+/** TWI grid for a land (drainage-trough contour). Public read. */
+export async function landTWI(id: string): Promise<TwiGrid> {
+	return req(`/api/v1/lands/${id}/twi`);
+}
+
 /** GDD daily time series for the accumulation chart. */
 export async function gddHistory(
 	id: string,
