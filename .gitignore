@@ -29,8 +29,10 @@ build/
 .gradle/
 **/.gradle/
 mobile/.gradle/
+mobile/.host-cache/
 mobile/build/
 mobile/**/build/
+mobile/**/.kotlin/
 mobile/local.properties
 mobile/**/local.properties
 local.properties
