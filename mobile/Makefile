@@ -151,7 +151,7 @@ emulator-list: ## Tampilkan daftar AVD
 .PHONY: up
 
 up: ## Build + install + launch di device aktif; nyalakan emulator bila tidak ada device
-	@if [ -x "$(ADB)" ] && [ -n "$$($(ADB) devices | awk 'NR>1 && $$2=="device' | head -1)" ]; then \
+	@if [ -x "$(ADB)" ] && [ -n "$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -1)" ]; then \
 		printf "$(C_GREEN)[mobile]$(C_RESET) device sudah terhubung, langsung build+install+run.\n"; \
 		$(MAKE) --no-print-directory run; \
 	else \
@@ -266,4 +266,7 @@ clean: ## Hapus hasil build
 	@printf "$(C_CYAN)[mobile]$(C_RESET) membersihkan hasil build...\n"
 	$(GRUN) clean || true
 	rm -rf $(ANDROID_DIR)/app/build $(ANDROID_DIR)/build $(MOBILE_DIR)/build $(PROJ_CACHE) 2>/dev/null || true
+	@if [ -d "$(ANDROID_DIR)/app/build" ] || [ -d "$(ANDROID_DIR)/.gradle" ]; then \
+		docker compose -f ../docker-compose.yml --profile mobile run --rm --entrypoint sh mobile -c "rm -rf /app/android/app/build /app/android/.gradle /app/build" 2>/dev/null || true; \
+	fi
 	@printf "$(C_GREEN)[mobile]$(C_RESET) bersih.\n"

@@ -288,7 +288,7 @@ mobile-build: init ## Build the Android debug APK (needs Android SDK)
 		-e ANDROID_HOME=/opt/android-sdk \
 		-e ANDROID_SDK_ROOT=/opt/android-sdk \
 		--entrypoint sh mobile -c \
-		"cd /app/android && (./gradlew --no-daemon assembleDebug || gradle --no-daemon assembleDebug)" \
+		"cd /app/android && (./gradlew --no-daemon assembleDebug || gradle --no-daemon assembleDebug); st=\$$?; chown -R $$(id -u):$$(id -g) /app/android/app/build /app/android/.gradle /app/build 2>/dev/null || true; exit \$$st" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) Android SDK not configured; the pure-JVM core build is 'make mobile-test'.\n"
 
 mobile-release: init ## Build the R8-minified release APK (shrunk + stripped, unsigned)
@@ -297,7 +297,7 @@ mobile-release: init ## Build the R8-minified release APK (shrunk + stripped, un
 		-e ANDROID_HOME=/opt/android-sdk \
 		-e ANDROID_SDK_ROOT=/opt/android-sdk \
 		--entrypoint sh mobile -c \
-		"cd /app/android && gradle --no-daemon assembleRelease" \
+		"cd /app/android && gradle --no-daemon assembleRelease; st=\$$?; chown -R $$(id -u):$$(id -g) /app/android/app/build /app/android/.gradle /app/build 2>/dev/null || true; exit \$$st" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) release build needs the Android SDK mounted (ANDROID_SDK_PATH).\n"
 
 mobile-aab: init ## Build the release Android App Bundle (for Play Store)
@@ -306,7 +306,7 @@ mobile-aab: init ## Build the release Android App Bundle (for Play Store)
 		-e ANDROID_HOME=/opt/android-sdk \
 		-e ANDROID_SDK_ROOT=/opt/android-sdk \
 		--entrypoint sh mobile -c \
-		"cd /app/android && gradle --no-daemon bundleRelease" \
+		"cd /app/android && gradle --no-daemon bundleRelease; st=\$$?; chown -R $$(id -u):$$(id -g) /app/android/app/build /app/android/.gradle /app/build 2>/dev/null || true; exit \$$st" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) AAB build needs the Android SDK mounted (ANDROID_SDK_PATH).\n"
 
 mobile-apk: init ## Copy the built debug APK to ./dist
@@ -353,7 +353,7 @@ mobile-test: init ## Run JVM unit tests for pure-Kotlin core and Android app
 		-e ANDROID_HOME=/opt/android-sdk \
 		-e ANDROID_SDK_ROOT=/opt/android-sdk \
 		--entrypoint sh mobile -c \
-		"cd /app/android && gradle --no-daemon testDebugUnitTest"
+		"cd /app/android && gradle --no-daemon testDebugUnitTest; st=\$$?; chown -R $$(id -u):$$(id -g) /app/android/app/build /app/android/.gradle /app/build 2>/dev/null || true; exit \$$st"
 	@printf "$(C_GREEN)[mobile-test]$(C_RESET) All mobile test suites passed.\n"
 
 mobile-run: init ## Run the mobile physics smoke CLI
