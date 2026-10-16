@@ -46,6 +46,10 @@ fun SyncScreen(queue: SyncQueueStore) {
 
                 Text("Data Tersimpan Lokal (Room SQLite):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("• Batas Lahan Poligon GPS:")
+                    Text("${queue.landCount()} entri", fontWeight = FontWeight.SemiBold)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("• Penilaian Tanah Terdaftar:")
                     Text("${queue.soilAssessmentCount()} entri", fontWeight = FontWeight.SemiBold)
                 }
