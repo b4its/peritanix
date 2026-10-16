@@ -1,11 +1,20 @@
 {
   "name": "severity_unet_lite",
   "version": "1.0.0",
-  "sha256": "",
-  "size_bytes": 5242880,
-  "quantisation": "int8",
+  "sha256": "584cf72a1e0761d89f1e1803d9ccbfed5c3f3cd3467795a5ff3a219c683aab8a",
+  "size_bytes": 2079,
+  "quantisation": "fp32",
   "min_app_version": "1.0.0",
   "purpose": "necrosis/lesion area segmentation (severity %)",
-  "input": "image/uint8 256x256",
-  "format": "onnx"
+  "input": "image/float32 1x3x256x256",
+  "output": "probs/float32 1x4x256x256 = [healthy, chlorotic, necrotic, background]",
+  "format": "onnx",
+  "classes": [
+    "healthy",
+    "chlorotic",
+    "necrotic",
+    "background"
+  ],
+  "severity_formula": "necrotic + 0.5*chlorotic, over the leaf region (non-background)",
+  "trained_on": "principled synthetic lesion signatures (seed=20240517)"
 }
