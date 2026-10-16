@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import {
 		calorimetry,
@@ -11,6 +11,7 @@
 		type HarvestDecisionResult,
 		type Land
 	} from '$lib/api';
+	import { speak, stopSpeaking, ttsSupported, dosingSpeech } from '$lib/tts';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -18,6 +19,41 @@
 	let wellTemp = $state(27);
 	let calo = $state<CalorimetryResult | null>(null);
 	let err = $state('');
+
+	// 180s immersion countdown (TAHAP 5.1)
+	let countdown = $state(0);
+	let ticking = $state(false);
+	let timer: ReturnType<typeof setInterval> | null = null;
+
+	function startCountdown() {
+		if (!calo) return;
+		countdown = calo.countdown_s || 180;
+		ticking = true;
+		if (timer) clearInterval(timer);
+		timer = setInterval(() => {
+			countdown -= 1;
+			if (countdown <= 0) {
+				clearInterval(timer!);
+				timer = null;
+				ticking = false;
+				speak('Waktu perendaman selesai. Angkat dan tiriskan cabai.');
+			}
+		}, 1000);
+	}
+
+	function toggleTTS() {
+		if (!calo) return;
+		if (ticking) {
+			stopSpeaking();
+			return;
+		}
+		speak(dosingSpeech(calo.v_boil_parts, calo.v_well_parts, calo.countdown_s));
+	}
+
+	onDestroy(() => {
+		if (timer) clearInterval(timer);
+		stopSpeaking();
+	});
 
 	// Archimedes assay inputs
 	let sinkCount = $state(16);
@@ -134,6 +170,18 @@
 			<p style="margin-top:0.75rem">Titik didih: <strong>{calo.boiling_point_c.toFixed(2)} °C</strong></p>
 			<p><strong>{calo.ratio_label}</strong></p>
 			<p class="muted">{calo.tts_text} ({calo.countdown_s} detik)</p>
+			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+				<button class="btn" onclick={toggleTTS} disabled={!ttsSupported()}>
+					{ticking ? '⏹ Stop Suara' : '🔊 Bacakan (TTS)'}
+				</button>
+				<button class="btn" onclick={startCountdown}>⏱ Mulai Perendaman {calo.countdown_s}s</button>
+			</div>
+			{#if ticking || countdown > 0}
+				<p style="margin-top:0.5rem;font-size:1.4rem;font-weight:700">
+					⏳ {String(Math.floor(countdown / 60)).padStart(2, '0')}:{String(countdown % 60).padStart(2, '0')}
+					{#if !ticking && countdown <= 0}<span class="badge high">SELESAI</span>{/if}
+				</p>
+			{/if}
 		{/if}
 	</div>
 
