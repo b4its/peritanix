@@ -68,6 +68,16 @@ data class HarvestBatchEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "device_calibrations")
+data class DeviceCalibrationEntity(
+    @PrimaryKey val id: String,
+    val whiteRefR: Double,
+    val whiteRefG: Double,
+    val whiteRefB: Double,
+    val luxVerified: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface DapeDao {
     // --- sync queue ---
@@ -125,6 +135,13 @@ interface DapeDao {
 
     @Query("SELECT COUNT(*) FROM harvest_batches")
     fun harvestCount(): Int
+
+    // --- device calibrations ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalibration(c: DeviceCalibrationEntity)
+
+    @Query("SELECT * FROM device_calibrations ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latestCalibration(): DeviceCalibrationEntity?
 }
 
 @Database(
@@ -133,9 +150,10 @@ interface DapeDao {
         LandEntity::class,
         DiagnosisEntity::class,
         SoilAssessmentEntity::class,
-        HarvestBatchEntity::class
+        HarvestBatchEntity::class,
+        DeviceCalibrationEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class DapeDatabase : RoomDatabase() {

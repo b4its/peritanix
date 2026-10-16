@@ -130,6 +130,52 @@ class SyncQueueStore(private val context: Context) {
         }.start()
     }
 
+    /** Save or update land boundary into Room DB and the offline sync queue */
+    fun enqueueLand(
+        landId: String,
+        name: String,
+        boundaryWkt: String,
+        elevationM: Double,
+        accumulatedGdd: Double = 0.0,
+        currentPhase: String = "VEGETATIVE"
+    ) {
+        val key = "android-land-${UUID.randomUUID()}"
+        val ts = System.currentTimeMillis()
+        val json = """{"id":"$landId","name":"$name","boundary":"$boundaryWkt","elevation_m":$elevationM,"accumulated_gdd":$accumulatedGdd,"current_phase":"$currentPhase"}"""
+
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT OR REPLACE INTO lands (id, name, boundaryWkt, elevationM, accumulatedGdd, currentPhase, synced) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                arrayOf(landId, name, boundaryWkt, elevationM, accumulatedGdd, currentPhase, 0)
+            )
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO sync_queue (entity, idempotencyKey, updatedTs, rev, payloadJson) " +
+                    "VALUES (?, ?, ?, ?, ?)",
+                arrayOf("land_init", key, ts, 1L, json)
+            )
+            schedule()
+        }.start()
+    }
+
+    /** Save white reference calibration into Room DB */
+    fun saveCalibration(
+        id: String,
+        whiteRefR: Double,
+        whiteRefG: Double,
+        whiteRefB: Double,
+        luxVerified: Boolean
+    ) {
+        val ts = System.currentTimeMillis()
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT OR REPLACE INTO device_calibrations (id, whiteRefR, whiteRefG, whiteRefB, luxVerified, timestamp) " +
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                arrayOf(id, whiteRefR, whiteRefG, whiteRefB, if (luxVerified) 1 else 0, ts)
+            )
+        }.start()
+    }
+
     /** Schedule a constraints-gated background sync (Wi-Fi / 4G). */
     fun schedule() {
         val constraints = Constraints.Builder()

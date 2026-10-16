@@ -21,6 +21,14 @@ object DarkChamberFlashManager {
     const val LOCKED_ISO = 100
     const val LOCKED_EXPOSURE_NS = 8_000_000L // 1/125 s
 
+    data class WhiteReference(
+        val rScale: Double,
+        val gScale: Double,
+        val bScale: Double,
+        val luxVerified: Boolean,
+        val isCalibrated: Boolean
+    )
+
     data class PhotometryResult(
         val phDeterministic: Double,
         val nitratePpm: Double,
@@ -30,6 +38,34 @@ object DarkChamberFlashManager {
         val isValid: Boolean,
         val statusMessage: String
     )
+
+    /**
+     * Calibrates device flash against standard white HVS paper in sealed dark chamber (0 Lux).
+     * Calculates gain multipliers so that pure white maps to standard reference.
+     */
+    fun calibrateSpectralWhiteReference(
+        rawR: Int, rawG: Int, rawB: Int, ambientLux: Float
+    ): WhiteReference {
+        val sealed = isDarkChamberSealed(ambientLux)
+        if (!sealed) {
+            return WhiteReference(1.0, 1.0, 1.0, luxVerified = false, isCalibrated = false)
+        }
+        val safeR = rawR.coerceAtLeast(1).toDouble()
+        val safeG = rawG.coerceAtLeast(1).toDouble()
+        val safeB = rawB.coerceAtLeast(1).toDouble()
+
+        val rScale = Math.round((255.0 / safeR) * 1000.0) / 1000.0
+        val gScale = Math.round((255.0 / safeG) * 1000.0) / 1000.0
+        val bScale = Math.round((255.0 / safeB) * 1000.0) / 1000.0
+
+        return WhiteReference(
+            rScale = rScale,
+            gScale = gScale,
+            bScale = bScale,
+            luxVerified = true,
+            isCalibrated = true
+        )
+    }
 
     /**
      * Applies fixed Camera2 parameters to ensure repeatable, reproducible spectral capture.

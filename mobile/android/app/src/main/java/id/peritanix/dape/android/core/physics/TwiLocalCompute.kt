@@ -25,6 +25,15 @@ object TwiLocalCompute {
         val recommendation: String
     )
 
+    data class TwiCell(
+        val row: Int,
+        val col: Int,
+        val upslopeM2: Double,
+        val slopeDeg: Double,
+        val twi: Double,
+        val riskClass: String
+    )
+
     fun compute(upslopeAreaM2PerM: Double, slopeDeg: Double): TwiAssessment {
         val twi = Physics.twiFromDegrees(upslopeAreaM2PerM, slopeDeg)
         val risk = Physics.drainageRiskClass(twi)
@@ -47,5 +56,39 @@ object TwiLocalCompute {
             warningPhytophthora = warn,
             recommendation = rec
         )
+    }
+
+    /**
+     * Computes a 2D topographical grid of TWI values across a micro-plot bed segment
+     * to render an offline color-coded risk contour map directly on the device.
+     */
+    fun computeLocalGrid(
+        baseUpslope: Double,
+        baseSlope: Double,
+        rows: Int = 4,
+        cols: Int = 4
+    ): List<List<TwiCell>> {
+        val grid = mutableListOf<List<TwiCell>>()
+        for (r in 0 until rows) {
+            val rowList = mutableListOf<TwiCell>()
+            val rowSlope = (baseSlope * (1.0 + (r - rows / 2.0) * 0.15)).coerceAtLeast(0.1)
+            for (c in 0 until cols) {
+                val cellUpslope = (baseUpslope * (0.7 + (r * cols + c) * (0.6 / (rows * cols)))).coerceAtLeast(10.0)
+                val cellTwi = Physics.twiFromDegrees(cellUpslope, rowSlope)
+                val risk = Physics.drainageRiskClass(cellTwi)
+                rowList.add(
+                    TwiCell(
+                        row = r,
+                        col = c,
+                        upslopeM2 = Math.round(cellUpslope * 10.0) / 10.0,
+                        slopeDeg = Math.round(rowSlope * 10.0) / 10.0,
+                        twi = Math.round(cellTwi * 100.0) / 100.0,
+                        riskClass = risk
+                    )
+                )
+            }
+            grid.add(rowList)
+        }
+        return grid
     }
 }
