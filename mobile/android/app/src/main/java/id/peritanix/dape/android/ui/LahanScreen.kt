@@ -1,20 +1,37 @@
 package id.peritanix.dape.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
+import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
+import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.physics.Physics
 
 @Composable
 fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val scrollState = rememberScrollState()
 
+    // --- State: GPS Polygon Tracker (Tahap 1.1) ---
+    val polygonTracker = remember { GpsPolygonTracker() }
+    var pointCount by remember { mutableStateOf(0) }
+    var perimeterMeters by remember { mutableStateOf(0.0) }
+    var areaHa by remember { mutableStateOf(0.0) }
+    var isClosed by remember { mutableStateOf(false) }
+    var wktPolygon by remember { mutableStateOf("") }
+    var gpsSaveStatus by remember { mutableStateOf("") }
+
+    // --- State: Topografi & TWI ---
     var slopeDeg by remember { mutableStateOf(4.5) }
     var upslopeArea by remember { mutableStateOf(150.0) }
     var sandPct by remember { mutableStateOf(40.0) }
@@ -25,9 +42,20 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     var soilPh by remember { mutableStateOf(5.8) }
     var saveStatus by remember { mutableStateOf("") }
 
-    val twi = Physics.twiFromDegrees(upslopeArea, slopeDeg)
-    val riskClass = Physics.drainageRiskClass(twi)
-    val bedHeight = Physics.requiredBedHeightCm(twi)
+    // --- State: Onboarding Spectral Calibration ---
+    var calibR by remember { mutableStateOf(240) }
+    var calibG by remember { mutableStateOf(245) }
+    var calibB by remember { mutableStateOf(238) }
+    var calibLux by remember { mutableStateOf(0.0f) }
+    var calibStatus by remember { mutableStateOf("") }
+
+    val twiAssessment = TwiLocalCompute.compute(upslopeArea, slopeDeg)
+    val twi = twiAssessment.twiValue
+    val riskClass = twiAssessment.drainageRisk
+    val bedHeight = twiAssessment.requiredBedHeightCm
+    val localGrid = remember(upslopeArea, slopeDeg) {
+        TwiLocalCompute.computeLocalGrid(upslopeArea, slopeDeg, rows = 3, cols = 4)
+    }
 
     val usdaClass = Physics.classifyUsda(sandPct, siltPct, clayPct)
     val cec = Physics.cecFromTexture(sandPct, siltPct, clayPct)
@@ -39,6 +67,117 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- Card 0: Perekaman Poligon GPS Lahan (Tahap 1.1) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "0. Pemetaan Poligon Batas Lahan (GPS Presisi)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Petani berjalan menyusuri pematang lahan untuk merekam poligon tertutup PostGIS (Target: 0,1 - 2,0 Ha).",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Titik GPS: $pointCount")
+                    Text("Keliling: ${"%.1f".format(perimeterMeters)} m")
+                    Text("Luas: ${"%.3f".format(areaHa)} Ha", fontWeight = FontWeight.Bold)
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            // Demo walk adding points around a smallholder chili plot (~0.25 Ha)
+                            val baseLat = -7.123456
+                            val baseLon = 110.456789
+                            when (pointCount) {
+                                0 -> polygonTracker.addPoint(baseLat, baseLon, 850.0, 3.5f)
+                                1 -> polygonTracker.addPoint(baseLat + 0.00045, baseLon, 852.0, 4.0f)
+                                2 -> polygonTracker.addPoint(baseLat + 0.00045, baseLon + 0.00055, 851.0, 3.8f)
+                                3 -> polygonTracker.addPoint(baseLat, baseLon + 0.00055, 849.0, 4.2f)
+                                else -> polygonTracker.addPoint(baseLat, baseLon, 850.0, 3.5f)
+                            }
+                            pointCount = polygonTracker.getPoints().size
+                            perimeterMeters = polygonTracker.calculatePerimeterMeters()
+                            areaHa = polygonTracker.calculateAreaHectares()
+                            isClosed = polygonTracker.isPolygonClosed()
+                            wktPolygon = polygonTracker.toWktPolygon()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (pointCount == 0) "Mulai GPS" else "+ Titik Batas")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            polygonTracker.clear()
+                            pointCount = 0
+                            perimeterMeters = 0.0
+                            areaHa = 0.0
+                            isClosed = false
+                            wktPolygon = ""
+                            gpsSaveStatus = ""
+                        },
+                        modifier = Modifier.weight(0.7f)
+                    ) {
+                        Text("Reset")
+                    }
+                }
+
+                if (areaHa > 0) {
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                if (polygonTracker.isWithinSmallholderRange())
+                                    "✓ Skala Mikro-Perkebunan Cabai (0,1 - 2,0 Ha)"
+                                else "Di luar rentang mikro-lahan"
+                            )
+                        }
+                    )
+                }
+
+                if (wktPolygon.isNotEmpty()) {
+                    Text(
+                        "WKT PostGIS: $wktPolygon",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = {
+                            queue?.enqueueLand(
+                                landId = "land-demo-${System.currentTimeMillis().toString().takeLast(4)}",
+                                name = "Blok Cabai Rawit Merah A1",
+                                boundaryWkt = wktPolygon,
+                                elevationM = 850.0,
+                                currentPhase = "VEGETATIVE"
+                            )
+                            gpsSaveStatus = "Batas poligon lahan tersimpan ke Room SQLite & diantrekan ke server."
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Simpan Poligon Lahan ke Room SQLite")
+                    }
+
+                    if (gpsSaveStatus.isNotEmpty()) {
+                        Text(
+                            gpsSaveStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
         // --- Card 1: Hidrologi Mikro & TWI (Hukum Darcy & Topografi) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -98,11 +237,53 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         label = { Text(riskClass) }
                     )
                 }
+
                 Text(
-                    "Rekomendasi: Bedengan minimum $bedHeight cm untuk memutus kapiler air jenuh dan mencegah busuk akar Phytophthora.",
+                    twiAssessment.recommendation,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // 2D Contour Map Matrix Preview
+                Text(
+                    "Peta Kontur TWI 2D Offline (Grid 3x4 Bedengan):",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF202020), RoundedCornerShape(8.dp))
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    localGrid.forEach { rowCells ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            rowCells.forEach { cell ->
+                                val cellColor = when (cell.riskClass) {
+                                    "CRITICAL" -> Color(0xFFD32F2F)
+                                    "HIGH" -> Color(0xFFF57C00)
+                                    "MODERATE" -> Color(0xFF388E3C)
+                                    else -> Color(0xFF1976D2)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                        .background(cellColor, RoundedCornerShape(4.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "${"%.1f".format(cell.twi)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -155,7 +336,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
             }
         }
 
-        // --- Card 3: Pemupukan Preskriptif Terkalibrasi (Opsi 2) ---
+        // --- Card 3: Pemupukan Preskriptif Terkalibrasi ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -237,6 +418,59 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 if (saveStatus.isNotEmpty()) {
                     Text(
                         saveStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // --- Card 4: Kalibrasi Spektral LED Flash Onboarding (Tahap 1.1) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "4. Kalibrasi Spektral LED Flash (Onboarding 0 Lux)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Kalibrasi perangkat terhadap kertas HVS putih dalam mangkuk gelap untuk kompensasi deviasi warna antar-merek HP.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Button(
+                    onClick = {
+                        val calib = DarkChamberFlashManager.calibrateSpectralWhiteReference(
+                            rawR = calibR,
+                            rawG = calibG,
+                            rawB = calibB,
+                            ambientLux = calibLux
+                        )
+                        if (calib.isCalibrated) {
+                            queue?.saveCalibration(
+                                id = "calib-hw-main",
+                                whiteRefR = calib.rScale,
+                                whiteRefG = calib.gScale,
+                                whiteRefB = calib.bScale,
+                                luxVerified = calib.luxVerified
+                            )
+                            calibStatus = "Kalibrasi Berhasil: Matriks R=${calib.rScale}, G=${calib.gScale}, B=${calib.bScale} tersimpan ke Room SQLite."
+                        } else {
+                            calibStatus = "Gagal: Mangkuk belum kedap cahaya (Sensor Lux > 0.5 Lux)."
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Jalankan Kalibrasi Mangkuk Gelap (0 Lux)")
+                }
+
+                if (calibStatus.isNotEmpty()) {
+                    Text(
+                        calibStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold

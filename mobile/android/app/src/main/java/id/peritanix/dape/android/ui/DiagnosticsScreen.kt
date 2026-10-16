@@ -10,13 +10,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
+import id.peritanix.dape.android.core.physics.PericarpFortificationManager
 import id.peritanix.dape.pathology.PathologyClassifier
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val scrollState = rememberScrollState()
 
+    // --- State: Morfologi Keriting & Lesi ---
     var curlDirection by remember { mutableStateOf("up") }
     var undersideColor by remember { mutableStateOf("silvery") }
     var mosaicVeins by remember { mutableStateOf(false) }
@@ -25,6 +29,41 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
     var isWilting by remember { mutableStateOf(true) }
     var soilMoisturePct by remember { mutableStateOf(68.0) }
     var saveStatus by remember { mutableStateOf("") }
+
+    // --- State: Active Leaf Trans-Illumination (FR-2.2) ---
+    val edgeRunner = remember { EdgeInferenceRunner(File("/tmp/models")) }
+    var transR by remember { mutableStateOf(110) }
+    var transG by remember { mutableStateOf(160) }
+    var transB by remember { mutableStateOf(90) }
+    val transResult = remember(transR, transG, transB) {
+        edgeRunner.evaluateTransIllumination(transR, transG, transB)
+    }
+
+    // --- State: Yield Estimation Fruit Counting ---
+    var greenFruits by remember { mutableStateOf(35) }
+    var turningFruits by remember { mutableStateOf(12) }
+    var ripeFruits by remember { mutableStateOf(8) }
+    val yieldResult = remember(greenFruits, turningFruits, ripeFruits) {
+        edgeRunner.estimateYieldAndFruitCount(greenFruits, turningFruits, ripeFruits)
+    }
+
+    // --- State: Pericarp Fortification Lock & Nitrogen Restriction (FR-3.2) ---
+    var currentPhase by remember { mutableStateOf("FLOWERING") }
+    var gddAccumulated by remember { mutableStateOf(480.0) }
+    var plantHst by remember { mutableStateOf(45) }
+    var proposedFertilizer by remember { mutableStateOf("Urea 46%") }
+    var proposedNitrogenPct by remember { mutableStateOf(46.0) }
+
+    val fortStatus = remember(currentPhase, gddAccumulated, plantHst) {
+        PericarpFortificationManager.evaluateLockStatus(currentPhase, gddAccumulated, plantHst)
+    }
+    val fertValidation = remember(proposedFertilizer, proposedNitrogenPct, fortStatus.isLocked) {
+        PericarpFortificationManager.validateFertilizerProposal(
+            fertilizerName = proposedFertilizer,
+            nitrogenPct = proposedNitrogenPct,
+            isLocked = fortStatus.isLocked
+        )
+    }
 
     val diag = PathologyClassifier.differentiateLeafCurl(
         curlDirection = curlDirection,
@@ -96,7 +135,6 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
 
                 HorizontalDivider()
 
-                // Hasil Diagnosa
                 Text(
                     diag.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -201,29 +239,149 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
             }
         }
 
-        // --- Card 3: Fotometri Kamar Gelap (Dark Chamber Strip) ---
+        // --- Card 3: Active Leaf Trans-Illumination (FR-2.2) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(
+                containerColor = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+            )
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "3. Miniatur Dark Chamber Strip Photometry",
+                    "3. Uji Trans-Iluminasi Daun Kontak 0 cm (FR-2.2)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Sensor Cahaya: 0.0 Lux (Kamar Gelap Terverifikasi)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "Camera2 Status: AE OFF | Flash Torch ON | ISO 100 | Shutter 1/125s",
+                    "Kamera kontak langsung ke daun dengan LED Flash menyala penuh untuk membaca transmisi optik mesofil dan hifa laten pra-gejala.",
                     style = MaterialTheme.typography.bodySmall
                 )
+
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Hasil CIELAB pH Tanah: 6.2 (Optimal)")
-                    Text("Kadar Nitrat: 85 ppm")
+                    Text("Rasio Transmisi Hijau: ${transResult.greenAttenuationRatio}")
+                    Text("Kerapatan Optik: ${transResult.mesophyllOpticalDensity}")
+                }
+
+                Text(
+                    transResult.latencyAdvisory,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        // --- Card 4: Pericarp Fortification Lock & Nitrogen Blocking (FR-3.2) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (fertValidation.isCriticalBlock) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "4. Penguncian Fortifikasi Dinding Sel (FR-3.2)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(if (fortStatus.isLocked) "LOCKED" else "NORMAL") }
+                    )
+                }
+
+                Text(fortStatus.advisory, style = MaterialTheme.typography.bodySmall)
+
+                HorizontalDivider()
+
+                Text("Simulasi Input Pupuk Petani:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Urea 46%" to 46.0, "Kalsium Nitrat" to 15.0, "NPK 16-16-16" to 16.0).forEach { (name, nPct) ->
+                        FilterChip(
+                            selected = proposedFertilizer == name,
+                            onClick = {
+                                proposedFertilizer = name
+                                proposedNitrogenPct = nPct
+                            },
+                            label = { Text(name) }
+                        )
+                    }
+                }
+
+                if (fertValidation.isCriticalBlock) {
+                    Text(
+                        fertValidation.warningMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Tindakan Korektif Wajib: ${fertValidation.correctiveAction}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                } else {
+                    Text(
+                        fertValidation.warningMessage,
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                // Stoichiometry Box
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Protokol Stoikiometri Fortifikasi Perikarp:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                        Text("• Kalsium Nitrat (Ca(NO3)2): ${fortStatus.prescription.calciumNitrateGPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                        Text("• Boron (B): ${fortStatus.prescription.boronGPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                        Text("• Asam Silikat: ${fortStatus.prescription.silicicAcidGPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                        Text("• Interval: Tiap ${fortStatus.prescription.frequencyDays} hari sekali kocor/semprot kabut.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        // --- Card 5: Estimasi Populasi Buah & Yield On-Device (FR-2.1) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "5. Estimasi Populasi Buah & Hasil Panen (YOLO Yield)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Deteksi on-device buah hijau, semburat, dan merah matang untuk proyeksi tonase panen ke depan.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Buah Hijau: $greenFruits")
+                    Text("Semburat: $turningFruits")
+                    Text("Merah Matang: $ripeFruits")
+                }
+
+                HorizontalDivider()
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Total Buah/Pohon", style = MaterialTheme.typography.bodySmall)
+                        Text("${yieldResult.totalFruitCount} buah", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    }
+                    Column {
+                        Text("Estimasi per Pohon", style = MaterialTheme.typography.bodySmall)
+                        Text("${yieldResult.projectedYieldKgPerPlant} kg", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    }
+                    Column {
+                        Text("Proyeksi Tonase", style = MaterialTheme.typography.bodySmall)
+                        Text("${yieldResult.projectedYieldTonPerHa} Ton/Ha", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
         }
