@@ -229,7 +229,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
 | Vitest (web) | **57** | Mirror fisika + EWS + heatmap/fertility + **TWI colour ramp** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
-| E2E script | **50–52** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, **TWI grid** |
+| E2E script | **56–58** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, **optics (MFSR/trans-illum/ooze), forensics** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
 | Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
@@ -359,7 +359,7 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 make verify  →
   lint:        ruff clean · svelte-check 0/0 · go vet clean
   unit:        pytest 219 passed · go test 7 pkgs ok · kotlin 27 · vitest 57
-  e2e smoke:   52 passed  (…→sensor-ingest→EWS→economics→batch-registry→TWI-grid)
+  e2e smoke:   58 passed  (…→TWI-grid→optics(MFSR/trans-illum/ooze)→forensics)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
                            pre/post-reconnect scan, idempotent retry,
