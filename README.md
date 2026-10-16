@@ -228,7 +228,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Python (fastapi) | **233** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, **protocol rules (ooze trigger)** |
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **66** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + **TTS dosing** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
+| Vitest (web) | **70** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + **trace validation** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
 | E2E script | **65–67** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, fortification guard, fertilizer dosage, ooze trigger, **cert stored-key path** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
@@ -356,6 +356,8 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       wajibkan uji ooze (Ralstonia vs Fusarium)
 - [x] **TTS + countdown 180s (TAHAP 5.1)** — instruksi takaran dibacakan
       bahasa Indonesia di halaman panen
+- [x] **Validasi trace giroskop (TAHAP 6.3)** — rekam gerak 180s + tolak
+      sinyal konstan (indikasi lewatkan timer)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
@@ -367,7 +369,7 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 ```
 make verify  →
   lint:        ruff clean · svelte-check 0/0 · go vet clean
-  unit:        pytest 233 passed · go test 7 pkgs ok · kotlin 27 · vitest 66
+  unit:        pytest 233 passed · go test 7 pkgs ok · kotlin 27 · vitest 70
   e2e smoke:   67 passed  (…→TWI-grid→optics(MFSR/trans-illum/ooze)→forensics)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
