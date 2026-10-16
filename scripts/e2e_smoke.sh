@@ -143,6 +143,25 @@ SF=$(echo "$YIELD" | jqv "['scale_factor']")
 python3 -c "import sys;sys.exit(0 if abs(float('$SF')-10.0)<1e-9 else 1)" && \
   pass "sampling scale factor ($SF)" || fail "scale factor ($SF)"
 
+# Auto-count fruit from a canopy photo (Opsi 3), then feed it into the projection.
+python3 -c "
+import json
+H=W=200
+img=[[[0.30,0.55,0.25] for _ in range(W)] for _ in range(H)]
+def disc(cy,cx,r,col):
+    for y in range(H):
+        for x in range(W):
+            if (y-cy)**2+(x-cx)**2<=r*r: img[y][x]=col
+disc(40,40,10,[0.85,0.10,0.10]); disc(40,120,9,[0.80,0.15,0.10])
+disc(120,80,8,[0.90,0.45,0.10]); disc(150,150,9,[0.12,0.40,0.12])
+json.dump({'land_id':'e2e','image':img}, open('/tmp/e2e_fc.json','w'))
+"
+FC=$(curl -sf -X POST "$API/api/v1/yield/fruit-count" -H 'Content-Type: application/json' -d @/tmp/e2e_fc.json)
+assert_eq "$(echo "$FC" | jqv "['red_full']")" "2" "auto-count detects 2 ripe fruit"
+assert_eq "$(echo "$FC" | jqv "['red_blush']")" "1" "auto-count detects 1 blush fruit"
+assert_eq "$(echo "$FC" | jqv "['green_dark']")" "1" "auto-count detects 1 dark-green fruit"
+assert_eq "$(echo "$FC" | jqv "['method']")" "deterministic_blob_counter" "fruit-count method reported"
+
 # --- 13. Protocol prescription ----------------------------------------------
 echo "[13] Prescriptive protocol"
 PROTO=$(curl -sf -X POST "$API/api/v1/protocols/prescribe" -H 'Content-Type: application/json' \
