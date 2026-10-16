@@ -104,10 +104,11 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/postharvest/archimedes", d.archimedes)
 	mut.Post("/harvest/batches", d.harvestCreate)
 
-	// Multi-modal optics (burst, trans-illumination, ooze)
+	// Multi-modal optics (burst, trans-illumination, ooze, severity)
 	mut.Post("/optics/mfsr", d.mfsrStack)
 	mut.Post("/optics/trans-illumination", d.transIllumination)
 	mut.Post("/optics/ooze", d.oozeOpticalFlow)
+	mut.Post("/optics/severity", d.severity)
 
 	// Post-harvest grading + microclimate EWS
 	mut.Post("/postharvest/grade", d.gradeFruit)

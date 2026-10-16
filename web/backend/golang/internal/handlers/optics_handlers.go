@@ -70,6 +70,33 @@ func (d *Deps) oozeOpticalFlow(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// --- Lesion severity (Opsi 1: pixel-wise segmenter) --------------------------
+
+type severityReq struct {
+	LandID   string        `json:"land_id"`
+	Image    [][][]float64 `json:"image"`
+	LeafMask [][]bool      `json:"leaf_mask"`
+}
+
+func (d *Deps) severity(c *fiber.Ctx) error {
+	var req severityReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if len(req.Image) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "image (HxWx3) required")
+	}
+	in := map[string]any{"image": req.Image}
+	if req.LeafMask != nil {
+		in["leaf_mask"] = req.LeafMask
+	}
+	res, err := d.ML.Severity(c.Context(), in)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "severity engine: "+err.Error())
+	}
+	return c.JSON(res)
+}
+
 // --- Post-harvest grading ---------------------------------------------------
 
 type gradeReq struct {

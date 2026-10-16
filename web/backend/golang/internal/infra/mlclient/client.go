@@ -185,6 +185,13 @@ func (c *Client) OozeOpticalFlow(ctx context.Context, in map[string]any) (map[st
 	return out, err
 }
 
+// Severity runs the pixel-wise lesion segmenter (Opsi 1) → severity %.
+func (c *Client) Severity(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/optics/severity", in, &out)
+	return out, err
+}
+
 // GradeFruit scores a harvested fruit (curvature/colour/defect).
 func (c *Client) GradeFruit(ctx context.Context, in map[string]any) (map[string]any, error) {
 	var out map[string]any
