@@ -433,6 +433,32 @@ export async function yieldProjection(input: {
 	});
 }
 
+export interface FruitCountResult {
+	green_dark: number;
+	red_blush: number;
+	red_full: number;
+	total: number;
+	mean_blob_area_px: Record<string, number>;
+	image_size: [number, number];
+	method: string;
+}
+
+/**
+ * Auto-count fruit by ripeness class from a canopy photo (Opsi 3). The counts
+ * feed `yieldProjection` directly, replacing manual tallying.
+ */
+export async function fruitCount(input: {
+	land_id?: string;
+	image: number[][][];
+	min_area_px?: number;
+	max_area_px?: number;
+}): Promise<FruitCountResult> {
+	return req('/api/v1/yield/fruit-count', {
+		method: 'POST',
+		body: JSON.stringify(input)
+	});
+}
+
 export interface Protocol {
 	code: string;
 	disease: string;

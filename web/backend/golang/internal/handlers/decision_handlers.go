@@ -42,6 +42,38 @@ func (d *Deps) yieldProjection(c *fiber.Ctx) error {
 	return c.JSON(res)
 }
 
+// --- Fruit counting (Opsi 3: auto-fill yield counts from a canopy photo) -----
+
+type fruitCountReq struct {
+	LandID    string        `json:"land_id"`
+	Image     [][][]float64 `json:"image"`
+	MinAreaPx int           `json:"min_area_px"`
+	MaxAreaPx int           `json:"max_area_px"`
+}
+
+// fruitCount auto-counts fruit by ripeness class from a canopy photo.
+func (d *Deps) fruitCount(c *fiber.Ctx) error {
+	var req fruitCountReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if len(req.Image) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "image (HxWx3) required")
+	}
+	in := map[string]any{"image": req.Image}
+	if req.MinAreaPx > 0 {
+		in["min_area_px"] = req.MinAreaPx
+	}
+	if req.MaxAreaPx > 0 {
+		in["max_area_px"] = req.MaxAreaPx
+	}
+	res, err := d.ML.FruitCount(c.Context(), in)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "fruit-count engine: "+err.Error())
+	}
+	return c.JSON(res)
+}
+
 // --- Prescriptive protocols (Opsi 1D) ---------------------------------------
 
 type protocolReq struct {

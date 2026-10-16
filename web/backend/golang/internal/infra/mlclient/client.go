@@ -220,6 +220,13 @@ func (c *Client) YieldProjection(ctx context.Context, in map[string]any) (map[st
 	return out, err
 }
 
+// FruitCount auto-counts fruit by ripeness class from a canopy photo (Opsi 3).
+func (c *Client) FruitCount(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/fruit-count", in, &out)
+	return out, err
+}
+
 // ProtocolPrescribe returns an actionable agrochemical protocol.
 func (c *Client) ProtocolPrescribe(ctx context.Context, in map[string]any) (map[string]any, error) {
 	var out map[string]any

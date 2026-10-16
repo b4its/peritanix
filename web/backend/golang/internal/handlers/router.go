@@ -119,6 +119,7 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Decision support: yield projection, protocols, trace validation
 	mut.Post("/yield/projection", d.yieldProjection)
+	mut.Post("/yield/fruit-count", d.fruitCount)
 	mut.Post("/protocols/prescribe", d.protocolPrescribe)
 	mut.Post("/certificates/validate-trace", d.validateTrace)
 	mut.Post("/postharvest/decision", d.harvestDecision)
