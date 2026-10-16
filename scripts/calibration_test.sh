@@ -13,7 +13,7 @@
 # =============================================================================
 set -uo pipefail
 
-ML="${ML:-http://localhost:58000}"
+ML="${ML:-http://localhost:58059}"
 TOKEN="${INTERNAL_TOKEN:-internal-shared-secret-change-me}"
 PASS=0; FAIL=0
 pass(){ echo "  ✓ $1"; PASS=$((PASS+1)); }

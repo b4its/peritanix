@@ -4,14 +4,14 @@
 // Exercises the hot read paths and a few light compute paths at a modest load
 // so a small VM is not overwhelmed. Run:
 //   k6 run scripts/loadtest.js
-//   API=http://localhost:58080 k6 run scripts/loadtest.js
+//   API=http://localhost:58139 k6 run scripts/loadtest.js
 //
 // Install k6: https://k6.io/docs/get-started/installation/
 // =============================================================================
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const API = __ENV.API || 'http://localhost:58080';
+const API = __ENV.API || 'http://localhost:58139';
 
 export const options = {
 	scenarios: {

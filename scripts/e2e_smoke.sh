@@ -5,13 +5,13 @@
 # microclimate EWS, grading, calorimetry, Archimedes, CRDT merge, idempotent
 # delta sync, and Ed25519 certificate verification.
 #
-# Usage: API=http://localhost:58080 bash scripts/e2e_smoke.sh
+# Usage: API=http://localhost:58139 bash scripts/e2e_smoke.sh
 # Exit non-zero on the first failed assertion.
 # =============================================================================
 set -euo pipefail
 
-API="${API:-http://localhost:58080}"
-ML="${ML:-http://localhost:58000}"
+API="${API:-http://localhost:58139}"
+ML="${ML:-http://localhost:58059}"
 TOKEN="${INTERNAL_TOKEN:-internal-shared-secret-change-me}"
 USER_ID="11111111-1111-1111-1111-111111111111"
 PASS=0

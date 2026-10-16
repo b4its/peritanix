@@ -15,7 +15,7 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-API="${API:-http://localhost:58080}"
+API="${API:-http://localhost:58139}"
 DC="docker compose --env-file .env -f $ROOT/docker-compose.yml"
 PASS=0; FAIL=0
 pass(){ echo "  ✓ $1"; PASS=$((PASS+1)); }
