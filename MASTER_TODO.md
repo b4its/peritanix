@@ -194,7 +194,7 @@ Tujuan: Validasi akurasi laboratorium, chaos simulation, dan rilis kontainer pro
 | Test Runner | Modul yang Diuji | Status | Jumlah Uji |
 | :--- | :--- | :---: | :---: |
 | **make mobile-test (JVM Core)** | Pure-Kotlin Physics & RFC 8785 Ed25519 | **PASS** | 40 tests |
-| **make mobile-test (Android Tests)** | GPS Polygon, Water-Level Stokes, EWS, Pod Grading, Keystore | **PASS** | 48 tests |
+| **make mobile-test (Android Tests)** | GPS Polygon, Water-Level Stokes, EWS, Pod Grading, LightGBM Tabular, U-Net 4-Class, Keystore | **PASS** | 59 tests |
 | **make web-test (Pytest ML)** | DEM TWI, Stokes, Bayesian Pathology, CIELAB, **edge models (classifier + severity + fertilizer)**, **fruit counting (Opsi 3)** | **PASS** | 269 tests |
 | **make web-test (Go API)** | Clean Backend, PostGIS, CRDT LWW, JWT Auth | **PASS** | 8 packages |
 | **npm test (Web Vitest)** | SvelteKit PWA, Dexie DB, Heatmap, QR Verifier | **PASS** | 75 tests |
