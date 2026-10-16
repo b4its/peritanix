@@ -109,6 +109,6 @@ class SyncWorker(
     }
 
     companion object {
-        const val API_BASE_URL = "http://10.0.2.2:58080" // Android emulator -> host Go Fiber API
+        const val API_BASE_URL = "http://10.0.2.2:58139" // Android emulator -> host Go Fiber API
     }
 }

@@ -4,7 +4,7 @@
 import { env } from '$env/dynamic/public';
 
 export const API_BASE =
-	env.PUBLIC_API_BASE_URL || 'http://localhost:58080';
+	env.PUBLIC_API_BASE_URL || 'http://localhost:58139';
 
 export interface Land {
 	id: string;

@@ -29,18 +29,18 @@ func Load() Config {
 	return Config{
 		Env:           getEnv("DAPE_ENV", "development"),
 		HTTPPort:      getEnv("HTTP_PORT", "8080"),
-		DatabaseURL:   getEnv("DATABASE_URL", "postgres://dape:dape_secret@localhost:55432/dape?sslmode=disable"),
-		RedisAddr:     getEnv("REDIS_ADDR", "localhost:56379"),
-		MLBaseURL:     getEnv("ML_BASE_URL", "http://localhost:58000"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgres://dape:dape_secret@localhost:55491/dape?sslmode=disable"),
+		RedisAddr:     getEnv("REDIS_ADDR", "localhost:56438"),
+		MLBaseURL:     getEnv("ML_BASE_URL", "http://localhost:58059"),
 		InternalToken: getEnv("INTERNAL_TOKEN", "internal-shared-secret-change-me"),
 		JWTSecret:     getEnv("JWT_SECRET", "change-me-in-production-please-32chars-min"),
 		JWTTTLHours:   getEnvInt("JWT_TTL_HOURS", 720),
 		AuthRequired:  getEnvBool("AUTH_REQUIRED", false),
-		MinioEndpoint: getEnv("MINIO_ENDPOINT", "localhost:59000"),
+		MinioEndpoint: getEnv("MINIO_ENDPOINT", "localhost:59059"),
 		MinioAccess:   getEnv("MINIO_ACCESS_KEY", "dape_minio"),
 		MinioSecret:   getEnv("MINIO_SECRET_KEY", "dape_minio_secret"),
 		MinioBucket:   getEnv("MINIO_BUCKET_RAW", "dape-raw"),
-		MinioPublic:   getEnv("MINIO_PUBLIC_BASE", "http://localhost:59000"),
+		MinioPublic:   getEnv("MINIO_PUBLIC_BASE", "http://localhost:59059"),
 	}
 }
 

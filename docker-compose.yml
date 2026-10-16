@@ -40,7 +40,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${POSTGRES_HOST_PORT:-55432}:5432"
+      - "${POSTGRES_HOST_PORT:-55491}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Migrations + seed run automatically on FIRST init of an empty volume.
@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_HOST_PORT:-56379}:6379"
+      - "${REDIS_HOST_PORT:-56438}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -86,8 +86,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "${MINIO_HOST_PORT:-59000}:9000"
-      - "${MINIO_CONSOLE_HOST_PORT:-59001}:9001"
+      - "${MINIO_HOST_PORT:-59059}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-59060}:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -142,7 +142,7 @@ services:
         with socketserver.TCPServer(('0.0.0.0', 9000), H) as s:
             s.serve_forever()
     ports:
-      - "${MINIO_HOST_PORT:-59000}:9000"
+      - "${MINIO_HOST_PORT:-59059}:9000"
     volumes:
       - miniodata:/srv
     healthcheck:
@@ -173,7 +173,7 @@ services:
       DAPE_TARGET_CALORIMETRY_C: ${DAPE_TARGET_CALORIMETRY_C}
       DAPE_DEM_PATH: ${DAPE_DEM_PATH:-}
     ports:
-      - "${FASTAPI_HOST_PORT:-58000}:8000"
+      - "${FASTAPI_HOST_PORT:-58059}:8000"
     volumes:
       - ./web/backend/fastapi:/app
     healthcheck:
@@ -206,9 +206,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_RAW: ${MINIO_BUCKET_RAW}
-      MINIO_PUBLIC_BASE: "http://localhost:${MINIO_HOST_PORT:-59000}"
+      MINIO_PUBLIC_BASE: "http://localhost:${MINIO_HOST_PORT:-59059}"
     ports:
-      - "${GO_HOST_PORT:-58080}:8080"
+      - "${GO_HOST_PORT:-58139}:8080"
     volumes:
       - ./web/backend/golang:/app
       - gocache:/root/.cache/go-build
@@ -243,7 +243,7 @@ services:
       HOST: "0.0.0.0"
       PORT: "${WEB_PORT}"
     ports:
-      - "${WEB_HOST_PORT:-55173}:${WEB_PORT}"
+      - "${WEB_HOST_PORT:-55232}:${WEB_PORT}"
     volumes:
       - ./web/frontend:/app
       - node_modules:/app/node_modules
