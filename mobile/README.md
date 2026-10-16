@@ -1,78 +1,71 @@
-# DAPE Mobile — Kotlin Core
+# DAPE Mobile — Kotlin Core & Android App
 
-Device-side deterministic engine: the same physics as the backend, plus offline
-Ed25519 certificate signing. This module is a **pure Kotlin/JVM core** so it can
-be unit-tested without the Android SDK; the Android UI layer (Jetpack Compose,
-Camera2, Room, WorkManager, OpenCV NDK) wraps this core on-device.
+Device-side deterministic agro-physics engine: the same physics as the backend, plus offline
+Ed25519 certificate signing, native C++/JNI bridges, and full Jetpack Compose mobile UI.
+This module provides both a **pure Kotlin/JVM core** and a **production-ready Android app**
+with offline-first Room SQLite storage and background delta synchronization via WorkManager.
 
 ## Run & Test
 
+All operations are containerized via Docker and orchestrated through the root Makefile:
+
 ```bash
-make mobile-up      # start the JDK + Gradle toolchain
-make mobile-test    # 27 JUnit tests (physics + crypto)
-make mobile-run     # physics smoke CLI (prints calorimetry, TWI, GDD, cert)
-make mobile-shell   # interactive shell
-make mobile-down
+make mobile-up      # Start the JDK + Android toolchain container
+make mobile-test    # 53 unit tests (40 pure JVM + 13 Android unit tests)
+make mobile-run     # Physics smoke CLI (prints calorimetry, TWI, GDD, cert)
+make mobile-build   # Assemble Android debug APK via Docker (requires mounted Android SDK)
+make mobile-apk     # Copy built APK to ./dist/app-debug.apk (~13 MB)
+make mobile-shell   # Interactive shell into mobile container
+make mobile-down    # Stop and remove mobile container
 ```
 
-## Layout
+## Architecture & Layout
 
 ```
-src/main/kotlin/id/peritanix/dape/
-├── physics/Physics.kt               # TWI, Black's law, GDD, Archimedes, Stokes
-├── crypto/Ed25519OfflineSigner.kt   # offline signing + CanonicalJson
-└── cli/Main.kt                      # smoke CLI
-src/test/kotlin/id/peritanix/dape/
-├── PhysicsTest.kt                   # 22 tests
-└── CryptoTest.kt                    # 5 tests
+mobile/
+├── src/main/kotlin/id/peritanix/dape/
+│   ├── physics/Physics.kt               # TWI, Black's law, GDD, Archimedes, Stokes, Soil Texture
+│   ├── pathology/PathologyClassifier.kt # Curl symptom differentiation (Thrips vs Mites)
+│   ├── crypto/Ed25519OfflineSigner.kt   # Offline Ed25519 signing + CanonicalJson
+│   └── cli/Main.kt                      # Smoke CLI runner
+├── src/test/kotlin/id/peritanix/dape/   # Pure-Kotlin JVM unit tests (40 tests)
+│   ├── PhysicsTest.kt                   # 22 tests
+│   ├── PathologyTest.kt                 # 13 tests
+│   └── CryptoTest.kt                    # 5 tests
+└── android/                             # Android application module
+    ├── app/src/main/java/id/peritanix/dape/android/
+    │   ├── ui/
+    │   │   ├── MainActivity.kt          # Compose UI entrypoint & navigation tabs
+    │   │   ├── LahanScreen.kt           # Clinometer, bed elevation, & soil Stokes sedimentation
+    │   │   ├── DiagnosticsScreen.kt     # Burst aligner, trans-illumination, & ooze test
+    │   │   ├── HarvestScreen.kt         # Archimedes grading, Asas Black calorimetry, QR cert
+    │   │   └── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
+    │   ├── core/
+    │   │   ├── hardware/                # Camera2 burst controller, dark chamber, clinometer
+    │   │   ├── physics/                 # Local TWI, Stokes, Black calorimetry, sediment bridges
+    │   │   └── ai_edge/                 # Edge inference runner (TFLite / ONNX proxy)
+    │   └── data/
+    │       ├── DapeDatabase.kt          # Room SQLite entities & DAOs (sync_queue, lands, diagnoses)
+    │       ├── SyncQueueStore.kt        # Offline-first queue manager
+    │       └── SyncWorker.kt            # WorkManager HTTP delta sync to Go Fiber API
+    ├── app/src/main/cpp/                # Native OpenCV C++ / NDK implementations
+    │   ├── CMakeLists.txt
+    │   ├── burst_aligner.cpp            # ORB feature matching & homography warp
+    │   ├── sediment_edge_detector.cpp   # Canny edge & Hough line boundary detection
+    │   └── archimedes_float_counter.cpp # HSV color mask & contour centroid counting
+    └── app/src/test/java/               # Android unit tests (13 tests)
+        └── id/peritanix/dape/android/
+            ├── AndroidPhysicsCoreTest.kt
+            ├── AndroidNativeBridgesTest.kt
+            ├── AndroidEdgeInferenceTest.kt
+            └── AndroidHardwareTest.kt
 ```
 
-## Cross-platform guarantee
+## Cross-Platform Determinism Guarantee
 
-A certificate signed here verifies on the Go backend
+A certificate signed on the mobile device verifies deterministically on the Go backend
 (`POST /api/v1/certificates/verify`). This requires the canonical JSON float
-rule to match: integral values → `x.0`, non-integral → shortest round-trip.
-See `docs/PHYSICS.md` §8.
-
-## Android layer (next)
-
-The `mobile` compose profile runs the pure core. Building an APK requires the
-Android SDK — use the `android` Docker target and mount the SDK:
-
-```bash
-make mobile-build   # gradle assembleDebug (needs ANDROID_SDK_ROOT)
-make mobile-apk     # copy APK to ./dist
-```
-
-On-device the private key lives in the Android Keystore; this module uses a
-seed for testability, with the same Ed25519 algorithm (BouncyCastle).
-
-### Android app (`android/`)
-
-A Jetpack Compose app that **consumes the shared core as source** (no logic
-duplication — the physics/crypto above is the single source of truth):
-
-```
-android/app/src/main/java/id/peritanix/dape/android/
-├── ui/MainActivity.kt      # Compose UI (Lands / Diagnostics / Harvest tabs)
-└── data/
-    ├── DapeDatabase.kt     # Room entities + DAO (sync_queue, lands, diagnoses)
-    ├── SyncQueueStore.kt   # offline queue + WorkManager scheduling
-    └── SyncWorker.kt       # constraints-gated delta sync (Wi-Fi/4G)
-```
-
-Key configuration:
-- `minSdk 26`, `targetSdk 35`, Jetpack Compose (BOM), Room + KSP, WorkManager.
-- NDK `abiFilters` for the future OpenCV C++ (burst aligner / sediment detector).
-- `proguard-rules.pro` **keeps** `id.peritanix.dape.physics.**` and `.crypto.**`
-  unobfuscated, because the canonical JSON float formatting must stay
-  byte-identical to the Go verifier for offline certificate verification.
-- **Gradle wrapper** committed (`gradlew` + `gradle-wrapper.jar`) so the project
-  builds with no pre-installed Gradle: `cd mobile/android && ./gradlew assembleDebug`.
-
-```bash
-cd mobile/android && ./gradlew assembleDebug   # requires Android SDK
-```
-
-The APK build is optional for local development; `make mobile-test` (pure JVM)
-is the always-available path.
+formatting to remain strictly byte-identical across platforms: integral values serialize as `x.0`,
+non-integral serialize with shortest round-trip representation (RFC 8785 subset).
+`proguard-rules.pro` explicitly keeps `id.peritanix.dape.physics.**` and `.crypto.**`
+unobfuscated to preserve canonical serialization in release builds.
