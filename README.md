@@ -226,7 +226,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Suite | Jumlah | Cakupan |
 |---|---|---|
 | Python (fastapi) | **233** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, **protocol rules (ooze trigger)** |
-| Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
+| Go (backend, 8 pkgs) | **50** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter, **mlclient circuit breaker** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
 | Vitest (web) | **70** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + **trace validation** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
 | E2E script | **65–67** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, fortification guard, fertilizer dosage, ooze trigger, **cert stored-key path** |
@@ -369,7 +369,7 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 ```
 make verify  →
   lint:        ruff clean · svelte-check 0/0 · go vet clean
-  unit:        pytest 233 passed · go test 7 pkgs ok · kotlin 27 · vitest 70
+  unit:        pytest 233 passed · go test 8 pkgs ok · kotlin 27 · vitest 70
   e2e smoke:   67 passed  (…→TWI-grid→optics(MFSR/trans-illum/ooze)→forensics)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
