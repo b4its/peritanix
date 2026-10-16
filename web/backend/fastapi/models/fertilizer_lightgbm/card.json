@@ -1,11 +1,13 @@
 {
   "name": "fertilizer_lightgbm",
   "version": "1.0.0",
-  "sha256": "",
-  "size_bytes": 524288,
+  "sha256": "fd5e5cd137fe2745444be4ba22cedafe0d688ebc44b648a4f6a80095e5dc40d8",
+  "size_bytes": 2001,
   "quantisation": "fp32",
   "min_app_version": "1.0.0",
   "purpose": "prescriptive fertilizer mix (tabular)",
-  "input": "float32[N]",
-  "format": "onnx"
+  "input": "float32[4] = [ph, cec_meq, hst, target_yield_t_ha]",
+  "output": "float32[3] = [npk_16_16_16_g_per_l, kno3_g_per_l, calcium_g_per_l]",
+  "format": "onnx",
+  "trained_on": "distillation of deterministic agronomic rule engine (seed=20240517)"
 }
