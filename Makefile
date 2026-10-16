@@ -175,14 +175,17 @@ web-lint: init ## Lint backends + frontend (ruff, go vet, svelte-check)
 # EDGE MODELS (ONNX training / export / benchmark)
 # =============================================================================
 
-.PHONY: models-train models-train-classifier models-train-fertilizer \
-        models-bench models-test
+.PHONY: models-train models-train-classifier models-train-severity \
+        models-train-fertilizer models-bench models-test
 
-models-train: init ## Train & export ALL edge ONNX models (classifier + fertilizer)
+models-train: init ## Train & export ALL edge ONNX models (classifier + severity + fertilizer)
 	@printf "$(C_CYAN)[models]$(C_RESET) training classifier (Opsi 1)...\n"
 	$(DC) cp scripts/train_pathology_edge_models.py ml:/tmp/train_pathology_edge_models.py
+	$(DC) cp scripts/train_severity_model.py        ml:/tmp/train_severity_model.py
 	$(DC) cp scripts/train_fertilizer_model.py      ml:/tmp/train_fertilizer_model.py
 	$(DC) exec -T ml python /tmp/train_pathology_edge_models.py
+	@printf "$(C_CYAN)[models]$(C_RESET) training severity segmenter (Opsi 1)...\n"
+	$(DC) exec -T ml python /tmp/train_severity_model.py
 	@printf "$(C_CYAN)[models]$(C_RESET) training fertilizer (Opsi 2)...\n"
 	$(DC) exec -T ml python /tmp/train_fertilizer_model.py
 	@printf "$(C_GREEN)[models]$(C_RESET) artefacts written to web/backend/fastapi/models/.\n"
@@ -190,6 +193,10 @@ models-train: init ## Train & export ALL edge ONNX models (classifier + fertiliz
 models-train-classifier: init ## Train & export only the Opsi 1 leaf-curl classifier
 	$(DC) cp scripts/train_pathology_edge_models.py ml:/tmp/train_pathology_edge_models.py
 	$(DC) exec -T ml python /tmp/train_pathology_edge_models.py
+
+models-train-severity: init ## Train & export only the Opsi 1 severity segmenter
+	$(DC) cp scripts/train_severity_model.py ml:/tmp/train_severity_model.py
+	$(DC) exec -T ml python /tmp/train_severity_model.py
 
 models-train-fertilizer: init ## Train & export only the Opsi 2 fertilizer model
 	$(DC) cp scripts/train_fertilizer_model.py ml:/tmp/train_fertilizer_model.py

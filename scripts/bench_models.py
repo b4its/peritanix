@@ -26,6 +26,7 @@ MODELS = ROOT / "models"
 # canonical probe input per known model
 PROBES = {
     "classifier_mobilenetv3": lambda: np.zeros((1, 3, 224, 224), dtype=np.float32),
+    "severity_unet_lite": lambda: np.zeros((1, 3, 256, 256), dtype=np.float32),
     "fertilizer_lightgbm": lambda: np.array([[6.5, 15.0, 45.0, 20.0]], dtype=np.float32),
 }
 
