@@ -65,7 +65,8 @@ def _artefact_path(models_dir: Path, name: str, version: str) -> Path:
 
 def infer(models_dir: str | Path, name: str,
           inputs: dict[str, np.ndarray],
-          client_versions: dict[str, str] | None = None) -> InferResult:
+          client_versions: dict[str, str] | None = None,
+          raw: bool = False) -> InferResult:
     """Run inference for a registered model.
 
     Args:
@@ -73,6 +74,9 @@ def infer(models_dir: str | Path, name: str,
         name: model name (must be in registry.KNOWN_MODELS).
         inputs: mapping of input name -> numpy array.
         client_versions: optional override of the model version to run.
+        raw: when True, keep full numpy output arrays (for server-side metric
+            computation, e.g. per-pixel severity); when False (default) large
+            outputs are bounded to a JSON-friendly summary.
 
     Returns:
         InferResult. `available=False` signals the caller to fall back.
@@ -103,7 +107,10 @@ def infer(models_dir: str | Path, name: str,
         feed = {i.name: inputs[i.name] for i in sess.get_inputs() if i.name in inputs}
         outs = sess.run(None, feed)
         out_names = [o.name for o in sess.get_outputs()]
-        outputs = {n: _to_jsonable(o) for n, o in zip(out_names, outs, strict=False)}
+        if raw:
+            outputs = {n: o for n, o in zip(out_names, outs, strict=False)}
+        else:
+            outputs = {n: _to_jsonable(o) for n, o in zip(out_names, outs, strict=False)}
         return InferResult(available=True, model=name, version=version,
                             outputs=outputs)
     except Exception as e:  # pragma: no cover - defensive

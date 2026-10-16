@@ -9,9 +9,12 @@ from ..schemas import (
     MfsrResponse,
     OozeRequest,
     OozeResponse,
+    SeverityRequest,
+    SeverityResponse,
     TransIllumRequest,
     TransIllumResponse,
 )
+from ..services.agronomy import severity as severity_mod
 from ..services.epidemiology import ooze_optical_flow
 from ..services.optics import mfsr_stacker, trans_illumination
 
@@ -65,4 +68,27 @@ def ooze_flow(req: OozeRequest) -> OozeResponse:
         streaming_score=res.streaming_score,
         verdict=res.verdict,
         confidence=res.confidence,
+    )
+
+
+@router.post("/severity", response_model=SeverityResponse)
+def severity(req: SeverityRequest) -> SeverityResponse:
+    """Pixel-wise lesion severity (Opsi 1) — ONNX segmenter with rule fallback."""
+    img = np.asarray(req.image, dtype=np.float32)
+    if img.ndim != 3 or img.shape[2] != 3:
+        raise HTTPException(status_code=422,
+                            detail="image must be (H,W,3) RGB")
+    img = np.transpose(img, (2, 0, 1))  # (3,H,W)
+    mask = np.asarray(req.leaf_mask, dtype=bool) if req.leaf_mask is not None else None
+    try:
+        res = severity_mod.assess_severity(img, leaf_mask=mask)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return SeverityResponse(
+        severity_pct=res.severity_pct,
+        chlorotic_pct=res.chlorotic_pct,
+        necrotic_pct=res.necrotic_pct,
+        healthy_pct=res.healthy_pct,
+        method=res.method,
+        uncertain_pct=res.uncertain_pct,
     )

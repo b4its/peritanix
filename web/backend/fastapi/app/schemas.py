@@ -187,6 +187,23 @@ class TransIllumResponse(BaseModel):
     latent_fungal_suspected: bool
 
 
+class SeverityRequest(BaseModel):
+    # Leaf crop as an RGB image: [ [ [R,G,B], ... ], ... ] normalized 0..1.
+    image: list[list[list[float]]]
+    # Optional explicit leaf mask (HxW bool); if omitted the model's own
+    # background channel defines the leaf region.
+    leaf_mask: list[list[bool]] | None = None
+
+
+class SeverityResponse(BaseModel):
+    severity_pct: float
+    chlorotic_pct: float
+    necrotic_pct: float
+    healthy_pct: float
+    method: str  # "onnx_model" | "deterministic_fallback"
+    uncertain_pct: float = 0.0
+
+
 class OozeRequest(BaseModel):
     frames: list[list[list[float]]]
 
