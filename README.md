@@ -229,7 +229,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Go (backend) | **42** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
 | Vitest (web) | **57** | Mirror fisika + EWS + heatmap/fertility + **TWI colour ramp** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
-| E2E script | **56–58** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, **optics (MFSR/trans-illum/ooze), forensics** |
+| E2E script | **57–59** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, **fortification guard** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
 | Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
@@ -347,6 +347,8 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 - [x] **Semua 6 service sehat** — healthcheck untuk files + web
 - [x] **Kontur TWI di dashboard** — grid cekungan drainase (warna dry→wet→trough)
 - [x] **Verifikasi pembeli lengkap** — cari batch by code + grafik GDD tersinkron
+- [x] **Fortification Lock (TAHAP 4.2)** — blokir input Nitrogen tinggi saat
+      Antesis via `/fertilizer/guard` + UI hard-block + protokol Ca+B+Si
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
       jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
