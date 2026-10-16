@@ -197,6 +197,58 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
             }
         }
 
+        // --- Card 2.5: Grading Morfologi Fisik Buah Cabai (FR-4.2) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            var podLength by remember { mutableStateOf(12.5) }
+            var podCurv by remember { mutableStateOf(12.0) }
+            var podRed by remember { mutableStateOf(92.0) }
+            var podDefect by remember { mutableStateOf(1.5) }
+
+            val morphVerdict = remember(podLength, podCurv, podRed, podDefect, sinkRatio) {
+                id.peritanix.dape.android.core.physics.PodMorphologyGrader.evaluateGrade(
+                    id.peritanix.dape.android.core.physics.PodMorphologyGrader.PodMeasurement(
+                        lengthCm = podLength,
+                        curvatureDeg = podCurv,
+                        redCoveragePct = podRed,
+                        defectPct = podDefect,
+                        archimedesSinkRatio = sinkRatio
+                    )
+                )
+            }
+
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        "2.5. Grading Morfologi Buah Cabai (FR-4.2)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Grade ${morphVerdict.finalGrade}") }
+                    )
+                }
+                Text("Panjang: ${"%.1f".format(podLength)} cm | Kelengkungan: ${"%.1f".format(podCurv)}° | Merah: ${podRed.toInt()}% | Cacat: ${"%.1f".format(podDefect)}%", style = MaterialTheme.typography.bodySmall)
+
+                Slider(value = podLength.toFloat(), onValueChange = { podLength = it.toDouble() }, valueRange = 5f..16f)
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Klasifikasi Komersial", style = MaterialTheme.typography.bodySmall)
+                        Text(morphVerdict.commercialTier, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Column {
+                        Text("Pengali Harga", style = MaterialTheme.typography.bodySmall)
+                        Text("${morphVerdict.priceMultiplier}x", fontWeight = FontWeight.Bold)
+                    }
+                }
+                Text(morphVerdict.remarks, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
         // --- Card 3: Sertifikasi Kriptografis Ed25519 (Offline) ---
         Card(
             modifier = Modifier.fillMaxWidth(),

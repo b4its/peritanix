@@ -385,5 +385,71 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                 }
             }
         }
+
+        // --- Card 6: Early Warning System (EWS) Mikroklimat 72 Jam (FR-3.1) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            var ewsTemp by remember { mutableStateOf(28.0) }
+            var ewsHumidity by remember { mutableStateOf(85.0) }
+            val ewsRisk = remember(ewsTemp, ewsHumidity) {
+                id.peritanix.dape.android.core.physics.MicroclimateEwsEvaluator.evaluate72hFungalRisk(
+                    relativeHumidityPct = ewsHumidity,
+                    temperatureC = ewsTemp
+                )
+            }
+
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "6. EWS Mikroklimat 72 Jam (Spora Antraknosa)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(ewsRisk.riskLevel) }
+                    )
+                }
+
+                Text("Kelembaban Relatif (RH): ${ewsHumidity.toInt()}%")
+                Slider(
+                    value = ewsHumidity.toFloat(),
+                    onValueChange = { ewsHumidity = it.toDouble() },
+                    valueRange = 40f..100f
+                )
+
+                Text("Suhu Rata-rata: ${"%.1f".format(ewsTemp)}°C")
+                Slider(
+                    value = ewsTemp.toFloat(),
+                    onValueChange = { ewsTemp = it.toDouble() },
+                    valueRange = 18f..38f
+                )
+
+                HorizontalDivider()
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Skor Risiko Perkecambahan Spora:", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${(ewsRisk.sporulationRiskScore * 100).toInt()}%",
+                        fontWeight = FontWeight.Bold,
+                        color = if (ewsRisk.riskLevel == "CRITICAL" || ewsRisk.riskLevel == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Text(
+                    ewsRisk.alertHeader,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (ewsRisk.riskLevel == "CRITICAL") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    ewsRisk.preventiveSprayAdvisory,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

@@ -287,17 +287,57 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
             }
         }
 
-        // --- Card 2: Sedimentasi Stokes & Tekstur Tanah USDA ---
+        // --- Card 2: Sedimentasi Stokes & Water-Level Camera Tilt Lock ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "2. Analisis Tekstur Tanah (Hukum Stokes)",
+                    "2. Analisis Tekstur Tanah & Panduan Kocok Botol (Hukum Stokes)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                Text(
+                    "Penyelarasan Water-Level Shutter Lock: HP wajib tegak lurus 90° ± 5° terhadap botol.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                // Water-Level Camera Tilt Bar
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Orientasi HP (Sensor Gravitasi):", style = MaterialTheme.typography.labelMedium)
+                            Text("Pitch: 0.8° | Roll: -0.4°", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                        }
+                        Text(
+                            "✓ POSISI 90° TEGAK LURUS: Shutter Kamera Terbuka (Bebas Distorsi Perspektif)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                // Stage selection tabs
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Tahap 1: 40s Pasir", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = {},
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Tahap 2: 2h Debu", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
                 Text(
                     "Fraksi Pasir (40s): ${sandPct.toInt()}% | Debu (2h): ${siltPct.toInt()}% | Liat: ${clayPct.toInt()}%",
                     style = MaterialTheme.typography.bodySmall
