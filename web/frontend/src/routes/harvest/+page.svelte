@@ -6,12 +6,16 @@
 		archimedes,
 		harvestDecision,
 		listLands,
+		validateTrace,
 		type CalorimetryResult,
 		type ArchimedesResult,
 		type HarvestDecisionResult,
-		type Land
+		type Land,
+		type TracePoint,
+		type TraceResult
 	} from '$lib/api';
 	import { speak, stopSpeaking, ttsSupported, dosingSpeech } from '$lib/tts';
+	import { validateTrace as validateTraceOffline } from '$lib/physics';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -25,10 +29,65 @@
 	let ticking = $state(false);
 	let timer: ReturnType<typeof setInterval> | null = null;
 
+	// Gyroscope trace (anti-cheat, TAHAP 6.3)
+	let recording = $state(false);
+	let trace = $state<TracePoint[]>([]);
+	let traceResult = $state<TraceResult | null>(null);
+	let motionHandler: ((e: DeviceMotionEvent) => void) | null = null;
+
+	function startTrace() {
+		if (typeof window === 'undefined' || !window.DeviceMotionEvent) {
+			err = 'Sensor gerak tidak tersedia di perangkat ini.';
+			return;
+		}
+		trace = [];
+		traceResult = null;
+		recording = true;
+		const t0 = performance.now();
+		motionHandler = (e: DeviceMotionEvent) => {
+			const r = (e as any).rotationRate || {};
+			trace.push({
+				t: (performance.now() - t0) / 1000,
+				gx: (r.alpha || 0) * (Math.PI / 180),
+				gy: (r.beta || 0) * (Math.PI / 180),
+				gz: (r.gamma || 0) * (Math.PI / 180)
+			});
+		};
+		window.addEventListener('devicemotion', motionHandler);
+	}
+
+	function stopTrace() {
+		recording = false;
+		if (motionHandler) {
+			window.removeEventListener('devicemotion', motionHandler);
+			motionHandler = null;
+		}
+	}
+
+	async function validateRecordedTrace() {
+		stopTrace();
+		traceResult = null;
+		try {
+			traceResult = await validateTrace(trace, 180);
+		} catch {
+			// Offline fallback: local mirror.
+			const v = validateTraceOffline(trace, 180);
+			traceResult = {
+				valid: v.valid,
+				duration_s: v.duration_s,
+				samples: v.samples,
+				motion_variance: v.motion_variance,
+				score: v.score,
+				reasons: v.reasons
+			};
+		}
+	}
+
 	function startCountdown() {
 		if (!calo) return;
 		countdown = calo.countdown_s || 180;
 		ticking = true;
+		startTrace();
 		if (timer) clearInterval(timer);
 		timer = setInterval(() => {
 			countdown -= 1;
@@ -36,6 +95,7 @@
 				clearInterval(timer!);
 				timer = null;
 				ticking = false;
+				stopTrace();
 				speak('Waktu perendaman selesai. Angkat dan tiriskan cabai.');
 			}
 		}, 1000);
@@ -52,6 +112,7 @@
 
 	onDestroy(() => {
 		if (timer) clearInterval(timer);
+		stopTrace();
 		stopSpeaking();
 	});
 
@@ -181,6 +242,23 @@
 					⏳ {String(Math.floor(countdown / 60)).padStart(2, '0')}:{String(countdown % 60).padStart(2, '0')}
 					{#if !ticking && countdown <= 0}<span class="badge high">SELESAI</span>{/if}
 				</p>
+			{/if}
+			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+				<button class="btn secondary" onclick={recording ? stopTrace : startTrace}>
+					{recording ? '⏹ Stop Rekam Gerak' : '📳 Rekam Gerak (Anti-Cheat)'}
+				</button>
+				<button class="btn secondary" onclick={validateRecordedTrace} disabled={trace.length === 0}>
+					✅ Validasi Bukti Fisik ({trace.length} sampel)
+				</button>
+			</div>
+			{#if traceResult}
+				<div style="margin-top:0.5rem;border:1px solid {traceResult.valid ? '#86efac' : '#fca5a5'};border-radius:8px;padding:0.5rem">
+					<p>
+						{traceResult.valid ? '✅ Bukti fisik wajar' : '❌ Bukti fisik tidak wajar'}
+						· skor {traceResult.score} · durasi {traceResult.duration_s.toFixed(0)}s
+					</p>
+					{#each traceResult.reasons as r}<p class="muted">{r}</p>{/each}
+				</div>
 			{/if}
 		{/if}
 	</div>

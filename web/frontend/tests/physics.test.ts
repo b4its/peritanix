@@ -134,3 +134,33 @@ describe('prescribeFertilizer', () => {
 		expect(prescribeFertilizer(6.8, 15, 20).dolomite_g_per_m2).toBe(0);
 	});
 });
+
+import { validateTrace } from '../src/lib/physics';
+
+describe('validateTrace (offline mirror)', () => {
+	const mkMoving = () =>
+		Array.from({ length: 60 }, (_, i) => ({
+			t: (180 * i) / 59,
+			gx: 0.05 * Math.sin(i),
+			gy: 0.05 * Math.cos(i * 1.3),
+			gz: 0.02 * Math.sin(i * 0.7)
+		}));
+	it('accepts a real immersion trace', () => {
+		const r = validateTrace(mkMoving());
+		expect(r.valid).toBe(true);
+		expect(r.duration_s).toBeGreaterThan(170);
+	});
+	it('rejects a constant (cheat) trace', () => {
+		const consts = Array.from({ length: 60 }, (_, i) => ({ t: (180 * i) / 59, gx: 0, gy: 0, gz: 0 }));
+		const r = validateTrace(consts);
+		expect(r.valid).toBe(false);
+		expect(r.reasons.some((x) => x.includes('konstan'))).toBe(true);
+	});
+	it('rejects a too-short trace', () => {
+		expect(validateTrace(mkMoving().slice(0, 3)).valid).toBe(false);
+	});
+	it('rejects wrong duration', () => {
+		const short = mkMoving().map((s) => ({ ...s, t: s.t * 0.15 }));
+		expect(validateTrace(short).valid).toBe(false);
+	});
+});

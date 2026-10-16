@@ -231,6 +231,34 @@ export interface FertilizerPlan {
 	dolomite_g_per_m2?: number;
 }
 
+/** Immersion gyroscope trace sample (anti-cheat evidence). */
+export interface TracePoint {
+	t: number;
+	gx: number;
+	gy: number;
+	gz: number;
+}
+
+export interface TraceResult {
+	valid: boolean;
+	duration_s: number;
+	samples: number;
+	motion_variance: number;
+	score: number;
+	reasons: string[];
+}
+
+/** Validate an immersion sensor trace server-side (anti-cheat, FR-6.3). */
+export async function validateTrace(
+	samples: TracePoint[],
+	target_s = 180
+): Promise<TraceResult> {
+	return req('/api/v1/certificates/validate-trace', {
+		method: 'POST',
+		body: JSON.stringify({ samples, target_s })
+	});
+}
+
 /** Prescriptive fertilizer calculator (exact kocor gram doses). */
 export async function fertilizerPlan(input: {
 	ph: number;

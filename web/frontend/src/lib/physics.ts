@@ -254,3 +254,67 @@ export function prescribeFertilizer(
 		recommendation: notes.join(' ')
 	};
 }
+
+// --- Immersion gyroscope trace validation (offline mirror of FR-2.3/6.3) ----
+
+export interface TraceSample {
+	t: number;
+	gx: number;
+	gy: number;
+	gz: number;
+}
+
+export interface TraceVerdict {
+	valid: boolean;
+	duration_s: number;
+	samples: number;
+	motion_variance: number;
+	score: number;
+	reasons: string[];
+}
+
+function variance(xs: number[]): number {
+	const n = xs.length;
+	if (n < 2) return 0;
+	const mean = xs.reduce((a, b) => a + b, 0) / n;
+	return xs.reduce((s, x) => s + (x - mean) ** 2, 0) / n;
+}
+
+/**
+ * Validate an immersion sensor trace: duration must be ~180 s and the angular
+ * velocity must vary (a perfectly still/constant signal means the timer was
+ * skipped). Matches app/services/epidemiology/trace_validation.py.
+ */
+export function validateTrace(
+	samples: TraceSample[],
+	targetS = 180,
+	durationTolS = 20,
+	minMotionVariance = 1e-4
+): TraceVerdict {
+	const reasons: string[] = [];
+	if (samples.length < 5) {
+		return { valid: false, duration_s: 0, samples: samples.length, motion_variance: 0, score: 0, reasons: ['trace terlalu pendek (< 5 sampel)'] };
+	}
+	const times = samples.map((s) => s.t);
+	const duration = Math.max(...times) - Math.min(...times);
+	if (Math.abs(duration - targetS) > durationTolS) {
+		reasons.push(`durasi ${duration.toFixed(0)}s di luar target ${targetS}±${durationTolS}s`);
+	}
+	const speeds = samples.map((s) => Math.sqrt(s.gx * s.gx + s.gy * s.gy + s.gz * s.gz));
+	let varv = variance(speeds);
+	const gyro = samples.flatMap((s) => [s.gx, s.gy, s.gz]);
+	const isConstant = Math.max(...gyro) - Math.min(...gyro) <= 1e-9;
+	if (isConstant) {
+		reasons.push('sinyal giroskop konstan (indikasi lewatkan timer)');
+		varv = 0;
+	}
+	if (varv < minMotionVariance) {
+		reasons.push(`variasi gerak ${varv.toExponential(1)} < ambang ${minMotionVariance.toExponential(1)}`);
+	}
+	const durScore = Math.max(0, 1 - Math.abs(duration - targetS) / targetS);
+	const motionScore = Math.min(1, varv / (minMotionVariance * 10));
+	const score = Math.round((0.5 * durScore + 0.5 * motionScore) * 1000) / 1000;
+	const valid = reasons.length === 0 && score >= 0.5;
+	if (valid) reasons.push('bukti fisik wajar: durasi & gerak sesuai');
+	return { valid, duration_s: Math.round(duration * 100) / 100, samples: samples.length, motion_variance: varv, score, reasons };
+}
