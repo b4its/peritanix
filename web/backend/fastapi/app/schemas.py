@@ -204,6 +204,23 @@ class SeverityResponse(BaseModel):
     uncertain_pct: float = 0.0
 
 
+class FruitCountRequest(BaseModel):
+    # Canopy photo as an RGB image: [ [ [R,G,B], ... ], ... ] normalized 0..1.
+    image: list[list[list[float]]]
+    min_area_px: int = 12
+    max_area_px: int = 20000
+
+
+class FruitCountResponse(BaseModel):
+    green_dark: int
+    red_blush: int
+    red_full: int
+    total: int
+    mean_blob_area_px: dict[str, float]
+    image_size: tuple[int, int]
+    method: str = "deterministic_blob_counter"
+
+
 class OozeRequest(BaseModel):
     frames: list[list[list[float]]]
 

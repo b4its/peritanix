@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException
 from ..schemas import (
     EconomicsRequest,
     EconomicsResponse,
+    FruitCountRequest,
+    FruitCountResponse,
     HarvestDecisionRequest,
     HarvestDecisionResponse,
     ProtocolRequest,
@@ -20,6 +22,7 @@ from ..schemas import (
 )
 from ..services.agronomy import (
     economics,
+    fruit_counting,
     harvest_decision,
     protocol_rules,
     protocols,
@@ -28,6 +31,33 @@ from ..services.agronomy import (
 from ..services.epidemiology import trace_validation
 
 router = APIRouter(prefix="/internal/decision", tags=["decision"])
+
+
+@router.post("/fruit-count", response_model=FruitCountResponse)
+def fruit_count_ep(req: FruitCountRequest) -> FruitCountResponse:
+    """Auto-count fruit by ripeness class from a canopy photo (Opsi 3).
+
+    Deterministic colour-blob counter — the auditable core the on-device YOLO
+    detector is seeded from. Feeds `yield-projection` directly.
+    """
+    import numpy as np
+
+    img = np.asarray(req.image, dtype=np.float64)
+    if img.ndim != 3 or img.shape[2] != 3:
+        raise HTTPException(status_code=422, detail="image must be (H,W,3) RGB")
+    try:
+        res = fruit_counting.count_fruit(
+            img, min_area_px=req.min_area_px, max_area_px=req.max_area_px)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return FruitCountResponse(
+        green_dark=res.green_dark,
+        red_blush=res.red_blush,
+        red_full=res.red_full,
+        total=res.total,
+        mean_blob_area_px=res.mean_blob_area_px,
+        image_size=res.image_size,
+    )
 
 
 @router.post("/yield-projection", response_model=YieldResponse)
