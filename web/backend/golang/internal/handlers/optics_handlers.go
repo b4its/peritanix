@@ -151,8 +151,13 @@ func (d *Deps) imageAudit(c *fiber.Ctx) error {
 	if ham == 0 {
 		ham = 4
 	}
+	// Ensure known_hashes is a non-nil list so Pydantic accepts it (null -> 422).
+	hashes := req.KnownHashes
+	if hashes == nil {
+		hashes = []string{}
+	}
 	res, err := d.ML.ImageAudit(c.Context(), map[string]any{
-		"image_base64": req.ImageBase64, "known_hashes": req.KnownHashes,
+		"image_base64": req.ImageBase64, "known_hashes": hashes,
 		"ela_threshold": ela, "duplicate_hamming_max": ham,
 	})
 	if err != nil {

@@ -305,6 +305,55 @@ assert_gt0 "$TC" "TWI grid cells returned"
 TKB=$(echo "$TWI" | jqv "['cache_kb']")
 python3 -c "import sys;sys.exit(0 if float('$TKB')<500 else 1)" && pass "TWI cache < 500KB ($TKB)" || fail "TWI cache ($TKB)"
 
+# --- 26. Optics pipelines (TAHAP 3.2) ---------------------------------------
+echo "[26] Multi-modal optics (MFSR, trans-illumination, ooze)"
+python3 -c "
+import json, math
+# (a) MFSR burst: 4 shifted copies of a textured frame.
+base=[[128+60*math.sin(x/5)*math.cos(y/5) for x in range(48)] for y in range(48)]
+def shift(img,dx):
+    return [[img[y][(x-dx)%48] for x in range(48)] for y in range(48)]
+json.dump({'frames':[shift(base,k) for k in range(4)],'sharpness_reject_ratio':0.0}, open('/tmp/e2e_mfsr.json','w'))
+# (b) trans-illumination: uniform leaf with a dense patch.
+img=[[230.0]*50 for _ in range(50)]
+for y in range(20,30):
+    for x in range(20,30): img[y][x]=40.0
+json.dump({'land_id':'e2e','intensity':img}, open('/tmp/e2e_ti.json','w'))
+# (c) ooze: coherently translating particles.
+frames=[]
+for k in range(4):
+    f=[[0.0]*40 for _ in range(40)]
+    for i in range(10):
+        cy,cx=10+i,15+i
+        for y in range(max(0,cy-2),min(40,cy+3)):
+            for x in range(max(0,cx-2+k),min(40,cx+3+k)): f[y][x]=200.0
+    frames.append(f)
+json.dump({'frames':frames}, open('/tmp/e2e_ooze.json','w'))
+"
+MFSR=$(curl -sf -X POST "$API/api/v1/optics/mfsr" -H 'Content-Type: application/json' -d @/tmp/e2e_mfsr.json)
+assert_eq "$(echo "$MFSR" | jqv "['frames_used']")" "4" "MFSR stacked 4 frames"
+TI=$(curl -sf -X POST "$API/api/v1/optics/trans-illumination" -H 'Content-Type: application/json' -d @/tmp/e2e_ti.json)
+python3 -c "import sys;sys.exit(0 if float('$(echo "$TI" | jqv "['attenuation_pct']")')>0 else 1)" && pass "trans-illumination detects dense patch" || fail "trans-illumination"
+OOZE=$(curl -sf -X POST "$API/api/v1/optics/ooze" -H 'Content-Type: application/json' -d @/tmp/e2e_ooze.json)
+OZ=$(echo "$OOZE" | jqv "['verdict']")
+case "$OZ" in *Ralstonia*|*Fusarium*) pass "ooze verdict classified ($OZ)" ;; *) fail "ooze verdict ($OZ)" ;; esac
+
+# --- 27. Image forensics (TAHAP 6.3) ----------------------------------------
+echo "[27] Anti-fraud image forensics"
+python3 -c "
+import base64, json
+png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+json.dump({'image_base64': base64.b64encode(png).decode()}, open('/tmp/e2e_forensic.json','w'))
+"
+FOR=$(curl -sf -X POST "$API/api/v1/forensics/image-audit" -H 'Content-Type: application/json' -d @/tmp/e2e_forensic.json)
+FV=$(echo "$FOR" | jqv "['verdict']")
+PH=$(echo "$FOR" | jqv "['perceptual_hash']")
+[ -n "$FV" ] && pass "forensics verdict returned ($FV)" || fail "forensics verdict"
+assert_gt0 "${#PH}" "perceptual hash computed"
+# Re-submit the same image with its own hash as a known hash -> duplicate.
+DUP=$(python3 -c "import json;d=json.load(open('/tmp/e2e_forensic.json'));d['known_hashes']=['$PH'];print(json.dumps(d))")
+curl -sf -X POST "$API/api/v1/forensics/image-audit" -H 'Content-Type: application/json' -d "$DUP" | jqv "['duplicate_of']" | grep -q "$PH" && pass "duplicate image detected" || fail "duplicate detection"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
