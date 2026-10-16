@@ -202,7 +202,11 @@ Setelah `web-up`:
 | `make mobile-test` | Jalankan unit test JVM (fisika + kripto) |
 | `make mobile-run` | Jalankan CLI smoke test fisika |
 | `make mobile-restart` / `mobile-logs` / `mobile-shell` / `mobile-down` | Kelola toolchain |
-| `make mobile-build` / `mobile-apk` | Bangun APK debug (butuh Android SDK) |
+| `make mobile-build` / `mobile-apk` | Bangun APK **debug** (butuh Android SDK) |
+| `make mobile-release` | Bangun APK **release** R8 (shrink + strip, unsigned) |
+| `make mobile-aab` | Bangun **App Bundle** release (Play Store) |
+| `make mobile-artifacts` | Build release + AAB + salin + R8 mapping ke `./dist` |
+| `make mobile-verify` | Audit artefak rilis di `./dist` (single-dex, R8, keep rules) |
 
 ### Objek Storage
 
@@ -425,11 +429,14 @@ diverifikasi & diaudit. Skrip **menolak mengekspor** bila self-check gagal
 - [x] **Pipeline training + benchmark reproducible** — `scripts/train_*.py`,
       `scripts/bench_models.py`, target `make models-train/models-bench/models-test`
 - [x] **Suite regresi model** — 15 tes menjaga klasifikasi 5 kondisi & distilasi
+- [x] **Rilis Android R8/AAB (TAHAP 7.2)** — `make mobile-release`/`mobile-aab`/
+      `mobile-artifacts`; APK release R8 **4,0 MB** vs debug 13 MB (−70%),
+      resource shrinking + native stripping; `make mobile-verify` mengaudit
+      single-dex, obfuskasi R8, & core fisika tetap utuh (skrip verifikasi)
 - [ ] Bobot ONNX detektor (YOLOv8-Nano) & segmentasi (U-Net Lite) — butuh foto
       lapangan beranotasi (2 model sisa berstatus *pending*, dilaporkan `models-bench`)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
 - [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
-- [ ] APK/AAB release build (R8 + stripping sudah dikonfigurasi)
 
 ## 10. Verifikasi Langsung (bukti)
 
@@ -448,6 +455,11 @@ make verify  →
 
 docker compose ps → 6/6 services (healthy)
 ```
+
+**Android rilis (bukti):** `make mobile-artifacts` → APK release **4,0 MB**
+(debug 13 MB, −70%) + AAB 5,4 MB; `make mobile-verify` →
+`6 passed` (single-dex · release<debug · AAB ada · R8 meng-obfuscate ·
+`MainActivity` tetap (entry-point manifest) · core fisika `-keep` utuh).
 
 **Cross-platform crypto (bukti):** sertifikat yang ditandatangani KOTLIN dan
 TYPESCRIPT (browser) keduanya diverifikasi `valid:true` oleh backend Go — aturan
