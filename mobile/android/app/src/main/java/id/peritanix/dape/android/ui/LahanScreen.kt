@@ -13,10 +13,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.physics.Physics
+import java.io.File
 
 @Composable
 fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
@@ -60,6 +62,13 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val usdaClass = Physics.classifyUsda(sandPct, siltPct, clayPct)
     val cec = Physics.cecFromTexture(sandPct, siltPct, clayPct)
     val fertPlan = Physics.prescribeFertilizer(soilPh, cec, hst)
+    val aiFertMix = remember(soilPh, cec, hst) {
+        EdgeInferenceRunner(File("/tmp/models")).predictFertilizerMix(
+            ph = soilPh.toFloat(),
+            cecMeq = cec.toFloat(),
+            hst = hst
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -433,6 +442,22 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Distilasi Edge AI Tabular On-Device (< 10 ms)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Distilasi Edge AI Tabular (LightGBM)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            Text("< 10 ms (${aiFertMix.executionTimeMs} ms)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text("• NPK 16-16-16: ${aiFertMix.npk16_16_16GPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                        Text("• KNO3 Kalium: ${aiFertMix.kno3GPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                        Text("• Kalsium/Dolomit: ${aiFertMix.calciumGPerL} g/L", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
 
                 HorizontalDivider()
 

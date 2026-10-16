@@ -39,6 +39,21 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         edgeRunner.evaluateTransIllumination(transR, transG, transB)
     }
 
+    // --- State: U-Net Lite 4-Class Lesion Segmentation ---
+    var chloroticPct by remember { mutableStateOf(18.0f) }
+    var necroticPct by remember { mutableStateOf(12.0f) }
+    val healthyPct = remember(chloroticPct, necroticPct) {
+        (100.0f - chloroticPct - necroticPct).coerceAtLeast(0.0f)
+    }
+    val unetResult = remember(healthyPct, chloroticPct, necroticPct) {
+        edgeRunner.segmentLesionClasses(
+            healthy = healthyPct / 100.0f,
+            chlorotic = chloroticPct / 100.0f,
+            necrotic = necroticPct / 100.0f,
+            background = 0.0f
+        )
+    }
+
     // --- State: Yield Estimation Fruit Counting ---
     var greenFruits by remember { mutableStateOf(35) }
     var turningFruits by remember { mutableStateOf(12) }
@@ -158,6 +173,47 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     }
                 }
 
+                // U-Net Lite 4-Class Lesion Severity Analysis
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Segmentasi Lesi U-Net Lite (Edge AI)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            Text("Severity: ${unetResult.calculatedSeverityPct}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text("• Jaringan Sehat: ${healthyPct.toInt()}% | Klorosis: ${chloroticPct.toInt()}% | Nekrosis: ${necroticPct.toInt()}%", style = MaterialTheme.typography.bodySmall)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Simulasi Lesi:", style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterVertically))
+                            FilterChip(
+                                selected = necroticPct == 12.0f,
+                                onClick = {
+                                    necroticPct = 12.0f
+                                    chloroticPct = 18.0f
+                                },
+                                label = { Text("Ringan") }
+                            )
+                            FilterChip(
+                                selected = necroticPct == 35.0f,
+                                onClick = {
+                                    necroticPct = 35.0f
+                                    chloroticPct = 25.0f
+                                },
+                                label = { Text("Sedang") }
+                            )
+                            FilterChip(
+                                selected = necroticPct == 60.0f,
+                                onClick = {
+                                    necroticPct = 60.0f
+                                    chloroticPct = 25.0f
+                                },
+                                label = { Text("Berat") }
+                            )
+                        }
+                    }
+                }
+
                 HorizontalDivider()
 
                 Button(
@@ -165,7 +221,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                         queue?.enqueueDiagnosis(
                             landId = "land-demo-001",
                             confirmedDisease = diag.condition,
-                            severityPct = 15.0,
+                            severityPct = unetResult.calculatedSeverityPct.toDouble(),
                             confidence = "HIGH",
                             protocolCode = diag.condition,
                             localTwi = 6.5

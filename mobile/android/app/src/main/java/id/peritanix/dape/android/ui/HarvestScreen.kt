@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
 import id.peritanix.dape.crypto.Ed25519OfflineSigner
 import id.peritanix.dape.physics.Physics
@@ -95,18 +96,30 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                 )
 
                 // TTS Voice Prompt Guidance
+                val spokenScript = remember(elevationM, ratio.boilingPointC, ratio.vBoilParts, ratio.vWellParts) {
+                    IndonesianTtsVoiceAdvisor.composePreparationScript(
+                        elevationM = elevationM,
+                        boilingPointC = ratio.boilingPointC,
+                        boilingParts = Math.round(ratio.vBoilParts * 10.0) / 10.0,
+                        wellParts = Math.round(ratio.vWellParts).toDouble()
+                    )
+                }
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Instruksi Suara TTS (Bahasa Indonesia):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        Text(calibGuide.voiceInstructionId, style = MaterialTheme.typography.bodySmall)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Panduan Suara TTS (Bahasa Indonesia):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            Text("id-ID Locale", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text(spokenScript, style = MaterialTheme.typography.bodySmall)
                         FilledTonalButton(
                             onClick = { isTtsPlaying = !isTtsPlaying },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (isTtsPlaying) "⏹ Hentikan Pemutaran Suara" else "▶ Putar Panduan Suara Takaran")
+                            Text(if (isTtsPlaying) "⏹ Hentikan Pemutaran Suara" else "▶ Putar Panduan Suara Takaran Gayung")
                         }
                     }
                 }
