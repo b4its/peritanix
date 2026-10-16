@@ -41,3 +41,14 @@ ENV ANDROID_SDK_ROOT=/opt/android-sdk \
 RUN mkdir -p ${ANDROID_SDK_ROOT}
 WORKDIR /app/android
 CMD ["gradle", "--no-daemon", "assembleDebug"]
+
+# ---------------------------------------------------------------------------
+# Android RELEASE target — R8 obfuscation + resource shrinking + native
+# symbol stripping (see app/proguard-rules.pro). Produces the minified APK
+# and, via `bundleRelease`, the Play-Store AAB. Requires the SDK mounted.
+FROM base AS android-release
+ENV ANDROID_SDK_ROOT=/opt/android-sdk \
+    ANDROID_HOME=/opt/android-sdk
+RUN mkdir -p ${ANDROID_SDK_ROOT}
+WORKDIR /app/android
+CMD ["gradle", "--no-daemon", "assembleRelease", "bundleRelease"]
