@@ -208,6 +208,13 @@ Setelah `web-up`:
 | `make mobile-artifacts` | Build release + AAB + salin + R8 mapping ke `./dist` |
 | `make mobile-verify` | Audit artefak rilis di `./dist` (single-dex, R8, keep rules) |
 
+### Android (host-native — `cd mobile && make …`)
+
+Alur Gradle + SDK + adb **tanpa Docker** (butuh Android SDK lokal). Dari root:
+`make android <goal>`, mis. `make android up`. Target: `help doctor info up down
+build apk release rebuild install uninstall reinstall run test uitest lint deps
+emulator-list device-status wait-device clean`. Lihat `mobile/README.md`.
+
 ### Objek Storage
 
 ```bash

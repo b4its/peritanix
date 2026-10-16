@@ -19,6 +19,51 @@ make mobile-shell   # Interactive shell into mobile container
 make mobile-down    # Stop and remove mobile container
 ```
 
+## Android Workflow (native host — `mobile/Makefile`)
+
+When you have the Android SDK + adb + (optionally) an emulator installed locally,
+use the host-side Makefile. It builds, installs and runs the app directly on a
+device/emulator without Docker:
+
+```bash
+cd mobile && make help      # list every target
+cd mobile && make doctor    # check java / SDK / adb / emulator / AVD
+cd mobile && make info      # app + toolchain + git + debug-keystore SHA-1/SHA-256
+cd mobile && make up        # build + install + launch (starts an AVD if none)
+```
+
+Or delegate from the repo root: `make android <goal>` (e.g. `make android up`).
+
+| Target | Fungsi |
+|---|---|
+| `help` | Tampilkan semua target |
+| `doctor` | Cek toolchain (java, sdk, adb, emulator, avd) |
+| `info` | Info detail proyek & aplikasi (versi, SDK, git, SHA-1/SHA-256 signing) |
+| `up` | Build + install + launch di device aktif; nyalakan emulator bila tidak ada device |
+| `down` | Matikan emulator yang berjalan |
+| `build` / `apk` | Build APK debug |
+| `release` | Build APK release |
+| `rebuild` | Clean lalu build ulang |
+| `install` | Install APK debug ke device aktif |
+| `uninstall` | Hapus aplikasi dari device aktif |
+| `reinstall` | Uninstall lalu install ulang (atasi konflik versi/signature) |
+| `run` | Install + launch aplikasi |
+| `test` | Unit test (host JVM) |
+| `uitest` | Instrumented test (butuh device/emulator) |
+| `lint` | Android lint |
+| `deps` | Lihat dependency runtime debug |
+| `emulator-list` | Tampilkan daftar AVD |
+| `device-status` | Tampilkan device/emulator terhubung beserta detail (model, Android, tipe) |
+| `wait-device` | Tunggu device/emulator terhubung |
+| `clean` | Hapus hasil build |
+
+**Docker ↔ host interop:** the containerized `make mobile-*` targets run Gradle
+as root, which leaves a root-owned `android/.gradle` and `android/app/build`.
+To stop that blocking a host build, `mobile/Makefile` keeps its Gradle project
+cache in `mobile/.host-cache` (gitignored) and `make clean` wipes it. If a
+root-owned cache still exists, clear it once via the container:
+`docker exec peritanix-mobile sh -c "rm -rf /app/android/.gradle /app/android/app/build"`.
+
 ## Architecture & Layout
 
 ```
