@@ -8,7 +8,7 @@ deterministic physics mirrors run in the browser when there is no connectivity.
 
 ```bash
 make web-up
-# → http://localhost:55173
+# → http://localhost:55232
 ```
 
 ## Layout

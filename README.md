@@ -161,10 +161,10 @@ Setelah `web-up`:
 
 | Layanan | URL |
 |---|---|
-| Web PWA (dashboard + verifier) | http://localhost:55173 |
-| Go API | http://localhost:58080 |
-| FastAPI (docs) | http://localhost:58000/docs |
-| Postgres | localhost:55432 |
+| Web PWA (dashboard + verifier) | http://localhost:55232 |
+| Go API | http://localhost:58139 |
+| FastAPI (docs) | http://localhost:58059/docs |
+| Postgres | localhost:55491 |
 
 ---
 

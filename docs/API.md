@@ -1,11 +1,11 @@
 # DAPE API Contract
 
-Base URL (dev): `http://localhost:58080`
+Base URL (dev): `http://localhost:58139`
 
 Two surfaces:
 
 - **Public** — `/api/v1/*` (this document)
-- **Internal** — `/internal/*` on the ML service (`:58000`), guarded by the
+- **Internal** — `/internal/*` on the ML service (`:58059`), guarded by the
   `X-Internal-Token` header. Only the Go backend calls these.
 
 ---

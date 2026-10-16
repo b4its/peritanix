@@ -12,7 +12,7 @@ make web-up
 make web-logs          # or: make web-shell-ml
 ```
 
-Interactive docs: http://localhost:58000/docs
+Interactive docs: http://localhost:58059/docs
 
 ## Layout
 
