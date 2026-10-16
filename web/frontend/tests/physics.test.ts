@@ -108,3 +108,29 @@ describe('microclimate EWS mirror', () => {
 		expect(() => microclimateRisk([80, 85, 90], [25, 26])).toThrow();
 	});
 });
+
+import { prescribeFertilizer } from '../src/lib/physics';
+
+describe('prescribeFertilizer', () => {
+	it('acidic pH triggers dolomite', () => {
+		const p = prescribeFertilizer(5.0, 15, 20);
+		expect(p.dolomite_g_per_m2).toBeGreaterThan(0);
+	});
+	it('vegetative has higher NPK than flowering', () => {
+		const veg = prescribeFertilizer(6.5, 15, 20);
+		const flow = prescribeFertilizer(6.5, 15, 45);
+		expect(veg.npk_16_16_16_g_per_l).toBeGreaterThan(flow.npk_16_16_16_g_per_l);
+	});
+	it('flowering adds calcium and forbids N', () => {
+		const p = prescribeFertilizer(6.5, 15, 45);
+		expect(p.calcium_g_per_l).toBeGreaterThan(0);
+		expect(p.recommendation.toLowerCase()).toContain('hindari');
+	});
+	it('fruiting is KNO3 dominant', () => {
+		const p = prescribeFertilizer(6.5, 15, 75);
+		expect(p.kno3_g_per_l).toBeGreaterThan(p.npk_16_16_16_g_per_l);
+	});
+	it('neutral pH -> no dolomite', () => {
+		expect(prescribeFertilizer(6.8, 15, 20).dolomite_g_per_m2).toBe(0);
+	});
+});

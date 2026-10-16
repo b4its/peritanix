@@ -115,6 +115,37 @@ func (d *Deps) soilFertilityGeoJSON(c *fiber.Ctx) error {
 	return c.Send(js)
 }
 
+// fertilizerPlan is the prescriptive fertilizer calculator (Opsi Topik 2): given
+// pH/CEC/HST it returns exact gram quantities of the kocor (drench) mix.
+type fertilizerPlanReq struct {
+	PH             float64 `json:"ph"`
+	CECMeq         float64 `json:"cec_meq"`
+	HST            int     `json:"hst"`
+	TargetYieldTHa float64 `json:"target_yield_t_ha"`
+	SoilClass      string  `json:"soil_class"`
+}
+
+func (d *Deps) fertilizerPlan(c *fiber.Ctx) error {
+	var req fertilizerPlanReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	if req.TargetYieldTHa == 0 {
+		req.TargetYieldTHa = 20
+	}
+	if req.SoilClass == "" {
+		req.SoilClass = "loam"
+	}
+	res, err := d.ML.FertilizerPlan(c.Context(), map[string]any{
+		"ph": req.PH, "cec_meq": req.CECMeq, "hst": req.HST,
+		"target_yield_t_ha": req.TargetYieldTHa, "soil_class": req.SoilClass,
+	})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "fertilizer engine: "+err.Error())
+	}
+	return c.JSON(res)
+}
+
 // gddHistory serves the GDD accumulation time series for the chart.
 func (d *Deps) gddHistory(c *fiber.Ctx) error {
 	days := 30

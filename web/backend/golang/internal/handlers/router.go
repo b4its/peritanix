@@ -91,6 +91,8 @@ func Register(app *fiber.App, d *Deps) {
 
 	// Fortification Lock protocol guard (block high-N during anthesis)
 	mut.Post("/fertilizer/guard", d.fortificationGuard)
+	// Prescriptive fertilizer calculator (exact kocor gram doses)
+	api.Post("/fertilizer/plan", d.fertilizerPlan)
 
 	// Diagnostics
 	mut.Post("/diagnostics/evaluate", d.diagEvaluate)

@@ -374,6 +374,17 @@ else
   assert_eq "$BLOCKED" "False" "Urea allowed outside fortification ($PHASE)"
 fi
 
+# --- 29. Prescriptive fertilizer plan (Opsi 2) ------------------------------
+echo "[29] Prescriptive fertilizer dosage"
+FP=$(curl -sf -X POST "$API/api/v1/fertilizer/plan" -H 'Content-Type: application/json' \
+  -d '{"ph":5.0,"cec_meq":15,"hst":45}')
+NPK=$(echo "$FP" | jqv "['npk_16_16_16_g_per_l']")
+CA=$(echo "$FP" | jqv "['calcium_g_per_l']")
+assert_gt0 "$NPK" "NPK dose returned ($NPK g/L)"
+python3 -c "import sys;sys.exit(0 if float('$CA')>0 else 1)" && pass "flowering adds calcium ($CA g/L)" || fail "calcium dose"
+REC=$(echo "$FP" | jqv "['recommendation']")
+echo "$REC" | grep -qi "dolomit" && pass "acidic soil -> dolomite advisory" || fail "no dolomite advisory"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

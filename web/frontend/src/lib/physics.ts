@@ -196,3 +196,61 @@ export function microclimateRisk(
 		irrigation_minutes_per_bed: minutes
 	};
 }
+
+// --- Prescriptive fertilizer plan (offline mirror of the FastAPI rule engine) ---
+
+export interface FertilizerPlan {
+	npk_16_16_16_g_per_l: number;
+	kno3_g_per_l: number;
+	calcium_g_per_l: number;
+	dolomite_g_per_m2: number;
+	recommendation: string;
+}
+
+/**
+ * Chilli fertilization preset (Opsi Topik 2): given soil pH, CEC and plant age,
+ * return exact grams of the kocor (drench) mix. Deterministic and matches the
+ * server's agronomy/fertilizer.py so on-device output equals the cloud's.
+ */
+export function prescribeFertilizer(
+	ph: number,
+	cecMeq: number,
+	hst: number,
+	targetYieldTHa = 20
+): FertilizerPlan {
+	const phase = hst < 35 ? 'VEGETATIVE' : hst < 61 ? 'FLOWERING' : 'FRUITING';
+	const cecFactor = Math.max(0.6, Math.min(1.6, 15 / Math.max(cecMeq, 1)));
+	const yieldFactor = Math.max(0.8, Math.min(1.5, targetYieldTHa / 20));
+	const baseNpk = 3.0 * cecFactor * yieldFactor;
+
+	let npk = baseNpk;
+	let kno3 = 0;
+	let calcium = 0;
+	let dolomite = 0;
+	const notes: string[] = [];
+
+	if (ph < 5.5) {
+		dolomite = 150 * (5.8 - ph);
+		notes.push(`pH ${ph.toFixed(1)} masam: dolomit ${dolomite.toFixed(0)} g/m2 2 minggu sebelum pupuk.`);
+	}
+	if (phase === 'VEGETATIVE') {
+		notes.push('Fase vegetatif: prioritaskan N.');
+	} else if (phase === 'FLOWERING') {
+		npk = baseNpk * 0.6;
+		calcium = 2.5;
+		kno3 = 1.0;
+		notes.push('Pembungaan: wajib Ca+B; HINDARI urea/N tinggi.');
+	} else {
+		npk = baseNpk * 0.4;
+		kno3 = 3.0;
+		calcium = 2.0;
+		notes.push('Pembuahan: dominan K (KNO3); Ca jaga ketebalan pericarp.');
+	}
+	return {
+		npk_16_16_16_g_per_l: Math.round(npk * 100) / 100,
+		kno3_g_per_l: Math.round(kno3 * 100) / 100,
+		calcium_g_per_l: Math.round(calcium * 100) / 100,
+		dolomite_g_per_m2: Math.round(dolomite * 100) / 100,
+		recommendation: notes.join(' ')
+	};
+}

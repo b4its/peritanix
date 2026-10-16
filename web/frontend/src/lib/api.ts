@@ -204,6 +204,25 @@ export async function fertilizerGuard(input: {
 	return req('/api/v1/fertilizer/guard', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export interface FertilizerPlan {
+	npk_16_16_16_g_per_l: number;
+	kno3_g_per_l: number;
+	calcium_g_per_l: number;
+	recommendation: string;
+	dolomite_g_per_m2?: number;
+}
+
+/** Prescriptive fertilizer calculator (exact kocor gram doses). */
+export async function fertilizerPlan(input: {
+	ph: number;
+	cec_meq: number;
+	hst: number;
+	target_yield_t_ha?: number;
+	soil_class?: string;
+}): Promise<FertilizerPlan> {
+	return req('/api/v1/fertilizer/plan', { method: 'POST', body: JSON.stringify(input) });
+}
+
 /** GDD daily time series for the accumulation chart. */
 export async function gddHistory(
 	id: string,

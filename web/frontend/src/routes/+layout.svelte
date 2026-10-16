@@ -32,11 +32,13 @@
 			<a href="/lands/new">+ Lahan</a>
 			<a href="/diagnose">Diagnosis</a>
 			<a href="/fertilize">Pupuk</a>
+			<a href="/fertilizer">Dosis</a>
 			<a href="/harvest">Panen</a>
 			<a href="/certify">Sertifikat</a>
 			<a href="/verify">Verifikasi</a>
 			<a href="/economics">Ekonomi</a>
 			<a href="/models">Model</a>
+			<a href="/calibrate">Kalibrasi</a>
 			<a href="/account">Akun</a>
 		</nav>
 		<span class="net" class:on={online} class:off={!online}>
