@@ -184,18 +184,19 @@ Tujuan: Validasi akurasi laboratorium, chaos simulation, dan rilis kontainer pro
 
 - [x] Multi-stage Dockerfile untuk semua layanan: `postgres`, `redis`, `files` (MinIO), `api` (Go), `ml` (FastAPI), `web` (SvelteKit), dan `mobile` (Android/Kotlin).
 - [x] Makefile deklaratif dengan target `web-*` dan `mobile-*` yang lengkap dan terverifikasi.
-- [x] Pipeline rilis Android APK: file [`dist/app-debug.apk`](dist/app-debug.apk) (13 MB) berhasil dikompilasi via Docker.
+- [x] Pipeline rilis Android APK: **debug** 13 MB + **release R8** 4,0 MB (−70%) + AAB 5,4 MB, dibangun via Docker (`make mobile-artifacts`, diverifikasi `make mobile-verify`).
+- [x] **Edge models ONNX terlatih (3/4)**: `classifier_mobilenetv3` (7,3 KB), `severity_unet_lite` (2,0 KB), `fertilizer_lightgbm` (2,0 KB) — sha256 terverifikasi & byte-reproducible; `detector_yolov8n` menunggu anotasi lapangan.
 
 ---
 
-## Rekapitulasi Pengujian Sistem (430 Tests, 100% Green)
+## Rekapitulasi Pengujian Sistem (450+ Tests, 100% Green)
 
 | Test Runner | Modul yang Diuji | Status | Jumlah Uji |
 | :--- | :--- | :---: | :---: |
 | **make mobile-test (JVM Core)** | Pure-Kotlin Physics & RFC 8785 Ed25519 | **PASS** | 40 tests |
-| **make mobile-test (Android)** | Android App, JNI Fallback, Hardware, Edge AI | **PASS** | 13 tests |
-| **make web-test (Pytest ML)** | DEM TWI, Stokes, Bayesian Pathology, CIELAB | **PASS** | 235 tests |
-| **make web-test (Go API)** | Clean Backend, PostGIS, CRDT LWW, JWT Auth | **PASS** | 10 packages |
+| **make web-test (Pytest ML)** | DEM TWI, Stokes, Bayesian Pathology, CIELAB, **edge models (classifier + severity + fertilizer)** | **PASS** | 258 tests |
+| **make web-test (Go API)** | Clean Backend, PostGIS, CRDT LWW, JWT Auth | **PASS** | 8 packages |
 | **npm test (Web Vitest)** | SvelteKit PWA, Dexie DB, Heatmap, QR Verifier | **PASS** | 75 tests |
-| **make e2e (Smoke Integration)** | 31 Skenario Integrasi Multi-Layanan End-to-End | **PASS** | 67 assertions |
-| **TOTAL KESELURUHAN** | | **100% PASS** | **430 Tests (0 Fail)** |
+| **make e2e (Smoke Integration)** | Integrasi Multi-Layanan End-to-End (incl. severity segmenter) | **PASS** | 70 assertions |
+| **make models-bench** | 3 artefak ONNX sha256 + inference | **PASS** | 3 models |
+| **make verify** | lint + calibration (7) + chaos (15) | **PASS** | 22 checks |

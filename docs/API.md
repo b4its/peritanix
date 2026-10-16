@@ -249,6 +249,15 @@ Stem-dip ooze test — distinguishes Ralstonia vs Fusarium.
 ```
 → `{ "streaming_score": 0.71, "coherence": 0.66, "directionality": 0.76, "verdict": "Ralstonia (bacterial streaming)", "confidence": 0.86 }`
 
+### `POST /api/v1/optics/severity`
+Pixel-wise lesion severity (Opsi 1) — ONNX segmenter `severity_unet_lite` with
+a deterministic colour/texture fallback. `severity_pct` scales the fungicide
+dose, so the `method` field reports which path produced the number.
+```json
+{ "land_id": "uuid", "image": [[[r,g,b], ...], ...], "leaf_mask": [[true, ...]] }
+```
+→ `{ "severity_pct": 18.46, "chlorotic_pct": 0.0, "necrotic_pct": 18.46, "healthy_pct": 81.54, "method": "onnx_model", "uncertain_pct": 0.6 }`
+
 ---
 
 ## Grading & EWS (TAHAP 4/5)
@@ -494,6 +503,7 @@ All require `X-Internal-Token`.
 | POST | `/internal/optics/mfsr-stack` | Burst alignment + stacking |
 | POST | `/internal/optics/trans-illumination` | Mesophyll attenuation |
 | POST | `/internal/optics/ooze-optical-flow` | Ralstonia vs Fusarium |
+| POST | `/internal/optics/severity` | Pixel-wise lesion severity (ONNX + fallback) |
 | POST | `/internal/forensics/image-audit` | EXIF + ELA + aHash duplicate |
 | POST | `/internal/decision/yield-projection` | 14-day harvest tonnage projection |
 | POST | `/internal/decision/protocol` | Prescriptive pesticide protocol |
