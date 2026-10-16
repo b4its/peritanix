@@ -80,9 +80,9 @@ fun DapeApp(queue: SyncQueueStore) {
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 when (tab) {
-                    0 -> LahanScreen()
-                    1 -> DiagnosticsScreen()
-                    2 -> HarvestScreen()
+                    0 -> LahanScreen(queue)
+                    1 -> DiagnosticsScreen(queue)
+                    2 -> HarvestScreen(queue)
                     else -> SyncScreen(queue)
                 }
             }

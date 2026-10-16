@@ -42,6 +42,24 @@ fun SyncScreen(queue: SyncQueueStore) {
                     )
                 }
 
+                HorizontalDivider()
+
+                Text("Data Tersimpan Lokal (Room SQLite):", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("• Penilaian Tanah Terdaftar:")
+                    Text("${queue.soilAssessmentCount()} entri", fontWeight = FontWeight.SemiBold)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("• Rekam Diagnosis Patologi:")
+                    Text("${queue.diagnosisCount()} entri", fontWeight = FontWeight.SemiBold)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("• Batch Panen & Sertifikat QR:")
+                    Text("${queue.harvestCount()} entri", fontWeight = FontWeight.SemiBold)
+                }
+
+                HorizontalDivider()
+
                 Text(
                     "Status: $syncStatus",
                     style = MaterialTheme.typography.bodySmall,
@@ -63,12 +81,23 @@ fun SyncScreen(queue: SyncQueueStore) {
                     Button(
                         onClick = {
                             queue.schedule()
+                            pendingCount = queue.pendingCount()
                             syncStatus = "WorkManager dipicu. Menunggu koneksi stabil untuk flush ke Go API."
                         },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Flush Sync", style = MaterialTheme.typography.bodySmall)
                     }
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        pendingCount = queue.pendingCount()
+                        syncStatus = "Statistik antrean lokal diperbarui."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Refresh Data Lokal", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

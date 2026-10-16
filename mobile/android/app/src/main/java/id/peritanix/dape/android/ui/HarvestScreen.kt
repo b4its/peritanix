@@ -13,7 +13,7 @@ import id.peritanix.dape.crypto.Ed25519OfflineSigner
 import id.peritanix.dape.physics.Physics
 
 @Composable
-fun HarvestScreen() {
+fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val scrollState = rememberScrollState()
 
     var elevationM by remember { mutableStateOf(850.0) }
@@ -27,6 +27,7 @@ fun HarvestScreen() {
     var secondsLeft by remember { mutableStateOf(180) }
 
     var signedCert by remember { mutableStateOf("") }
+    var saveStatus by remember { mutableStateOf("") }
 
     val ratio = Physics.hotWaterRatio(elevationM, wellTempC)
     val mixCheck = Physics.mixTemperature(elevationM, ratio.vBoilParts, wellTempC, ratio.vWellParts)
@@ -208,6 +209,34 @@ fun HarvestScreen() {
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    HorizontalDivider()
+
+                    Button(
+                        onClick = {
+                            queue?.enqueueHarvest(
+                                landId = "land-peritanix-001",
+                                boilingPoint = ratio.boilingPointC,
+                                ratioLabel = ratio.ratioLabel,
+                                sinkRatio = (Math.round(sinkRatio * 100.0) / 100.0),
+                                gradeResult = seedGrade,
+                                signature = signedCert
+                            )
+                            saveStatus = "Batch panen & sertifikat QR tersimpan ke Room SQLite (Offline-First)."
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Simpan Batch Panen ke Room SQLite")
+                    }
+
+                    if (saveStatus.isNotEmpty()) {
+                        Text(
+                            saveStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }

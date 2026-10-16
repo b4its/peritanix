@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import id.peritanix.dape.physics.Physics
 
 @Composable
-fun LahanScreen() {
+fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val scrollState = rememberScrollState()
 
     var slopeDeg by remember { mutableStateOf(4.5) }
@@ -23,6 +23,7 @@ fun LahanScreen() {
 
     var hst by remember { mutableStateOf(40) }
     var soilPh by remember { mutableStateOf(5.8) }
+    var saveStatus by remember { mutableStateOf("") }
 
     val twi = Physics.twiFromDegrees(upslopeArea, slopeDeg)
     val riskClass = Physics.drainageRiskClass(twi)
@@ -211,6 +212,36 @@ fun LahanScreen() {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                HorizontalDivider()
+
+                Button(
+                    onClick = {
+                        queue?.enqueueSoilAssessment(
+                            landId = "land-demo-001",
+                            sandPct = sandPct,
+                            siltPct = siltPct,
+                            clayPct = clayPct,
+                            soilClass = usdaClass,
+                            cecMeq = cec,
+                            phDeterministic = soilPh,
+                            nitratePpm = 85.0
+                        )
+                        saveStatus = "Penilaian tanah tersimpan ke Room SQLite & diantrekan untuk Delta Sync."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Simpan Penilaian Tanah (Room SQLite Offline-First)")
+                }
+
+                if (saveStatus.isNotEmpty()) {
+                    Text(
+                        saveStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

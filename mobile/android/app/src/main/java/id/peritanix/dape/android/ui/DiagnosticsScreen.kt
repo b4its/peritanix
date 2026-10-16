@@ -14,7 +14,7 @@ import id.peritanix.dape.pathology.PathologyClassifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DiagnosticsScreen() {
+fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val scrollState = rememberScrollState()
 
     var curlDirection by remember { mutableStateOf("up") }
@@ -24,6 +24,7 @@ fun DiagnosticsScreen() {
 
     var isWilting by remember { mutableStateOf(true) }
     var soilMoisturePct by remember { mutableStateOf(68.0) }
+    var saveStatus by remember { mutableStateOf("") }
 
     val diag = PathologyClassifier.differentiateLeafCurl(
         curlDirection = curlDirection,
@@ -117,6 +118,34 @@ fun DiagnosticsScreen() {
                         Text("Panduan Semprot: ${diag.sprayingInstructions}", style = MaterialTheme.typography.bodySmall)
                         Text("Solusi PHT Hayati: ${diag.organicAlternative}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                     }
+                }
+
+                HorizontalDivider()
+
+                Button(
+                    onClick = {
+                        queue?.enqueueDiagnosis(
+                            landId = "land-demo-001",
+                            confirmedDisease = diag.condition,
+                            severityPct = 15.0,
+                            confidence = "HIGH",
+                            protocolCode = diag.condition,
+                            localTwi = 6.5
+                        )
+                        saveStatus = "Diagnosis & protokol tersimpan ke Room SQLite (Offline-First)."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Simpan Diagnosis & Resep ke Room SQLite")
+                }
+
+                if (saveStatus.isNotEmpty()) {
+                    Text(
+                        saveStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

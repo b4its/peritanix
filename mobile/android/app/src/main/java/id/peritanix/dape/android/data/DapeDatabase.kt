@@ -41,6 +41,33 @@ data class DiagnosisEntity(
     val synced: Int = 0
 )
 
+@Entity(tableName = "soil_assessments")
+data class SoilAssessmentEntity(
+    @PrimaryKey val id: String,
+    val landId: String,
+    val sandPct: Double,
+    val siltPct: Double,
+    val clayPct: Double,
+    val soilClass: String,
+    val cecMeq: Double,
+    val phDeterministic: Double,
+    val nitratePpm: Double,
+    val darkChamberLuxCheck: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "harvest_batches")
+data class HarvestBatchEntity(
+    @PrimaryKey val id: String,
+    val landId: String,
+    val boilingPointCalc: Double,
+    val hotWaterRatio: String,
+    val archimedesSinkRatio: Double,
+    val gradeResult: String,
+    val cryptoSignature: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface DapeDao {
     // --- sync queue ---
@@ -63,17 +90,52 @@ interface DapeDao {
     @Query("SELECT * FROM lands")
     suspend fun lands(): List<LandEntity>
 
+    @Query("SELECT COUNT(*) FROM lands")
+    fun landCount(): Int
+
     // --- diagnoses ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDiagnosis(d: DiagnosisEntity)
 
     @Query("SELECT * FROM diagnoses WHERE landId = :landId")
     suspend fun diagnosesFor(landId: String): List<DiagnosisEntity>
+
+    @Query("SELECT * FROM diagnoses ORDER BY rowid DESC")
+    suspend fun allDiagnoses(): List<DiagnosisEntity>
+
+    @Query("SELECT COUNT(*) FROM diagnoses")
+    fun diagnosisCount(): Int
+
+    // --- soil assessments ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSoilAssessment(s: SoilAssessmentEntity)
+
+    @Query("SELECT * FROM soil_assessments ORDER BY timestamp DESC")
+    suspend fun soilAssessments(): List<SoilAssessmentEntity>
+
+    @Query("SELECT COUNT(*) FROM soil_assessments")
+    fun soilAssessmentCount(): Int
+
+    // --- harvest batches ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHarvest(h: HarvestBatchEntity)
+
+    @Query("SELECT * FROM harvest_batches ORDER BY timestamp DESC")
+    suspend fun harvests(): List<HarvestBatchEntity>
+
+    @Query("SELECT COUNT(*) FROM harvest_batches")
+    fun harvestCount(): Int
 }
 
 @Database(
-    entities = [SyncQueueEntity::class, LandEntity::class, DiagnosisEntity::class],
-    version = 1,
+    entities = [
+        SyncQueueEntity::class,
+        LandEntity::class,
+        DiagnosisEntity::class,
+        SoilAssessmentEntity::class,
+        HarvestBatchEntity::class
+    ],
+    version = 2,
     exportSchema = false
 )
 abstract class DapeDatabase : RoomDatabase() {
