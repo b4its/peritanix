@@ -11,7 +11,7 @@ All operations are containerized via Docker and orchestrated through the root Ma
 
 ```bash
 make mobile-up      # Start the JDK + Android toolchain container
-make mobile-test    # 53 unit tests (40 pure JVM + 13 Android unit tests)
+make mobile-test    # 65 unit tests (40 pure JVM + 25 Android unit tests)
 make mobile-run     # Physics smoke CLI (prints calorimetry, TWI, GDD, cert)
 make mobile-build   # Assemble Android debug APK via Docker (requires mounted Android SDK)
 make mobile-apk     # Copy built APK to ./dist/app-debug.apk (~13 MB)
@@ -90,7 +90,7 @@ mobile/
     │   │   ├── physics/                 # Local TWI, Stokes, Black calorimetry, sediment bridges
     │   │   └── ai_edge/                 # Edge inference runner (TFLite / ONNX proxy)
     │   └── data/
-    │       ├── DapeDatabase.kt          # Room SQLite entities & DAOs (sync_queue, lands, diagnoses)
+    │       ├── DapeDatabase.kt          # Room SQLite entities & DAOs (sync_queue, lands, diagnoses, soil_assessments, harvest_batches)
     │       ├── SyncQueueStore.kt        # Offline-first queue manager
     │       └── SyncWorker.kt            # WorkManager HTTP delta sync to Go Fiber API
     ├── app/src/main/cpp/                # Native OpenCV C++ / NDK implementations
@@ -98,12 +98,15 @@ mobile/
     │   ├── burst_aligner.cpp            # ORB feature matching & homography warp
     │   ├── sediment_edge_detector.cpp   # Canny edge & Hough line boundary detection
     │   └── archimedes_float_counter.cpp # HSV color mask & contour centroid counting
-    └── app/src/test/java/               # Android unit tests (13 tests)
+    └── app/src/test/java/               # Android unit tests (25 tests)
         └── id/peritanix/dape/android/
             ├── AndroidPhysicsCoreTest.kt
             ├── AndroidNativeBridgesTest.kt
             ├── AndroidEdgeInferenceTest.kt
-            └── AndroidHardwareTest.kt
+            ├── AndroidHardwareTest.kt
+            ├── AndroidPathologyIntegrationTest.kt
+            ├── AndroidCalorimetryIntegrationTest.kt
+            └── AndroidFertilizerPrescriptionTest.kt
 ```
 
 ## Cross-Platform Determinism Guarantee
