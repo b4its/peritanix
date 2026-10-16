@@ -26,10 +26,14 @@ build/
 .DS_Store
 
 # --- Android / Gradle ---
+.gradle/
+**/.gradle/
 mobile/.gradle/
 mobile/build/
 mobile/**/build/
 mobile/local.properties
+mobile/**/local.properties
+local.properties
 mobile/.idea/
 *.apk
 *.aab

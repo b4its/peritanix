@@ -270,7 +270,11 @@ services:
     profiles: ["mobile"]
     container_name: ${COMPOSE_PROJECT_NAME:-peritanix}-mobile
     working_dir: /app
+    environment:
+      - ANDROID_HOME=/opt/android-sdk
+      - ANDROID_SDK_ROOT=/opt/android-sdk
     volumes:
       - ./mobile:/app
       - gradle_cache:/root/.gradle
+      - ${ANDROID_SDK_PATH:-/home/xmitsu/Android/Sdk}:/opt/android-sdk:ro
     networks: [dape-net]

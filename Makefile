@@ -237,16 +237,17 @@ mobile-up: init ## Start the mobile dev toolchain container
 mobile-build: init ## Build the Android debug APK (needs Android SDK)
 	@printf "$(C_CYAN)[mobile]$(C_RESET) building the Android app (requires SDK)...\n"
 	$(DC) --profile mobile run --rm \
-		-v "$(PWD)/mobile/android:/app/android" \
+		-e ANDROID_HOME=/opt/android-sdk \
+		-e ANDROID_SDK_ROOT=/opt/android-sdk \
 		--entrypoint sh mobile -c \
 		"cd /app/android && (./gradlew --no-daemon assembleDebug || gradle --no-daemon assembleDebug)" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) Android SDK not configured; the pure-JVM core build is 'make mobile-test'.\n"
 
 mobile-apk: init ## Copy the built debug APK to ./dist
 	@mkdir -p dist
-	$(DC) --profile mobile run --rm mobile \
-		sh -c "cp -v app/build/outputs/apk/debug/app-debug.apk /out/app-debug.apk" \
-		-v "$(PWD)/dist:/out"
+	$(DC) --profile mobile run --rm \
+		-v "$(PWD)/dist:/out" \
+		mobile sh -c "cp -v /app/android/app/build/outputs/apk/debug/app-debug.apk /out/app-debug.apk 2>/dev/null || cp -v app/build/outputs/apk/debug/app-debug.apk /out/app-debug.apk 2>/dev/null || echo 'No APK found yet; run make mobile-build first.'"
 	@printf "$(C_GREEN)[mobile]$(C_RESET) APK -> ./dist/app-debug.apk\n"
 
 mobile-restart: init ## Restart the mobile toolchain
@@ -259,11 +260,11 @@ mobile-shell: init ## Shell into the mobile toolchain
 	$(DC) --profile mobile exec mobile bash
 
 mobile-test: init ## Run JVM unit tests for the pure-Kotlin physics core
-	$(DC) --profile mobile run --rm mobile ./gradlew --no-daemon testDebugUnitTest 2>/dev/null || \
 	$(DC) --profile mobile run --rm mobile gradle --no-daemon test
 
 mobile-run: init ## Run the mobile physics smoke CLI
 	$(DC) --profile mobile run --rm mobile gradle --no-daemon -q run
 
 mobile-down: init ## Stop the mobile toolchain
-	$(DC) --profile mobile down
+	$(DC) --profile mobile stop mobile && $(DC) --profile mobile rm -fv mobile
+

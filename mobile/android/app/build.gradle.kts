@@ -18,6 +18,7 @@ plugins {
 android {
     namespace = "id.peritanix.dape.android"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "id.peritanix.dape"
@@ -31,12 +32,19 @@ android {
 
     buildFeatures { compose = true }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    val ndkDir = android.ndkPath
+    val hasNdk = (ndkDir != null && file(ndkDir).exists()) ||
+        file("${android.sdkDirectory}/ndk").exists() ||
+        System.getenv("ANDROID_NDK_HOME") != null
+    if (hasNdk && file("src/main/cpp/CMakeLists.txt").exists()) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -45,7 +53,12 @@ android {
     kotlinOptions { jvmTarget = "17" }
 
     // Consume the shared JVM core sources directly.
-    sourceSets["main"].java.srcDirs("src/main/java", "../src/main/kotlin")
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/main/java", "../../src/main/kotlin")
+            kotlin.srcDirs("src/main/java", "../../src/main/kotlin")
+        }
+    }
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
