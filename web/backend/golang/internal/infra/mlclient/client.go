@@ -241,6 +241,13 @@ func (c *Client) Economics(ctx context.Context, in map[string]any) (map[string]a
 	return out, err
 }
 
+// ProtocolRules evaluates field-workflow triggers (e.g. mandatory ooze test).
+func (c *Client) ProtocolRules(ctx context.Context, in map[string]any) (map[string]any, error) {
+	var out map[string]any
+	err := c.post(ctx, "/internal/decision/protocol-rules", in, &out)
+	return out, err
+}
+
 // ProtocolCatalog returns the full pesticide protocol catalogue.
 func (c *Client) ProtocolCatalog(ctx context.Context) (map[string]any, error) {
 	var out map[string]any

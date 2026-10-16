@@ -267,3 +267,38 @@ func (d *Deps) economics(c *fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// --- Protocol rules (field-workflow triggers) -------------------------------
+
+type protocolRulesReq struct {
+	LandID              string   `json:"land_id"`
+	Symptoms            []string `json:"symptoms"`
+	LocalTWI            *float64 `json:"local_twi"`
+	AlreadyRecordedOoze bool     `json:"already_recorded_ooze"`
+}
+
+// protocolRules evaluates diagnostic decision rules; notably it can MANDATE the
+// destructive ooze test when a wilting plant sits in a wet (high-TWI) cell,
+// where Ralstonia and Fusarium cannot be told apart from a photo.
+func (d *Deps) protocolRules(c *fiber.Ctx) error {
+	var req protocolRulesReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	twi := 0.0
+	if req.LocalTWI != nil {
+		twi = *req.LocalTWI
+	}
+	symptoms := req.Symptoms
+	if symptoms == nil {
+		symptoms = []string{}
+	}
+	res, err := d.ML.ProtocolRules(c.Context(), map[string]any{
+		"symptoms": symptoms, "local_twi": twi,
+		"already_recorded_ooze": req.AlreadyRecordedOoze,
+	})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadGateway, "protocol rules: "+err.Error())
+	}
+	return c.JSON(res)
+}

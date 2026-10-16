@@ -130,6 +130,25 @@ export async function evaluateDiagnosis(input: {
 	});
 }
 
+export interface ProtocolTrigger {
+	code: string;
+	required: boolean;
+	instruction: string;
+	reason: string;
+	blocking: boolean;
+	capture_s: number;
+	steps: string[];
+}
+
+/** Evaluate field-workflow triggers (e.g. mandatory ooze test on wilting+wet). */
+export async function protocolRules(input: {
+	symptoms: string[];
+	local_twi: number;
+	already_recorded_ooze?: boolean;
+}): Promise<{ triggers: ProtocolTrigger[]; blocked: boolean }> {
+	return req('/api/v1/protocols/rules', { method: 'POST', body: JSON.stringify(input) });
+}
+
 export async function diseaseGeoJSON(id: string): Promise<GeoJSON.FeatureCollection> {
 	return req(`/api/v1/lands/${id}/diseases/geojson`);
 }

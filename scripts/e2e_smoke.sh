@@ -385,6 +385,17 @@ python3 -c "import sys;sys.exit(0 if float('$CA')>0 else 1)" && pass "flowering 
 REC=$(echo "$FP" | jqv "['recommendation']")
 echo "$REC" | grep -qi "dolomit" && pass "acidic soil -> dolomite advisory" || fail "no dolomite advisory"
 
+# --- 30. Diagnostic protocol rules: mandatory ooze test (TAHAP 3.1) ---------
+echo "[30] Destructive ooze trigger (wilting + wet)"
+T1=$(curl -sf -X POST "$API/api/v1/protocols/rules" -H 'Content-Type: application/json' \
+  -d '{"symptoms":["layu"],"local_twi":9.2}')
+assert_eq "$(echo "$T1" | jqv "['blocked']")" "True" "wilting+wet -> blocked"
+assert_eq "$(echo "$T1" | jqv "['triggers'][0]['code']")" "OOZE_TEST_MANDATORY" "ooze test mandated"
+# Dry wilting must NOT trigger the water-borne rule.
+T2=$(curl -sf -X POST "$API/api/v1/protocols/rules" -H 'Content-Type: application/json' \
+  -d '{"symptoms":["layu"],"local_twi":3.0}')
+assert_eq "$(echo "$T2" | jqv "['blocked']")" "False" "dry wilting -> not blocked"
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1

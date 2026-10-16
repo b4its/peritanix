@@ -10,12 +10,21 @@ from ..schemas import (
     HarvestDecisionResponse,
     ProtocolRequest,
     ProtocolResponse,
+    ProtocolRulesRequest,
+    ProtocolRulesResponse,
     TraceRequest,
     TraceResponse,
+    TriggerOut,
     YieldRequest,
     YieldResponse,
 )
-from ..services.agronomy import economics, harvest_decision, protocols, yield_projection
+from ..services.agronomy import (
+    economics,
+    harvest_decision,
+    protocol_rules,
+    protocols,
+    yield_projection,
+)
 from ..services.epidemiology import trace_validation
 
 router = APIRouter(prefix="/internal/decision", tags=["decision"])
@@ -64,6 +73,17 @@ def harvest_decision_ep(req: HarvestDecisionRequest) -> HarvestDecisionResponse:
 @router.get("/protocols")
 def protocols_list() -> dict:
     return {"protocols": [p.__dict__ for p in protocols.catalog()]}
+
+
+@router.post("/protocol-rules", response_model=ProtocolRulesResponse)
+def protocol_rules_ep(req: ProtocolRulesRequest) -> ProtocolRulesResponse:
+    """Evaluate field-workflow triggers (e.g. mandatory ooze test on wilting+wet)."""
+    trigs = protocol_rules.evaluate_protocol_rules(
+        req.symptoms, req.local_twi, req.already_recorded_ooze)
+    return ProtocolRulesResponse(
+        triggers=[TriggerOut(**t.__dict__) for t in trigs],
+        blocked=any(t.blocking for t in trigs),
+    )
 
 
 @router.post("/economics", response_model=EconomicsResponse)

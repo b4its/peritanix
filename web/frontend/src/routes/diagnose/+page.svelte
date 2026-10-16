@@ -5,9 +5,11 @@
 		listLands,
 		evaluateDiagnosis,
 		prescribeProtocol,
+		protocolRules,
 		type Land,
 		type DiagnosisResult,
-		type Protocol
+		type Protocol,
+		type ProtocolTrigger
 	} from '$lib/api';
 	import { analyseLeaf, visualLikelihoods, type LeafAnalysis } from '$lib/vision';
 
@@ -21,6 +23,8 @@
 	let analysis = $state<LeafAnalysis | null>(null);
 	let result = $state<DiagnosisResult | null>(null);
 	let protocol = $state<Protocol | null>(null);
+	let oozeReq = $state<ProtocolTrigger | null>(null);
+	let oozeConfirmed = $state(false);
 	let err = $state('');
 	let busy = $state(false);
 	let analysisSource = $state<'offline' | 'none'>('none');
@@ -55,6 +59,20 @@
 		protocol = null;
 		if (!landId) {
 			err = 'Pilih lahan dulu.';
+			return;
+		}
+		// Diagnostic protocol rules: a wilting plant in a wet cell mandates the
+		// destructive ooze test before a verdict can be trusted.
+		try {
+			const rules = await protocolRules({ symptoms: ['layu'], local_twi: localTwi });
+			if (rules.blocked) {
+				oozeReq = rules.triggers[0];
+			}
+		} catch {
+			/* best effort — continue if the rules engine is unreachable */
+		}
+		if (oozeReq && !oozeConfirmed) {
+			// Do not proceed to the diagnosis until the ooze test is acknowledged.
 			return;
 		}
 		// Build the visual evidence: prefer the offline analysis, else a neutral prior.
@@ -138,6 +156,22 @@
 		</button>
 	</div>
 </div>
+
+{#if oozeReq}
+	<div class="card" style="margin-top:1rem;border:2px solid #dc2626;background:#fef2f2">
+		<h2 style="color:#dc2626">🔒 Uji Ooze Wajib (Destructive Test)</h2>
+		<p>{oozeReq.reason}</p>
+		<p><strong>{oozeReq.instruction}</strong></p>
+		<ol>{#each oozeReq.steps as s}<li>{s}</li>{/each}</ol>
+		<label style="display:block;margin-top:0.5rem">
+			<input type="checkbox" bind:checked={oozeConfirmed} />
+			<span class="muted">Saya sudah melakukan &amp; menandai hasil uji ooze</span>
+		</label>
+		{#if !oozeConfirmed}
+			<p class="muted">Diagnosis diblokir sampai uji ooze dikonfirmasi.</p>
+		{/if}
+	</div>
+{/if}
 
 {#if result}
 	<div class="card" style="margin-top:1rem;border-color:#86efac">

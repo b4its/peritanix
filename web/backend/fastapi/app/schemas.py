@@ -377,6 +377,28 @@ class HarvestDecisionResponse(BaseModel):
     rationale: list[str]
 
 
+# --- Protocol rules (field-workflow triggers) -------------------------------
+class ProtocolRulesRequest(BaseModel):
+    symptoms: list[str] = Field(default_factory=list)
+    local_twi: float
+    already_recorded_ooze: bool = False
+
+
+class TriggerOut(BaseModel):
+    code: str
+    required: bool
+    instruction: str
+    reason: str
+    blocking: bool
+    capture_s: int = 0
+    steps: list[str] = Field(default_factory=list)
+
+
+class ProtocolRulesResponse(BaseModel):
+    triggers: list[TriggerOut]
+    blocked: bool
+
+
 # --- Economic impact --------------------------------------------------------
 class EconomicsRequest(BaseModel):
     area_ha: float

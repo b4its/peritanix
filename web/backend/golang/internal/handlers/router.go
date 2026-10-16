@@ -93,6 +93,8 @@ func Register(app *fiber.App, d *Deps) {
 	mut.Post("/fertilizer/guard", d.fortificationGuard)
 	// Prescriptive fertilizer calculator (exact kocor gram doses)
 	api.Post("/fertilizer/plan", d.fertilizerPlan)
+	// Diagnostic protocol rules (e.g. mandatory ooze test)
+	api.Post("/protocols/rules", d.protocolRules)
 
 	// Diagnostics
 	mut.Post("/diagnostics/evaluate", d.diagEvaluate)
