@@ -259,8 +259,16 @@ mobile-logs: init ## Tail mobile toolchain logs
 mobile-shell: init ## Shell into the mobile toolchain
 	$(DC) --profile mobile exec mobile bash
 
-mobile-test: init ## Run JVM unit tests for the pure-Kotlin physics core
+mobile-test: init ## Run JVM unit tests for pure-Kotlin core and Android app
+	@printf "$(C_CYAN)[mobile-test]$(C_RESET) Running pure-Kotlin physics & crypto tests...\n"
 	$(DC) --profile mobile run --rm mobile gradle --no-daemon test
+	@printf "$(C_CYAN)[mobile-test]$(C_RESET) Running Android unit tests (Core, JNI Fallback, Hardware, Edge AI)...\n"
+	$(DC) --profile mobile run --rm \
+		-e ANDROID_HOME=/opt/android-sdk \
+		-e ANDROID_SDK_ROOT=/opt/android-sdk \
+		--entrypoint sh mobile -c \
+		"cd /app/android && gradle --no-daemon testDebugUnitTest"
+	@printf "$(C_GREEN)[mobile-test]$(C_RESET) All mobile test suites passed.\n"
 
 mobile-run: init ## Run the mobile physics smoke CLI
 	$(DC) --profile mobile run --rm mobile gradle --no-daemon -q run

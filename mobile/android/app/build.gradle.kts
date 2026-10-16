@@ -101,5 +101,8 @@ dependencies {
     // BouncyCastle (Ed25519), already used by the core.
     implementation("org.bouncycastle:bcprov-jdk18on:1.79")
 
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(kotlin("test"))
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
