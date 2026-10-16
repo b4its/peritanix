@@ -25,6 +25,12 @@
 #     make mobile-test       Run JVM unit tests for pure-Kotlin physics core
 #     make mobile-down       Stop the mobile toolchain
 #
+#   ANDROID (native host workflow — Gradle + SDK + adb, no Docker):
+#     cd mobile && make help   See the full Android target list:
+#       help doctor info up down build apk release rebuild install uninstall
+#       reinstall run test uitest lint deps emulator-list device-status
+#       wait-device clean
+#
 #   MISC:
 #     make help              Show this help
 #     make doctor            Check prerequisites
@@ -270,7 +276,7 @@ web-shell-minio:    init ; $(DC) exec minio    sh
 
 .PHONY: mobile-up mobile-build mobile-restart mobile-logs mobile-shell \
         mobile-test mobile-down mobile-apk mobile-release mobile-aab \
-        mobile-apk-release mobile-artifacts mobile-verify
+        mobile-apk-release mobile-artifacts mobile-verify android
 
 mobile-up: init ## Start the mobile dev toolchain container
 	$(DC) --profile mobile up -d mobile
@@ -355,4 +361,14 @@ mobile-run: init ## Run the mobile physics smoke CLI
 
 mobile-down: init ## Stop the mobile toolchain
 	$(DC) --profile mobile stop mobile && $(DC) --profile mobile rm -fv mobile
+
+# -----------------------------------------------------------------------------
+# Android host workflow — delegate to mobile/Makefile (Gradle + SDK + adb).
+# Usage: make android <target>   e.g.  make android up | make android test
+# Or run directly: cd mobile && make up
+# -----------------------------------------------------------------------------
+AGOAL ?= help
+
+android: ## Android host targets: make android <goal> (e.g. up, test, install)
+	$(MAKE) -C mobile $(AGOAL)
 
