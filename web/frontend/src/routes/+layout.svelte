@@ -31,6 +31,7 @@
 			<a href="/dashboard">Dashboard</a>
 			<a href="/lands/new">+ Lahan</a>
 			<a href="/diagnose">Diagnosis</a>
+			<a href="/fertilize">Pupuk</a>
 			<a href="/harvest">Panen</a>
 			<a href="/certify">Sertifikat</a>
 			<a href="/verify">Verifikasi</a>

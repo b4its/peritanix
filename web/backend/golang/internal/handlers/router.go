@@ -89,6 +89,9 @@ func Register(app *fiber.App, d *Deps) {
 	// Soil
 	mut.Post("/soil/sync", d.soilSync)
 
+	// Fortification Lock protocol guard (block high-N during anthesis)
+	mut.Post("/fertilizer/guard", d.fortificationGuard)
+
 	// Diagnostics
 	mut.Post("/diagnostics/evaluate", d.diagEvaluate)
 

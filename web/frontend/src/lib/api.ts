@@ -178,6 +178,32 @@ export async function landTWI(id: string): Promise<TwiGrid> {
 	return req(`/api/v1/lands/${id}/twi`);
 }
 
+export interface FertilizerGuardResult {
+	land_id: string;
+	phase: string;
+	plant_gdd: number;
+	fortification: boolean;
+	blocked: boolean;
+	allowed: boolean;
+	reason?: string;
+	required_protocol?: string;
+	guidance?: string;
+}
+
+/**
+ * Fortification Lock guard: call BEFORE persisting a fertilization log. During
+ * peak anthesis (FORTIFICATION_LOCKED) high-nitrogen inputs are BLOCKED.
+ */
+export async function fertilizerGuard(input: {
+	land_id: string;
+	product: string;
+	npk_ratio?: string;
+	nitrogen_pct?: number;
+	applied_g?: number;
+}): Promise<FertilizerGuardResult> {
+	return req('/api/v1/fertilizer/guard', { method: 'POST', body: JSON.stringify(input) });
+}
+
 /** GDD daily time series for the accumulation chart. */
 export async function gddHistory(
 	id: string,
