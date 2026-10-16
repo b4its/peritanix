@@ -171,11 +171,45 @@ web-lint: init ## Lint backends + frontend (ruff, go vet, svelte-check)
 	$(DC) exec -T web npm run check
 	@printf "$(C_GREEN)[lint]$(C_RESET) all clean.\n"
 
+# =============================================================================
+# EDGE MODELS (ONNX training / export / benchmark)
+# =============================================================================
+
+.PHONY: models-train models-train-classifier models-train-fertilizer \
+        models-bench models-test
+
+models-train: init ## Train & export ALL edge ONNX models (classifier + fertilizer)
+	@printf "$(C_CYAN)[models]$(C_RESET) training classifier (Opsi 1)...\n"
+	$(DC) cp scripts/train_pathology_edge_models.py ml:/tmp/train_pathology_edge_models.py
+	$(DC) cp scripts/train_fertilizer_model.py      ml:/tmp/train_fertilizer_model.py
+	$(DC) exec -T ml python /tmp/train_pathology_edge_models.py
+	@printf "$(C_CYAN)[models]$(C_RESET) training fertilizer (Opsi 2)...\n"
+	$(DC) exec -T ml python /tmp/train_fertilizer_model.py
+	@printf "$(C_GREEN)[models]$(C_RESET) artefacts written to web/backend/fastapi/models/.\n"
+
+models-train-classifier: init ## Train & export only the Opsi 1 leaf-curl classifier
+	$(DC) cp scripts/train_pathology_edge_models.py ml:/tmp/train_pathology_edge_models.py
+	$(DC) exec -T ml python /tmp/train_pathology_edge_models.py
+
+models-train-fertilizer: init ## Train & export only the Opsi 2 fertilizer model
+	$(DC) cp scripts/train_fertilizer_model.py ml:/tmp/train_fertilizer_model.py
+	$(DC) exec -T ml python /tmp/train_fertilizer_model.py
+
+models-bench: init ## Verify shipped ONNX artefacts: sha256 integrity + inference
+	$(DC) cp scripts/bench_models.py ml:/tmp/bench_models.py
+	$(DC) exec -T ml python /tmp/bench_models.py
+
+models-test: init ## Run the edge-model regression test suite (pytest)
+	$(DC) exec -T ml pytest -q tests/test_edge_models.py
+
 verify: init ## Full verification: lint + unit + E2E + calibration + chaos
 	@printf "$(C_CYAN)[verify]$(C_RESET) lint\n"
 	$(DC) exec -T ml ruff check app/ tests/
 	$(DC) exec -T api go vet ./...
 	$(DC) exec -T web npm run check
+	@printf "$(C_CYAN)[verify]$(C_RESET) edge models (train + bench)\n"
+	$(MAKE) --no-print-directory models-train
+	$(MAKE) --no-print-directory models-bench
 	@printf "$(C_CYAN)[verify]$(C_RESET) unit tests\n"
 	$(DC) exec -T ml pytest -q
 	$(DC) exec -T api go test ./...
