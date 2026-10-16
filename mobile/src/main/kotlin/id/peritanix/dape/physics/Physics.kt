@@ -193,4 +193,140 @@ object Physics {
         val clayFrac = if (total > 0) clayPct / total else 0.0
         return if (clayFrac > 0) base * (0.6 + 0.4 * clayFrac / 0.4) else base
     }
+
+    // --- Prescriptive Fertilizer Calculator (Opsi 2) -------------------------
+
+    data class FertilizerPlan(
+        val npk16_16_16GPerL: Double,
+        val kno3GPerL: Double,
+        val calciumGPerL: Double,
+        val dolomiteGPerM2: Double,
+        val recommendation: String,
+    )
+
+    fun prescribeFertilizer(
+        ph: Double,
+        cecMeq: Double,
+        hst: Int,
+        targetYieldTHa: Double = 20.0,
+    ): FertilizerPlan {
+        val phase = when {
+            hst < 35 -> "VEGETATIVE"
+            hst < 61 -> "FLOWERING"
+            else -> "FRUITING"
+        }
+        val cecFactor = (15.0 / maxOf(cecMeq, 1.0)).coerceIn(0.6, 1.6)
+        val yieldFactor = (targetYieldTHa / 20.0).coerceIn(0.8, 1.5)
+        val baseNpk = 3.0 * cecFactor * yieldFactor
+
+        var npk = baseNpk
+        var kno3 = 0.0
+        var calcium = 0.0
+        var dolomite = 0.0
+        val notes = mutableListOf<String>()
+
+        if (ph < 5.5) {
+            dolomite = 150.0 * (5.8 - ph)
+            notes.add("pH ${"%.1f".format(ph)} masam: dolomit ${"%.0f".format(dolomite)} g/m2 2 minggu sebelum pupuk.")
+        }
+        when (phase) {
+            "VEGETATIVE" -> {
+                notes.add("Fase vegetatif: prioritaskan N.")
+            }
+            "FLOWERING" -> {
+                npk = baseNpk * 0.6
+                calcium = 2.5
+                kno3 = 1.0
+                notes.add("Pembungaan: wajib Ca+B; HINDARI urea/N tinggi.")
+            }
+            else -> {
+                npk = baseNpk * 0.4
+                kno3 = 3.0
+                calcium = 2.0
+                notes.add("Pembuahan: dominan K (KNO3); Ca jaga ketebalan pericarp.")
+            }
+        }
+        return FertilizerPlan(
+            npk16_16_16GPerL = Math.round(npk * 100.0) / 100.0,
+            kno3GPerL = Math.round(kno3 * 100.0) / 100.0,
+            calciumGPerL = Math.round(calcium * 100.0) / 100.0,
+            dolomiteGPerM2 = Math.round(dolomite * 100.0) / 100.0,
+            recommendation = notes.joinToString(" "),
+        )
+    }
+
+    // --- Immersion Gyroscope Anti-Cheat Validation (TAHAP 6.3) ----------------
+
+    data class TraceSample(
+        val t: Double,
+        val gx: Double,
+        val gy: Double,
+        val gz: Double,
+    )
+
+    data class TraceVerdict(
+        val valid: Boolean,
+        val durationS: Double,
+        val samples: Int,
+        val motionVariance: Double,
+        val score: Double,
+        val reasons: List<String>,
+    )
+
+    private fun variance(xs: List<Double>): Double {
+        val n = xs.size
+        if (n < 2) return 0.0
+        val mean = xs.sum() / n
+        return xs.sumOf { (it - mean) * (it - mean) } / n
+    }
+
+    fun validateImmersionTrace(
+        samples: List<TraceSample>,
+        targetS: Int = 180,
+        durationTolS: Int = 20,
+        minMotionVariance: Double = 1e-4,
+    ): TraceVerdict {
+        val reasons = mutableListOf<String>()
+        if (samples.size < 5) {
+            return TraceVerdict(
+                valid = false,
+                durationS = 0.0,
+                samples = samples.size,
+                motionVariance = 0.0,
+                score = 0.0,
+                reasons = listOf("trace terlalu pendek (< 5 sampel)"),
+            )
+        }
+        val times = samples.map { it.t }
+        val duration = (times.maxOrNull() ?: 0.0) - (times.minOrNull() ?: 0.0)
+        if (abs(duration - targetS) > durationTolS) {
+            reasons.add("durasi ${"%.0f".format(duration)}s di luar target ${targetS}±${durationTolS}s")
+        }
+        val speeds = samples.map { Math.sqrt(it.gx * it.gx + it.gy * it.gy + it.gz * it.gz) }
+        var varv = variance(speeds)
+        val gyro = samples.flatMap { listOf(it.gx, it.gy, it.gz) }
+        val isConstant = ((gyro.maxOrNull() ?: 0.0) - (gyro.minOrNull() ?: 0.0)) <= 1e-9
+        if (isConstant) {
+            reasons.add("sinyal giroskop konstan (indikasi lewatkan timer)")
+            varv = 0.0
+        }
+        if (varv < minMotionVariance) {
+            reasons.add("variasi gerak $varv < ambang $minMotionVariance")
+        }
+        val durScore = maxOf(0.0, 1.0 - abs(duration - targetS) / targetS.toDouble())
+        val motionScore = minOf(1.0, varv / (minMotionVariance * 10.0))
+        val score = Math.round((0.5 * durScore + 0.5 * motionScore) * 1000.0) / 1000.0
+        val valid = reasons.isEmpty() && score >= 0.5
+        if (valid) {
+            reasons.add("bukti fisik wajar: durasi & gerak sesuai")
+        }
+        return TraceVerdict(
+            valid = valid,
+            durationS = Math.round(duration * 100.0) / 100.0,
+            samples = samples.size,
+            motionVariance = varv,
+            score = score,
+            reasons = reasons,
+        )
+    }
 }

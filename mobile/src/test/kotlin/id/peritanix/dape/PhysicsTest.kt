@@ -127,4 +127,65 @@ class PhysicsTest {
     @Test fun brineDensityIncreasesWithSalt() {
         assertTrue(Physics.brineRelativeDensity(200.0, 1000.0) > Physics.brineRelativeDensity(10.0, 1000.0))
     }
+
+    // --- Prescriptive Fertilizer Tests --------------------------------------
+
+    @Test fun prescribeFertilizerVegetative() {
+        val plan = Physics.prescribeFertilizer(ph = 6.2, cecMeq = 15.0, hst = 20)
+        assertEquals(3.0, plan.npk16_16_16GPerL)
+        assertEquals(0.0, plan.calciumGPerL)
+        assertEquals(0.0, plan.dolomiteGPerM2)
+        assertTrue(plan.recommendation.contains("vegetatif"))
+    }
+
+    @Test fun prescribeFertilizerFloweringCalcium() {
+        val plan = Physics.prescribeFertilizer(ph = 6.5, cecMeq = 15.0, hst = 45)
+        assertEquals(1.8, plan.npk16_16_16GPerL)
+        assertEquals(2.5, plan.calciumGPerL)
+        assertEquals(1.0, plan.kno3GPerL)
+        assertTrue(plan.recommendation.contains("Ca+B"))
+    }
+
+    @Test fun prescribeFertilizerAcidicSoilDolomite() {
+        val plan = Physics.prescribeFertilizer(ph = 5.0, cecMeq = 12.0, hst = 30)
+        assertTrue(plan.dolomiteGPerM2 > 100.0)
+        assertTrue(plan.recommendation.contains("dolomit"))
+    }
+
+    // --- Trace Validation Tests ---------------------------------------------
+
+    @Test fun validateImmersionTraceNormal() {
+        val samples = (0..59).map { i ->
+            Physics.TraceSample(
+                t = (180.0 * i) / 59.0,
+                gx = 0.05 * Math.sin(i.toDouble()),
+                gy = 0.05 * Math.cos(i.toDouble() * 1.3),
+                gz = 0.02 * Math.sin(i.toDouble() * 0.7),
+            )
+        }
+        val v = Physics.validateImmersionTrace(samples)
+        assertTrue(v.valid)
+        assertEquals(180.0, v.durationS)
+        assertTrue(v.motionVariance > 1e-4)
+    }
+
+    @Test fun validateImmersionTraceConstantCheatRejected() {
+        val samples = (0..180).map { t ->
+            Physics.TraceSample(t = t.toDouble(), gx = 0.01, gy = 0.01, gz = 0.01)
+        }
+        val v = Physics.validateImmersionTrace(samples)
+        assertTrue(!v.valid)
+        assertTrue(v.reasons.any { it.contains("konstan") })
+    }
+
+    @Test fun validateImmersionTraceTooShort() {
+        val samples = listOf(
+            Physics.TraceSample(0.0, 0.1, 0.1, 0.1),
+            Physics.TraceSample(1.0, 0.2, 0.2, 0.2),
+        )
+        val v = Physics.validateImmersionTrace(samples)
+        assertTrue(!v.valid)
+        assertTrue(v.reasons.any { it.contains("pendek") })
+    }
 }
+
