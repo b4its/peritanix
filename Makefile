@@ -262,7 +262,8 @@ web-shell-minio:    init ; $(DC) exec minio    sh
 # =============================================================================
 
 .PHONY: mobile-up mobile-build mobile-restart mobile-logs mobile-shell \
-        mobile-test mobile-down mobile-apk
+        mobile-test mobile-down mobile-apk mobile-release mobile-aab \
+        mobile-apk-release mobile-artifacts mobile-verify
 
 mobile-up: init ## Start the mobile dev toolchain container
 	$(DC) --profile mobile up -d mobile
@@ -277,12 +278,50 @@ mobile-build: init ## Build the Android debug APK (needs Android SDK)
 		"cd /app/android && (./gradlew --no-daemon assembleDebug || gradle --no-daemon assembleDebug)" \
 		|| printf "$(C_YELLOW)[mobile]$(C_RESET) Android SDK not configured; the pure-JVM core build is 'make mobile-test'.\n"
 
+mobile-release: init ## Build the R8-minified release APK (shrunk + stripped, unsigned)
+	@printf "$(C_CYAN)[mobile]$(C_RESET) building release APK (R8 obfuscation + resource shrinking + native stripping)...\n"
+	$(DC) --profile mobile run --rm \
+		-e ANDROID_HOME=/opt/android-sdk \
+		-e ANDROID_SDK_ROOT=/opt/android-sdk \
+		--entrypoint sh mobile -c \
+		"cd /app/android && gradle --no-daemon assembleRelease" \
+		|| printf "$(C_YELLOW)[mobile]$(C_RESET) release build needs the Android SDK mounted (ANDROID_SDK_PATH).\n"
+
+mobile-aab: init ## Build the release Android App Bundle (for Play Store)
+	@printf "$(C_CYAN)[mobile]$(C_RESET) building release AAB (Play Store bundle)...\n"
+	$(DC) --profile mobile run --rm \
+		-e ANDROID_HOME=/opt/android-sdk \
+		-e ANDROID_SDK_ROOT=/opt/android-sdk \
+		--entrypoint sh mobile -c \
+		"cd /app/android && gradle --no-daemon bundleRelease" \
+		|| printf "$(C_YELLOW)[mobile]$(C_RESET) AAB build needs the Android SDK mounted (ANDROID_SDK_PATH).\n"
+
 mobile-apk: init ## Copy the built debug APK to ./dist
 	@mkdir -p dist
 	$(DC) --profile mobile run --rm \
 		-v "$(PWD)/dist:/out" \
 		mobile sh -c "cp -v /app/android/app/build/outputs/apk/debug/app-debug.apk /out/app-debug.apk 2>/dev/null || cp -v app/build/outputs/apk/debug/app-debug.apk /out/app-debug.apk 2>/dev/null || echo 'No APK found yet; run make mobile-build first.'"
 	@printf "$(C_GREEN)[mobile]$(C_RESET) APK -> ./dist/app-debug.apk\n"
+
+mobile-apk-release: init ## Copy the release APK (+ R8 mapping) to ./dist
+	@mkdir -p dist
+	$(DC) --profile mobile run --rm \
+		-v "$(PWD)/dist:/out" \
+		mobile sh -c "cp -v /app/android/app/build/outputs/apk/release/app-release-unsigned.apk /out/app-release-unsigned.apk && cp -v /app/android/app/build/outputs/mapping/release/mapping.txt /out/app-release-mapping.txt 2>/dev/null || true"
+	@printf "$(C_GREEN)[mobile]$(C_RESET) release APK + mapping -> ./dist/\n"
+
+mobile-artifacts: mobile-release mobile-aab ## Build release APK + AAB and copy both to ./dist
+	@mkdir -p dist
+	$(DC) --profile mobile run --rm \
+		-v "$(PWD)/dist:/out" \
+		mobile sh -c "\
+			cp -v /app/android/app/build/outputs/apk/release/app-release-unsigned.apk /out/app-release-unsigned.apk && \
+			cp -v /app/android/app/build/outputs/bundle/release/app-release.aab /out/app-release.aab && \
+			cp -v /app/android/app/build/outputs/mapping/release/mapping.txt /out/app-release-mapping.txt 2>/dev/null || true"
+	@printf "$(C_GREEN)[mobile]$(C_RESET) APK + AAB + R8 mapping -> ./dist/\n"
+
+mobile-verify: init ## Verify the release artifacts in ./dist (R8, shrinking, dex)
+	bash scripts/verify_android_release.sh dist
 
 mobile-restart: init ## Restart the mobile toolchain
 	$(DC) --profile mobile restart mobile
