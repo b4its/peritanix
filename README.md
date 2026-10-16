@@ -231,7 +231,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Vitest (web) | **57** | Mirror fisika + EWS + heatmap/fertility + **TWI colour ramp** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
 | E2E script | **50–52** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, **TWI grid** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
-| Chaos | **7** | Offline physics, reconnect flush, dropped-ack idempotency, ML-outage 502-not-crash, recovery |
+| Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
 | Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
 
 Semua suite memverifikasi **nilai analitik eksak** dalam toleransi ketat —
@@ -361,7 +361,8 @@ make verify  →
   unit:        pytest 219 passed · go test 7 pkgs ok · kotlin 27 · vitest 57
   e2e smoke:   52 passed  (…→sensor-ingest→EWS→economics→batch-registry→TWI-grid)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
-  chaos:       7 passed   (offline physics, reconnect, idempotent retry,
+  chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
+                           pre/post-reconnect scan, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
   loadtest:    make loadtest  (k6: reads 10 VUs + compute 3 VUs, p95<800ms)
 
