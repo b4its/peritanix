@@ -354,6 +354,26 @@ assert_gt0 "${#PH}" "perceptual hash computed"
 DUP=$(python3 -c "import json;d=json.load(open('/tmp/e2e_forensic.json'));d['known_hashes']=['$PH'];print(json.dumps(d))")
 curl -sf -X POST "$API/api/v1/forensics/image-audit" -H 'Content-Type: application/json' -d "$DUP" | jqv "['duplicate_of']" | grep -q "$PH" && pass "duplicate image detected" || fail "duplicate detection"
 
+# --- 28. Fortification Lock guard (TAHAP 4.2) -------------------------------
+echo "[28] Fortification Lock: block high-N during anthesis"
+# Force the land into the fortification window (GDD 350-699).
+curl -sf -X POST "$API/api/v1/lands/$LAND_ID/recompute-gdd" -H 'Content-Type: application/json' -d '{}' >/dev/null
+G1=$(curl -sf -X POST "$API/api/v1/fertilizer/guard" -H 'Content-Type: application/json' \
+  -d "{\"land_id\":\"$LAND_ID\",\"product\":\"Urea\",\"nitrogen_pct\":46}")
+# Urea is N-dominant; blocked iff the land is FORTIFICATION_LOCKED.
+PHASE=$(echo "$G1" | jqv "['phase']")
+BLOCKED=$(echo "$G1" | jqv "['blocked']")
+if [ "$PHASE" = "FORTIFICATION_LOCKED" ]; then
+  assert_eq "$BLOCKED" "True" "Urea BLOCKED during fortification lock"
+  # A Ca/B input must remain allowed.
+  G2=$(curl -sf -X POST "$API/api/v1/fertilizer/guard" -H 'Content-Type: application/json' \
+    -d "{\"land_id\":\"$LAND_ID\",\"product\":\"Kalsium Nitrat\",\"nitrogen_pct\":15}")
+  assert_eq "$(echo "$G2" | jqv "['allowed']")" "True" "Ca-Nitrate allowed during fortification"
+else
+  # Not locked -> N is allowed (guard is context-aware, not a blanket block).
+  assert_eq "$BLOCKED" "False" "Urea allowed outside fortification ($PHASE)"
+fi
+
 echo
 echo "═══ Results: $PASS passed, $FAIL failed ═══"
 [ "$FAIL" -eq 0 ] || exit 1
