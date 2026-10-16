@@ -381,6 +381,52 @@ Transparent farm-level impact (fertilizer saving + avoided crop loss + yield upl
 
 ---
 
+## Fertilizer (Opsi 2 — prescriptive dosing)
+
+### `GET /api/v1/lands/:id/twi`
+TWI grid for the land's bounding box (drainage-trough contour). Public read.
+→ `{ "grid_rows": 24, "grid_cols": 24, "cells": [ { "lon": .., "lat": .., "elevation_m": .., "twi": .., "risk": "CRITICAL", "bed_height_cm": 50 } ], "mean_twi": .., "max_twi": .., "max_risk": "CRITICAL", "cache_kb": 50.6 }`
+
+### `POST /api/v1/fertilizer/plan`
+Exact kocor (drench) gram doses from soil pH, CEC and plant age.
+```json
+{ "ph": 5.0, "cec_meq": 15, "hst": 45, "target_yield_t_ha": 20, "soil_class": "loam" }
+```
+→ `{ "npk_16_16_16_g_per_l": 1.8, "kno3_g_per_l": 1.0, "calcium_g_per_l": 2.5, "recommendation": "pH 5.0 terlalu masam: tabur dolomit 120 g/m2 ..." }`
+
+### `POST /api/v1/fertilizer/guard`
+Fortification Lock protocol guard (TAHAP 4.2). Call BEFORE persisting a
+fertilization log. During `FORTIFICATION_LOCKED` (peak anthesis) high-nitrogen
+inputs are **BLOCKED**.
+```json
+{ "land_id": "aaaa...", "product": "Urea", "nitrogen_pct": 46 }
+```
+→ `{ "phase": "FORTIFICATION_LOCKED", "fortification": true, "blocked": true, "allowed": false, "reason": "Fase Antesis ... DIBLOKIR ...", "required_protocol": "CA_B_SI_FORTIFICATION", "guidance": "Gunakan Kalsium Nitrat + Boron + Asam Silikat..." }`
+Context-aware: outside the lock window, high-N returns `blocked: false`.
+
+---
+
+## Diagnostic protocol rules (FR-2.3)
+
+### `POST /api/v1/protocols/rules`
+Deterministic field-workflow triggers. Notably: a **wilting** plant in a **wet**
+cell (local TWI ≥ 8) cannot be diagnosed from a photo (Ralstonia vs Fusarium) —
+the verdict is BLOCKED and the destructive ooze test is MANDATED.
+```json
+{ "symptoms": ["layu"], "local_twi": 9.2, "already_recorded_ooze": false }
+```
+→ `{ "blocked": true, "triggers": [ { "code": "OOZE_TEST_MANDATORY", "required": true, "blocking": true, "capture_s": 10, "instruction": "Potong pangkal batang, celupkan ke air bening...", "steps": [...] } ] }`
+
+---
+
+## System
+
+### `GET /api/v1/stats`
+Lightweight counters for dashboards / ops.
+→ `{ "land_count": 74, "server_ts": 1792100000 }`
+
+---
+
 ## Certificates (public, no auth)
 
 ### `POST /api/v1/certificates/verify`
