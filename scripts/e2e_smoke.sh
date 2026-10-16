@@ -337,6 +337,19 @@ python3 -c "import sys;sys.exit(0 if float('$(echo "$TI" | jqv "['attenuation_pc
 OOZE=$(curl -sf -X POST "$API/api/v1/optics/ooze" -H 'Content-Type: application/json' -d @/tmp/e2e_ooze.json)
 OZ=$(echo "$OOZE" | jqv "['verdict']")
 case "$OZ" in *Ralstonia*|*Fusarium*) pass "ooze verdict classified ($OZ)" ;; *) fail "ooze verdict ($OZ)" ;; esac
+# (d) lesion severity: green leaf with a large brown (textured) lesion patch.
+python3 -c "
+import json
+H=256
+img=[[[0.18,0.62,0.24] for _ in range(H)] for _ in range(H)]
+for y in range(70,180):
+    for x in range(70,180): img[y][x]=[0.149,0.217,0.096]
+json.dump({'land_id':'e2e','image':img}, open('/tmp/e2e_sev.json','w'))
+"
+SEV=$(curl -sf -X POST "$API/api/v1/optics/severity" -H 'Content-Type: application/json' -d @/tmp/e2e_sev.json)
+assert_eq "$(echo "$SEV" | jqv "['method']")" "onnx_model" "severity runs the ONNX segmenter"
+python3 -c "import sys;sys.exit(0 if float('$(echo "$SEV" | jqv "['severity_pct']")')>5 else 1)" && pass "severity detects brown lesion (>5%)" || fail "severity lesion detection"
+python3 -c "import sys;sys.exit(0 if float('$(echo "$SEV" | jqv "['necrotic_pct']")')>float('$(echo "$SEV" | jqv "['chlorotic_pct']")') else 1)" && pass "necrotic dominates chlorotic on lesion" || fail "severity class ordering"
 
 # --- 27. Image forensics (TAHAP 6.3) ----------------------------------------
 echo "[27] Anti-fraud image forensics"
