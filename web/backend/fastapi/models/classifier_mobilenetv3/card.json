@@ -1,11 +1,25 @@
 {
   "name": "classifier_mobilenetv3",
   "version": "1.0.0",
-  "sha256": "",
-  "size_bytes": 4194304,
+  "sha256": "6104abd28231da3481dc6db516ab759d0cbc4807de35517eff068702dac2b372",
+  "size_bytes": 435,
   "quantisation": "int8",
   "min_app_version": "1.0.0",
-  "purpose": "disease classification (thrips/mites/begomovirus/anthracnose)",
-  "input": "image/uint8 224x224",
-  "format": "onnx"
+  "purpose": "disease classification (thrips/mites/begomovirus/anthracnose/healthy)",
+  "input": "image/float32 1x3x224x224",
+  "format": "onnx",
+  "classes": [
+    "Keriting_Thrips",
+    "Keriting_Mites",
+    "Begomovirus",
+    "Antraknosa",
+    "Daun_Sehat"
+  ],
+  "class_symptoms": {
+    "Keriting_Thrips": "Daun melengkung ke atas (perahu), permukaan bawah keperakan",
+    "Keriting_Mites": "Daun melengkung ke bawah (sendok terbalik), kaku kecokelatan",
+    "Begomovirus": "Bercak belang kuning cerah, tulang daun menebal (vein clearing)",
+    "Antraknosa": "Lesi cekung gelap konsentris dengan massa spora",
+    "Daun_Sehat": "Permukaan daun hijau normal, morfologi simetris"
+  }
 }

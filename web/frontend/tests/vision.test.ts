@@ -51,3 +51,41 @@ describe('visualLikelihoods', () => {
 		}
 	});
 });
+
+import { differentiateLeafCurl } from '../src/lib/vision';
+
+describe('differentiateLeafCurl (Opsi 1)', () => {
+	it('identifies Thrips curl with upward curling and silvery underside', () => {
+		const diag = differentiateLeafCurl(mk({ severity_pct: 12 }), { curlDirection: 'up', undersideColor: 'silvery' });
+		expect(diag.condition).toBe('Keriting_Thrips');
+		expect(diag.active_ingredient).toContain('Abamektin');
+		expect(diag.confidence).toBeGreaterThanOrEqual(0.9);
+	});
+
+	it('identifies Mites curl with downward spoon-curling and bronze underside', () => {
+		const diag = differentiateLeafCurl(mk({ severity_pct: 15, dominant_hue: 'brown' }), { curlDirection: 'down', undersideColor: 'bronze' });
+		expect(diag.condition).toBe('Keriting_Mites');
+		expect(diag.active_ingredient).toContain('Akarisida');
+		expect(diag.confidence).toBeGreaterThanOrEqual(0.9);
+	});
+
+	it('identifies Begomovirus with yellow mosaic pattern', () => {
+		const diag = differentiateLeafCurl(mk({ dominant_hue: 'yellow', severity_pct: 25 }));
+		expect(diag.condition).toBe('Begomovirus');
+		expect(diag.active_ingredient).toContain('Imidakloprid');
+		expect(diag.symptoms.length).toBeGreaterThan(0);
+	});
+
+	it('identifies Anthracnose with sunken concentric lesions', () => {
+		const diag = differentiateLeafCurl(mk({ dominant_hue: 'brown', severity_pct: 20 }), { sunkenLesions: true });
+		expect(diag.condition).toBe('Antraknosa');
+		expect(diag.active_ingredient).toContain('Mankozeb');
+		expect(diag.dosage_per_liter).toContain('2.0');
+	});
+
+	it('identifies healthy leaf when no lesions or abnormal hues exist', () => {
+		const diag = differentiateLeafCurl(mk({ severity_pct: 2, dominant_hue: 'green' }));
+		expect(diag.condition).toBe('Sehat');
+		expect(diag.confidence).toBeGreaterThanOrEqual(0.9);
+	});
+});

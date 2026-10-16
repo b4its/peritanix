@@ -11,7 +11,13 @@
 		type Protocol,
 		type ProtocolTrigger
 	} from '$lib/api';
-	import { analyseLeaf, visualLikelihoods, type LeafAnalysis } from '$lib/vision';
+	import {
+		analyseLeaf,
+		visualLikelihoods,
+		differentiateLeafCurl,
+		type LeafAnalysis,
+		type CurlDiagnosis
+	} from '$lib/vision';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -21,6 +27,10 @@
 	let wind = $state(135);
 	let imageUrl = $state('');
 	let analysis = $state<LeafAnalysis | null>(null);
+	let curlDiag = $state<CurlDiagnosis | null>(null);
+	let curlDirection = $state<'none' | 'up' | 'down'>('none');
+	let undersideColor = $state<'normal' | 'silvery' | 'bronze'>('normal');
+	let sunkenLesions = $state(false);
 	let result = $state<DiagnosisResult | null>(null);
 	let protocol = $state<Protocol | null>(null);
 	let oozeReq = $state<ProtocolTrigger | null>(null);
@@ -39,6 +49,15 @@
 		}
 	});
 
+	function updateCurl() {
+		if (!analysis) return;
+		curlDiag = differentiateLeafCurl(analysis, {
+			curlDirection,
+			undersideColor,
+			sunkenLesions
+		});
+	}
+
 	async function onFile(e: Event) {
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -47,6 +66,7 @@
 		try {
 			analysis = await analyseLeaf(imageUrl);
 			analysisSource = 'offline';
+			updateCurl();
 			err = '';
 		} catch (e: any) {
 			err = 'Analisis gambar: ' + e.message;
@@ -134,6 +154,32 @@
 				Attenuasi (proxy jamur): {analysis.attenuation_proxy_pct}% ·
 				RGB {analysis.mean_rgb.join(',')} · <em>dianalisis offline</em>
 			</p>
+
+			<div style="margin-top:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+				<strong style="display:block;margin-bottom:0.4rem;font-size:0.9rem">Morfologi Gejala Daun (Opsi 1 Edge CV):</strong>
+				<div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+					<div>
+						<label class="muted" for="cd" style="font-size:0.8rem">Arah Keriting:</label>
+						<select id="cd" bind:value={curlDirection} onchange={updateCurl} style="padding:2px 6px;font-size:0.85rem">
+							<option value="none">Otomatis (Piksel)</option>
+							<option value="up">Melengkung ke Atas (Thrips)</option>
+							<option value="down">Melengkung ke Bawah (Tungau/Mites)</option>
+						</select>
+					</div>
+					<div>
+						<label class="muted" for="uc" style="font-size:0.8rem">Permukaan Bawah:</label>
+						<select id="uc" bind:value={undersideColor} onchange={updateCurl} style="padding:2px 6px;font-size:0.85rem">
+							<option value="normal">Normal</option>
+							<option value="silvery">Keperakan (Thrips)</option>
+							<option value="bronze">Kecokelatan / Tembaga (Mites)</option>
+						</select>
+					</div>
+				</div>
+				<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.4rem;font-size:0.85rem">
+					<input type="checkbox" bind:checked={sunkenLesions} onchange={updateCurl} />
+					<span>Bercak cekung melingkar konsentris (Antraknosa / Patek)</span>
+				</label>
+			</div>
 		{/if}
 	</div>
 
@@ -156,6 +202,29 @@
 		</button>
 	</div>
 </div>
+
+{#if curlDiag}
+	<div class="card" style="margin-top:1rem;border-color:#38bdf8;background:#f0f9ff">
+		<div style="display:flex;justify-content:space-between;align-items:center">
+			<h2 style="color:#0369a1;margin:0">🔬 Diferensiasi Patologi On-Device (Opsi 1)</h2>
+			<span class="badge high">{(curlDiag.confidence * 100).toFixed(0)}% Yakin</span>
+		</div>
+		<p style="margin-top:0.5rem;font-size:1.05rem"><strong>{curlDiag.title}</strong></p>
+		<p style="margin:0.25rem 0">{curlDiag.description}</p>
+		<ul style="margin:0.4rem 0 0.8rem 1.2rem;font-size:0.9rem">
+			{#each curlDiag.symptoms as s}<li>{s}</li>{/each}
+		</ul>
+		<div style="background:#ffffff;padding:0.75rem;border-radius:6px;border:1px solid #bae6fd">
+			<strong style="color:#0284c7">💊 Rekomendasi Preskriptif Offline:</strong>
+			<p style="margin:0.25rem 0"><strong>Bahan Aktif:</strong> {curlDiag.active_ingredient}</p>
+			<p style="margin:0.25rem 0"><strong>Dosis:</strong> {curlDiag.dosage_per_liter}</p>
+			<p style="margin:0.25rem 0;font-size:0.9rem" class="muted">{curlDiag.spraying_instructions}</p>
+			{#if curlDiag.organic_alternative}
+				<p style="margin:0.25rem 0;font-size:0.9rem;color:#15803d">🌿 <strong>Organik/Biokontrol:</strong> {curlDiag.organic_alternative}</p>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 {#if oozeReq}
 	<div class="card" style="margin-top:1rem;border:2px solid #dc2626;background:#fef2f2">
