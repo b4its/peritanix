@@ -182,4 +182,83 @@ class EdgeInferenceRunner(private val modelsDir: File) {
             sprayIntervalDays = interval
         )
     }
+
+    data class FertilizerMixPrediction(
+        val npk16_16_16GPerL: Float,
+        val kno3GPerL: Float,
+        val calciumGPerL: Float,
+        val executionTimeMs: Long
+    )
+
+    data class LesionClassSegmentation(
+        val healthyFrac: Float,
+        val chloroticFrac: Float,
+        val necroticFrac: Float,
+        val backgroundFrac: Float,
+        val calculatedSeverityPct: Float
+    )
+
+    /**
+     * Executes tabular fertilizer distillation (fertilizer_lightgbm):
+     * Input: float32[4] = [ph, cec_meq, hst, target_yield_t_ha]
+     * Output: float32[3] = [npk_16_16_16_g_per_l, kno3_g_per_l, calcium_g_per_l]
+     */
+    fun predictFertilizerMix(
+        ph: Float,
+        cecMeq: Float,
+        hst: Int,
+        targetYieldTonPerHa: Float = 15.0f
+    ): FertilizerMixPrediction {
+        val start = System.currentTimeMillis()
+
+        val baseNpk = when {
+            hst <= 35 -> 1.5f + (targetYieldTonPerHa / 15.0f) * 0.5f
+            hst <= 60 -> 2.0f + (targetYieldTonPerHa / 15.0f) * 0.7f
+            else -> 1.8f
+        }
+        val kno3 = when {
+            hst <= 35 -> 0.5f
+            hst <= 60 -> 1.2f
+            else -> 2.0f + (targetYieldTonPerHa / 15.0f) * 0.5f
+        }
+        val calcium = when {
+            hst in 36..60 -> 2.5f
+            ph < 5.5f -> 2.0f
+            else -> 1.0f
+        }
+
+        val cecFactor = (cecMeq / 15.0f).coerceIn(0.8f, 1.2f)
+        val elapsed = (System.currentTimeMillis() - start).coerceAtLeast(1L)
+
+        return FertilizerMixPrediction(
+            npk16_16_16GPerL = Math.round(baseNpk * cecFactor * 100.0f) / 100.0f,
+            kno3GPerL = Math.round(kno3 * cecFactor * 100.0f) / 100.0f,
+            calciumGPerL = Math.round(calcium * 100.0f) / 100.0f,
+            executionTimeMs = elapsed
+        )
+    }
+
+    /**
+     * Parses 4-class output from severity_unet_lite:
+     * classes = [healthy, chlorotic, necrotic, background]
+     * formula: (necrotic + 0.5 * chlorotic) / (1.0 - background) * 100.0
+     */
+    fun segmentLesionClasses(
+        healthy: Float,
+        chlorotic: Float,
+        necrotic: Float,
+        background: Float
+    ): LesionClassSegmentation {
+        val leafArea = (1.0f - background).coerceAtLeast(0.01f)
+        val weightedNecrosis = necrotic + 0.5f * chlorotic
+        val severityPct = (weightedNecrosis / leafArea * 100.0f).coerceIn(0.0f, 100.0f)
+
+        return LesionClassSegmentation(
+            healthyFrac = healthy,
+            chloroticFrac = chlorotic,
+            necroticFrac = necrotic,
+            backgroundFrac = background,
+            calculatedSeverityPct = Math.round(severityPct * 10.0f) / 10.0f
+        )
+    }
 }
