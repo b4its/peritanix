@@ -25,6 +25,14 @@ jobs:
       - name: Lint (ruff)
         working-directory: web/backend/fastapi
         run: ruff check app/ tests/
+      - name: Train & export edge ONNX models (deterministic)
+        working-directory: web/backend/fastapi
+        run: |
+          python ../../../scripts/train_pathology_edge_models.py
+          python ../../../scripts/train_fertilizer_model.py
+      - name: Verify edge model artefacts
+        working-directory: web/backend/fastapi
+        run: python ../../../scripts/bench_models.py
       - name: Run pytest
         working-directory: web/backend/fastapi
         run: pytest -v
