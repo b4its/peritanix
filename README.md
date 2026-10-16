@@ -4,7 +4,7 @@
 [![tests](https://img.shields.io/badge/physics%20tests-219%20passing-brightgreen)](#-testing)
 [![go](https://img.shields.io/badge/go%20tests-42%20passing-brightgreen)](#-testing)
 [![mobile](https://img.shields.io/badge/kotlin%20tests-27%20passing-brightgreen)](#-testing)
-[![web](https://img.shields.io/badge/web%20tests-53%20passing-brightgreen)](#-testing)
+[![web](https://img.shields.io/badge/web%20tests-75%20passing-brightgreen)](#-testing)
 [![e2e](https://img.shields.io/badge/e2e-50%20passing-brightgreen)](#-testing)
 [![stack](https://img.shields.io/badge/docker%20compose-6%20services-blue)](#-quick-start)
 
@@ -228,7 +228,7 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 | Python (fastapi) | **233** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, **protocol rules (ooze trigger)** |
 | Go (backend, 8 pkgs) | **50** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter, **mlclient circuit breaker** |
 | Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
-| Vitest (web) | **70** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + **trace validation** + QR scanner + WKT/area + on-device vision + canonical JSON (cross-platform) |
+| Vitest (web) | **75** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + trace validation + QR scanner + WKT/area + on-device vision + **leaf curl differentiation (Opsi 1)** + canonical JSON (cross-platform) |
 | E2E script | **65–67** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, fortification guard, fertilizer dosage, ooze trigger, **cert stored-key path** |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
