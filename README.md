@@ -1,11 +1,11 @@
 # 🌶️ DAPE — Deterministic Agro-Physics Engine
 ### Precision Micro-Farming Cabai (`Capsicum annuum` / `Capsicum frutescens`), 0,1 – 2 ha
 
-[![tests](https://img.shields.io/badge/python%20tests-258%20passing-brightgreen)](#-testing)
+[![tests](https://img.shields.io/badge/python%20tests-267%20passing-brightgreen)](#-testing)
 [![go](https://img.shields.io/badge/go%20tests-8%20pkgs%20ok-brightgreen)](#-testing)
 [![mobile](https://img.shields.io/badge/kotlin%20tests-40%20passing-brightgreen)](#-testing)
 [![web](https://img.shields.io/badge/web%20tests-75%20passing-brightgreen)](#-testing)
-[![e2e](https://img.shields.io/badge/e2e-70%20passing-brightgreen)](#-testing)
+[![e2e](https://img.shields.io/badge/e2e-74%20passing-brightgreen)](#-testing)
 [![onnx](https://img.shields.io/badge/edge%20models-3%20trained%20%C2%B7%201%20pending-yellow)](#8-edge-models-onnx)
 [![stack](https://img.shields.io/badge/docker%20compose-6%20services-blue)](#-quick-start)
 
@@ -236,11 +236,11 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **258** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, protocol rules (ooze trigger), **edge-model regression (classifier + severity segmenter + fertilizer distillation)** |
+| Python (fastapi) | **267** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, **fruit counting (Opsi 3)**, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, protocol rules (ooze trigger), **edge-model regression (classifier + severity segmenter + fertilizer distillation)** |
 | Go (backend, 8 pkgs) | **50** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter, **mlclient circuit breaker** |
 | Kotlin (mobile) | **40** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper + patologi (Opsi 1) |
 | Vitest (web) | **75** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + trace validation + QR scanner + WKT/area + on-device vision + **leaf curl differentiation (Opsi 1)** + canonical JSON (cross-platform) |
-| E2E script | **70** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze/**severity**), forensics, fortification guard, fertilizer dosage, ooze trigger, cert stored-key path |
+| E2E script | **74** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze/**severity**), forensics, fortification guard, fertilizer dosage, ooze trigger, cert stored-key path |
 | Edge models | **3 trained** | `classifier_mobilenetv3` + `severity_unet_lite` + `fertilizer_lightgbm` ONNX, sha256-verified, byte-reproducible; `detector_yolov8n` pending field annotations |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
@@ -298,6 +298,7 @@ POST /api/v1/harvest/batches                  → simpan batch tersertifikasi
 POST /api/v1/certificates/verify              → verifikasi Ed25519 (publik)
 POST /api/v1/sync/delta                       → sinkronisasi offline (idempoten)
 POST /api/v1/optics/severity                  → segmentasi % nekrosis (Opsi 1)
+POST /api/v1/yield/fruit-count                → auto-count buah per kelas matang (Opsi 3)
 ```
 
 Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
@@ -386,6 +387,11 @@ tinggi).
 - [x] **JWT auth** — register/login/me + middleware (AUTH_REQUIRED di produksi)
 - [x] **Estimasi panen** — counting ripeness hijau/semburat/merah → proyeksi
       tonase 14 hari (kurva fenologi berbasis GDD)
+- [x] **Auto-count buah dari foto (Opsi 3)** — inti CV deterministik
+      (segmentasi warna HSV + connected-component + filter area; gate
+      *relative-darkness* untuk pisahkan buah hijau dari dedaunan) → hitung
+      green_dark/red_blush/red_full; endpoint `/yield/fruit-count` mengisi
+      otomatis input proyeksi panen (menggantikan tally manual)
 - [x] **Katalog protokol preskriptif** — 9 protokol pestisida, dosis berskala
       keparahan, langkah eradikasi, alternatif organik
 - [x] **Validasi bukti fisik** — trace giroskop perendaman anti-cheat
@@ -468,8 +474,8 @@ tinggi).
 ```
 make verify  →
   lint:        ruff clean · svelte-check 0/0 · go vet clean
-  unit:        pytest 258 passed · go test 8 pkgs ok · kotlin 40 · vitest 75
-  e2e smoke:   70 passed  (…→optics(MFSR/trans-illum/ooze/severity)→forensics)
+  unit:        pytest 267 passed · go test 8 pkgs ok · kotlin 40 · vitest 75
+  e2e smoke:   74 passed  (…→optics(MFSR/trans-illum/ooze/severity)→fruit-count→forensics)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
                            pre/post-reconnect scan, idempotent retry,

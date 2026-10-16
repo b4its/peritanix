@@ -321,6 +321,15 @@ Fruit-count sampling → daily harvest curve + 14-day tonnage.
 ```
 → `{ "projected_14d_kg": 8.15, "cumulative_kg": [...], "day_mass_kg": [...], "confidence_pct": 80, "scale_factor": 10 }`
 
+### `POST /api/v1/yield/fruit-count`
+Auto-count fruit by ripeness class from a canopy photo (Opsi 3) — deterministic
+HSV colour segmentation + connected-component blobs. The returned counts feed
+`/yield/projection` directly, replacing manual tallying.
+```json
+{ "land_id": "uuid", "image": [[[r,g,b], ...], ...] }
+```
+→ `{ "green_dark": 1, "red_blush": 1, "red_full": 2, "total": 4, "mean_blob_area_px": {...}, "image_size": [200,200], "method": "deterministic_blob_counter" }`
+
 ### `POST /api/v1/protocols/prescribe`
 ```json
 { "verdict_key": "FUNG_MANKOZEB_AZOXY", "severity_pct": 14 }

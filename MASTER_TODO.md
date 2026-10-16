@@ -194,9 +194,9 @@ Tujuan: Validasi akurasi laboratorium, chaos simulation, dan rilis kontainer pro
 | Test Runner | Modul yang Diuji | Status | Jumlah Uji |
 | :--- | :--- | :---: | :---: |
 | **make mobile-test (JVM Core)** | Pure-Kotlin Physics & RFC 8785 Ed25519 | **PASS** | 40 tests |
-| **make web-test (Pytest ML)** | DEM TWI, Stokes, Bayesian Pathology, CIELAB, **edge models (classifier + severity + fertilizer)** | **PASS** | 258 tests |
+| **make web-test (Pytest ML)** | DEM TWI, Stokes, Bayesian Pathology, CIELAB, **edge models (classifier + severity + fertilizer)**, **fruit counting (Opsi 3)** | **PASS** | 267 tests |
 | **make web-test (Go API)** | Clean Backend, PostGIS, CRDT LWW, JWT Auth | **PASS** | 8 packages |
 | **npm test (Web Vitest)** | SvelteKit PWA, Dexie DB, Heatmap, QR Verifier | **PASS** | 75 tests |
-| **make e2e (Smoke Integration)** | Integrasi Multi-Layanan End-to-End (incl. severity segmenter) | **PASS** | 70 assertions |
+| **make e2e (Smoke Integration)** | Integrasi Multi-Layanan End-to-End (incl. severity + fruit-count) | **PASS** | 74 assertions |
 | **make models-bench** | 3 artefak ONNX sha256 + inference | **PASS** | 3 models |
 | **make verify** | lint + calibration (7) + chaos (15) | **PASS** | 22 checks |
