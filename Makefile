@@ -263,7 +263,7 @@ mobile-test: init ## Run JVM unit tests for the pure-Kotlin physics core
 	$(DC) --profile mobile run --rm mobile gradle --no-daemon test
 
 mobile-run: init ## Run the mobile physics smoke CLI
-	$(DC) --profile mobile run --rm mobile gradle --no-daemon -q run --args=""
+	$(DC) --profile mobile run --rm mobile gradle --no-daemon -q run
 
 mobile-down: init ## Stop the mobile toolchain
 	$(DC) --profile mobile down
