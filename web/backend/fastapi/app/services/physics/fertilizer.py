@@ -1,9 +1,9 @@
 """Prescriptive fertilizer calculator — deterministic agronomic rules.
 
-A LightGBM model is trained offline (see scripts/train_fertilizer.py) and
-exported to ONNX for on-device inference. Here we provide a deterministic,
-auditable *rule engine* that is the ground truth the ML model is fitted to
-(and the fallback when no ONNX model is bundled).
+A model is trained offline (see scripts/train_fertilizer_model.py) as a Ridge
+distillation of this rule engine and exported to ONNX for on-device inference.
+Here we provide the deterministic, auditable *rule engine* that is the ground
+truth the ML model is fitted to (and the fallback when no ONNX model is bundled).
 
 Rules encode the DAPE agronomic thesis:
   - pH < 5.5      -> P locked out; raise pH with dolomite before N/K.

@@ -1,11 +1,12 @@
 # 🌶️ DAPE — Deterministic Agro-Physics Engine
 ### Precision Micro-Farming Cabai (`Capsicum annuum` / `Capsicum frutescens`), 0,1 – 2 ha
 
-[![tests](https://img.shields.io/badge/physics%20tests-219%20passing-brightgreen)](#-testing)
-[![go](https://img.shields.io/badge/go%20tests-42%20passing-brightgreen)](#-testing)
-[![mobile](https://img.shields.io/badge/kotlin%20tests-27%20passing-brightgreen)](#-testing)
+[![tests](https://img.shields.io/badge/python%20tests-248%20passing-brightgreen)](#-testing)
+[![go](https://img.shields.io/badge/go%20tests-8%20pkgs%20ok-brightgreen)](#-testing)
+[![mobile](https://img.shields.io/badge/kotlin%20tests-40%20passing-brightgreen)](#-testing)
 [![web](https://img.shields.io/badge/web%20tests-75%20passing-brightgreen)](#-testing)
-[![e2e](https://img.shields.io/badge/e2e-50%20passing-brightgreen)](#-testing)
+[![e2e](https://img.shields.io/badge/e2e-67%20passing-brightgreen)](#-testing)
+[![onnx](https://img.shields.io/badge/edge%20models-2%20trained%20%C2%B7%202%20pending-yellow)](#8-edge-models-onnx)
 [![stack](https://img.shields.io/badge/docker%20compose-6%20services-blue)](#-quick-start)
 
 ---
@@ -182,6 +183,10 @@ Setelah `web-up`:
 | `make web-test` | Jalankan suite Go + Python |
 | `make verify` | **Full pipeline**: unit + E2E + calibration + chaos |
 | `make e2e` / `calibrate` / `chaos` | Jalankan masing-masing skrip verifikasi |
+| `make models-train` | Latih & ekspor ulang **semua** model edge ONNX (deterministik) |
+| `make models-train-classifier` / `models-train-fertilizer` | Latih satu model saja |
+| `make models-bench` | Verifikasi sha256 + load + inference tiap artefak ONNX |
+| `make models-test` | Suite regresi model edge (pytest) |
 | `make loadtest` | Jalankan k6 load test (butuh k6) |
 | `make db-backup` | Dump DB → `backups/dape-<ts>.dump` (+sha256) |
 | `make db-restore DUMP=backups/x.dump [CLEAN=--clean]` | Restore (checksum-verified) |
@@ -215,9 +220,11 @@ docker compose --env-file .env --profile storage up -d
 make verify        # full pipeline: unit tests + E2E + calibration + chaos
 make web-test      # Python (pytest) + Go (go test)
 make mobile-test   # Kotlin JVM (JUnit)
-make e2e           # end-to-end smoke (50 assertions across all layers)
+make e2e           # end-to-end smoke (67 assertions across all layers)
 make calibrate     # lab-reference validation (52C mix, flash correction, TWI, GDD)
 make chaos         # offline physics + reconnect + ML-outage graceful degradation
+make models-train  # retrain + export edge ONNX models (deterministic)
+make models-bench  # verify edge model sha256 + inference
 make loadtest      # k6 load test (reads + compute, p95<800ms)
 ```
 
@@ -225,11 +232,12 @@ make loadtest      # k6 load test (reads + compute, p95<800ms)
 
 | Suite | Jumlah | Cakupan |
 |---|---|---|
-| Python (fastapi) | **233** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, **protocol rules (ooze trigger)** |
+| Python (fastapi) | **248** | TWI, **DEM crop (rasterio)**, D8 flow, Stokes/USDA/CEC, CIELAB, Black, GDD, Bayes, Moran's I, Archimedes, fertilizer, MFSR, trans-illumination, ooze flow, grading, EWS, forensics, yield projection, protocols, trace validation, spatial patterns, ONNX registry/inference, harvest decision, economics, protocol rules (ooze trigger), **edge-model regression (classifier differentiation + fertilizer distillation)** |
 | Go (backend, 8 pkgs) | **50** | Ed25519 verify + canonical JSON, CRDT laws, JWT auth, media filename, epidemiology, GDD worker, UUID guard + rate limiter, **mlclient circuit breaker** |
-| Kotlin (mobile) | **27** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper |
+| Kotlin (mobile) | **40** | Mirror fisika + tanda tangan Ed25519 + penolakan tamper + patologi (Opsi 1) |
 | Vitest (web) | **75** | Mirror fisika + EWS + heatmap/fertility + TWI colour ramp + fertilizer mirror + TTS dosing + trace validation + QR scanner + WKT/area + on-device vision + **leaf curl differentiation (Opsi 1)** + canonical JSON (cross-platform) |
-| E2E script | **65–67** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, fortification guard, fertilizer dosage, ooze trigger, **cert stored-key path** |
+| E2E script | **67** | Full stack incl. hardening, analytics, feedback, harvest, version, sensor ingest, economics, batch registry, TWI grid, optics (MFSR/trans-illum/ooze), forensics, fortification guard, fertilizer dosage, ooze trigger, **cert stored-key path** |
+| Edge models | **2 trained** | `classifier_mobilenetv3` + `fertilizer_lightgbm` ONNX, sha256-verified, byte-reproducible; `detector_yolov8n` + `severity_unet_lite` pending field data |
 | Calibration | **7** | 52 °C mix @ 100 m & 1000 m, white-ref correction, TWI bound, GDD phase |
 | Chaos | **15** | On-device physics, offline queue flush, dropped-ack idempotency, **full offline cycle (init→soil→diag→GDD lock→QR, pre/post-reconnect scan)**, ML-outage 502-not-crash, recovery |
 | Lint | **0 issues** | ruff (Python) · go vet (Go) · svelte-check 0 errors/0 warnings (web) — all CI-enforced |
@@ -261,6 +269,12 @@ pengembangan (lihat §6).
 6. **numpy bool bocor**: flag `latent_fungal_suspected` mengembalikan
    `np.False_` (bukan `bool` Python) yang bisa membingungkan konsumen JSON.
    Diperbaiki dengan cast `bool(...)`.
+7. **Classifier edge memetakan rerata-RGB saja**: model ONNX pertama membuang
+   diskriminan geometris terpenting Opsi 1 (**arah keriting** atas/bawah), sehingga
+   secara terukur salah mengklasifikasi **Antraknosa → Begomovirus** dan
+   **Mites → Begomovirus** (2/5 kondisi). Diganti MLP terlatih atas fitur 10-D
+   (green-asymmetry arah keriting, underside-bronze, yellow-mosaic, dark-lesion),
+   dengan fitur dihitung identik di Python & ONNX (|Δ|≤1,5e-7). Lihat §8.1.
 
 ---
 
@@ -285,7 +299,52 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
 
 ---
 
-## 8. Roadmap (Selaras Master To-Do 7 Tahap)
+## 8. Edge Models (ONNX)
+
+Empat model edge diregistrasi di `web/backend/fastapi/models/`. Dua sudah
+dilatih & dikirim sebagai artefak ONNX nyata; dua lagi menunggu citra lapangan.
+
+| Model | Status | Artefak | Peran |
+|---|---|---|---|
+| `classifier_mobilenetv3` | ✅ terlatih | 7,3 KB, sha256 terverifikasi | diferensiasi keriting (Thrips/Mites/Begomovirus) + Antraknosa + sehat |
+| `fertilizer_lightgbm` | ✅ terlatih | 2,0 KB, sha256 terverifikasi | distilasi kalkulator pupuk preskriptif (offline < 10 ms) |
+| `detector_yolov8n` | ⏳ pending | – | lokalisasi lesi & hitung buah (butuh foto lapangan + anotasi) |
+| `severity_unet_lite` | ⏳ pending | – | segmentasi % nekrosis (butuh mask lapangan) |
+
+### 8.1 Mengapa classifier diperbaiki (bug nyata)
+
+Versi awal memetakan **hanya rerata RGB → 5 logit**. Itu membuang diskriminan
+terpenting Opsi 1 — **arah keriting** (atas = Thrips, bawah = Mites) — yang
+merupakan ciri *geometris*, bukan warna. Terbukti di lapangan:
+
+```
+sebelum:  Antraknosa(dark) → Begomovirus ✗   Mites(bronze) → Begomovirus ✗
+sesudah:  ✓ Thrips  ✓ Mites  ✓ Begomovirus  ✓ Antraknosa  ✓ Sehat   (semua benar)
+```
+
+Classifier baru adalah **MLP terlatih (24→16)** atas vektor fitur 10-dimensi
+yang interpretable — termasuk *vertical green asymmetry* (arah keriting),
+*underside bronze index*, *yellow-mosaic index*, dan *dark-lesion fraction*.
+Fitur dihitung **identik** di Python (training) dan di dalam graf ONNX (serving)
+— dijaga oleh tes hingga |Δ| ≤ 1,5e-7.
+
+### 8.2 Reproduksibilitas & perintah
+
+```bash
+make models-train              # latih ulang SEMUA model (deterministik, seed tetap)
+make models-train-classifier   # hanya Opsi 1
+make models-train-fertilizer   # hanya Opsi 2
+make models-bench              # cek sha256 + load + inference tiap artefak
+make models-test               # suite regresi model (15 tes)
+```
+
+Latih-ulang menghasilkan **byte identik** (sha256 stabil) → artefak dapat
+diverifikasi & diaudit. Skrip **menolak mengekspor** bila self-check gagal
+(mis. ada kondisi benchmark yang salah kelas).
+
+---
+
+## 9. Roadmap (Selaras Master To-Do 7 Tahap)
 
 - [x] **Tahap 0** — Monorepo, Docker, Makefile, PostGIS schema + seed
 - [x] **Tahap 1** — Inisialisasi lahan, cache DEM/TWI, identitas Ed25519
@@ -358,23 +417,33 @@ Layanan ML internal (`/internal/*`) dilindungi header `X-Internal-Token`.
       bahasa Indonesia di halaman panen
 - [x] **Validasi trace giroskop (TAHAP 6.3)** — rekam gerak 180s + tolak
       sinyal konstan (indikasi lewatkan timer)
+- [x] **Classifier terlatih (Opsi 1)** — MLP 24→16 atas fitur 10-D (arah keriting
+      + warna + lesi); graf ONNX menghitung fitur identik dgn Python (|Δ|≤1,5e-7);
+      memperbaiki bug nyata model rerata-RGB (Antraknosa/Mites salah kelas)
+- [x] **Fertilizer ONNX terlatih (Opsi 2)** — distilasi rule engine, galat
+      ≤ 0,35 g/L di seluruh envelope; `make models-train` deterministik (byte identik)
+- [x] **Pipeline training + benchmark reproducible** — `scripts/train_*.py`,
+      `scripts/bench_models.py`, target `make models-train/models-bench/models-test`
+- [x] **Suite regresi model** — 15 tes menjaga klasifikasi 5 kondisi & distilasi
+- [ ] Bobot ONNX detektor (YOLOv8-Nano) & segmentasi (U-Net Lite) — butuh foto
+      lapangan beranotasi (2 model sisa berstatus *pending*, dilaporkan `models-bench`)
 - [ ] Akuisisi media nyata di perangkat (Camera2 burst, contact flash, ooze video)
-- [ ] Bobot ONNX terlatih (YOLOv8-Nano / MobileNetV3) — registry, runtime &
-      jalur OTA siap; tinggal mengisi artefak `.onnx` lalu jalankan retrain
 - [ ] Kalibrasi lab fisik (pH ≤ ±0,1 di 3 merek HP) & uji lapangan nyata
 - [ ] APK/AAB release build (R8 + stripping sudah dikonfigurasi)
 
-## 9. Verifikasi Langsung (bukti)
+## 10. Verifikasi Langsung (bukti)
 
 ```
 make verify  →
   lint:        ruff clean · svelte-check 0/0 · go vet clean
-  unit:        pytest 233 passed · go test 8 pkgs ok · kotlin 27 · vitest 70
+  unit:        pytest 248 passed · go test 8 pkgs ok · kotlin 40 · vitest 75
   e2e smoke:   67 passed  (…→TWI-grid→optics(MFSR/trans-illum/ooze)→forensics)
   calibration: 7 passed   (52.0 °C @100m/1000m, white-ref, TWI bound, GDD phase)
   chaos:       15 passed  (full offline cycle init→soil→diag→GDD→QR,
                            pre/post-reconnect scan, idempotent retry,
                            ML-outage HTTP 502 not crash, auto-recover)
+  models:      make models-bench → 2 trained artefacts sha256-verified,
+                           2 pending real-field training
   loadtest:    make loadtest  (k6: reads 10 VUs + compute 3 VUs, p95<800ms)
 
 docker compose ps → 6/6 services (healthy)
