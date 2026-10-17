@@ -77,6 +77,12 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         )
     }
 
+    // Batch sortation recap (Tahap 5.2): accumulate graded pods by weight %.
+    val batchPods = remember { mutableStateListOf<id.peritanix.dape.android.core.physics.BatchGradingSummary.GradedPod>() }
+    val batchSummary = remember(batchPods.size) {
+        id.peritanix.dape.android.core.physics.BatchGradingSummary.summarize(batchPods.toList())
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -437,6 +443,40 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                     }
                 }
                 Text(morphVerdict.remarks, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                // Batch sortation: add current pod, recap by weight % across grades.
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val wGrams = 8.0 + podLength * 1.2  // proxy fresh weight from pod length
+                            batchPods.add(
+                                id.peritanix.dape.android.core.physics.BatchGradingSummary.GradedPod(
+                                    grade = morphVerdict.finalGrade, weightG = wGrams
+                                )
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) { Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Tambah ke Batch", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { batchPods.clear() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) { Text("Reset Batch", fontSize = 11.sp) }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Rekap Batch Sortasi (${batchSummary.totalPods} buah · ${"%.1f".format(batchSummary.totalWeightG)} g)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Text("Premium ${batchSummary.premiumPct}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+                if (batchSummary.totalPods > 0) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        id.peritanix.dape.android.core.physics.BatchGradingSummary.GRADES.forEach { g ->
+                            Text("$g: ${batchSummary.weightPctByGrade[g] ?: 0.0}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Text(batchSummary.batchVerdict, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
 
