@@ -84,4 +84,42 @@ object IndonesianTtsVoiceAdvisor {
         val target = if (treatmentName == "Perawatan Rutin") "pada $stageTitle" else "untuk $treatmentName pada $stageTitle"
         return "Hasil inspeksi kamera $target: status $statusLabel, skor kesehatan ${score.toInt()} persen. Rekomendasi tindakan: $actionAdvice"
     }
+
+    /**
+     * Menyusun skrip narasi audio briefing harian misi kualitas cabai terbaik.
+     */
+    fun composeDailyMissionsBriefingScript(
+        stageTitle: String,
+        phaseName: String,
+        hst: Int,
+        score: Int,
+        exportBadge: String,
+        totalMissions: Int,
+        completedMissions: Int,
+        nextFocusTitle: String?
+    ): String {
+        val hstDesc = if (hst < 0) "kurang ${-hst} hari sebelum pindah tanam" else "$hst hari setelah tanam"
+        val statusMisi = if (completedMissions >= totalMissions && totalMissions > 0) {
+            "Hebat! Seluruh $totalMissions misi mutu telah tuntas seratus persen. Pertahankan standar ekspor ini."
+        } else {
+            val sisa = totalMissions - completedMissions
+            val fokus = if (!nextFocusTitle.isNullOrBlank()) "Fokus prioritas berikutnya: $nextFocusTitle." else ""
+            "Tersisa $sisa misi yang perlu diselesaikan. $fokus"
+        }
+        return "Briefing mutu harian DAPE. $stageTitle fase $phaseName pada $hstDesc. " +
+            "Skor capaian mutu saat ini $score persen dengan predikat $exportBadge. $statusMisi"
+    }
+
+    /**
+     * Menyusun narasi audio langkah operasional SOP untuk satu misi kualitas.
+     */
+    fun composeMissionSopScript(
+        title: String,
+        qualityTarget: String,
+        howToExecute: String,
+        targetMetric: String
+    ): String {
+        return "Panduan Standar Operasional: $title. Sasaran pilar mutu: $qualityTarget. " +
+            "Langkah pelaksanaan di kebun: $howToExecute. Target parameter terukur: $targetMetric."
+    }
 }

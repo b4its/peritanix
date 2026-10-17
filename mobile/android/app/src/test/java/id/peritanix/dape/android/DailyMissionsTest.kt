@@ -236,5 +236,71 @@ class DailyMissionsTest {
         assertTrue(s5Titles.contains("archimedes") || s5Titles.contains("apung"))
         assertTrue(s5Titles.contains("krat") || s5Titles.contains("ventilasi"))
     }
+
+    @Test
+    fun testNewSensorFusedQualityMissions() {
+        // Stage 1: Termoterapi 50C & Aerasi Baki
+        val s1 = DailyMissions.planFor(today, -10)
+        val s1Titles = s1.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s1Titles.contains("50°c") || s1Titles.contains("termoterapi"))
+        assertTrue(s1Titles.contains("aerasi") || s1Titles.contains("jarak"))
+
+        // Stage 2: Klinometer, Ceptometer, Asam Humat
+        val s2 = DailyMissions.planFor(today, 20)
+        val s2Titles = s2.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s2Titles.contains("klinometer") || s2Titles.contains("kemiringan"))
+        assertTrue(s2Titles.contains("ceptometer") || s2Titles.contains("lux"))
+        assertTrue(s2Titles.contains("asam humat"))
+
+        // Stage 3: Barometer, Penyerbukan getar, Kelopak
+        val s3 = DailyMissions.planFor(today, 45)
+        val s3Titles = s3.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s3Titles.contains("barometer") || s3Titles.contains("tekanan"))
+        assertTrue(s3Titles.contains("penyerbukan") || s3Titles.contains("ajir"))
+        assertTrue(s3Titles.contains("kelopak") || s3Titles.contains("gugur"))
+
+        // Stage 4: Termistor mulsa, MgSO4 lilin kutikula, Perompesan daun
+        val s4 = DailyMissions.planFor(today, 65)
+        val s4Titles = s4.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s4Titles.contains("mulsa") || s4Titles.contains("termal"))
+        assertTrue(s4Titles.contains("kutikula") || s4Titles.contains("magnesium"))
+        assertTrue(s4Titles.contains("perompesan") || s4Titles.contains("defoliasi"))
+
+        // Stage 5: Nodus tangkai, CIELAB kamera, Pre-cooling
+        val s5 = DailyMissions.planFor(today, 100)
+        val s5Titles = s5.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s5Titles.contains("nodus") || s5Titles.contains("tangkai"))
+        assertTrue(s5Titles.contains("cielab") || s5Titles.contains("kapsantin"))
+        assertTrue(s5Titles.contains("pre-cooling") || s5Titles.contains("pendinginan"))
+    }
+
+    @Test
+    fun testIndonesianTtsBriefingAndSopScript() {
+        val briefing = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeDailyMissionsBriefingScript(
+            stageTitle = "Tahap 3",
+            phaseName = "Pembungaan",
+            hst = 45,
+            score = 80,
+            exportBadge = "Grade A (Pasar Swalayan)",
+            totalMissions = 9,
+            completedMissions = 4,
+            nextFocusTitle = "Aplikasi Kalsium Nitrat"
+        )
+        assertTrue(briefing.contains("Pembungaan"))
+        assertTrue(briefing.contains("45 hari setelah tanam"))
+        assertTrue(briefing.contains("80 persen"))
+        assertTrue(briefing.contains("Aplikasi Kalsium Nitrat"))
+
+        val sopScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeMissionSopScript(
+            title = "Aplikasi Kalsium Nitrat",
+            qualityTarget = "Pericarp Tebal & Keras",
+            howToExecute = "Kocorkan 200 ml per lubang tanam",
+            targetMetric = "Tebal dinding sel > 1.8 mm"
+        )
+        assertTrue(sopScript.contains("Aplikasi Kalsium Nitrat"))
+        assertTrue(sopScript.contains("Pericarp Tebal & Keras"))
+        assertTrue(sopScript.contains("200 ml"))
+        assertTrue(sopScript.contains("1.8 mm"))
+    }
 }
 

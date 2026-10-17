@@ -115,24 +115,35 @@ object DailyMissions {
                     add(pestNetMission(epochDay))
                     add(trichodermaSeedlingMission(epochDay))
                     add(hardeningOffMission(epochDay))
+                    add(seedThermoSterilizationMission(epochDay))
+                    add(cellTrayAerationMission(epochDay))
                 }
                 2 -> { // Vegetatif (1 s.d. 35 HST)
                     add(wiwilMission(epochDay))
                     add(nitrogenBalanceMission(epochDay))
                     add(silicaEpidermisMission(epochDay))
                     add(yellowTrapMission(epochDay))
+                    add(bedSlopeClinometerMission(epochDay))
+                    add(canopyCeptometerMission(epochDay))
+                    add(humicAcidRootMission(epochDay))
                 }
                 3 -> { // Pembungaan (36 s.d. 55 HST) — Kritis kualitas dinding buah & bunga
                     add(calciumBoronMission(epochDay))
                     add(flowerRetentionMission(epochDay))
                     add(fruitFlyTrapMission(epochDay))
                     add(foliarPBMission(epochDay))
+                    add(barometerSprayCheckMission(epochDay))
+                    add(flowerVibrationPollinationMission(epochDay))
+                    add(flowerPetalSanitationMission(epochDay))
                 }
                 4 -> { // Pembuahan & Pematangan (56 s.d. 75 HST) — Kunci warna & kepedasan
                     add(potassiumMission(epochDay))
                     add(antracnoseScoutMission(epochDay))
                     add(capsaicinStressMission(epochDay))
                     add(calciumCrackGuardMission(epochDay))
+                    add(mulchSoilThermistorMission(epochDay))
+                    add(magnesiumCuticleGlossMission(epochDay))
+                    add(bottomLeafPruningMission(epochDay))
                 }
                 else -> { // Panen & Pascapanen (76 s.d. 120 HST) — Standar Grade A+ Ekspor
                     add(harvestTimeMorningMission(epochDay))
@@ -140,6 +151,9 @@ object DailyMissions {
                     add(sortationMission(epochDay))
                     add(archimedesFloatMission(epochDay))
                     add(crateStorageMission(epochDay))
+                    add(pedicelFreshnessMission(epochDay))
+                    add(cielabColorCameraMission(epochDay))
+                    add(fieldHeatPreCoolingMission(epochDay))
                 }
             }
         }.toMutableList()
@@ -526,5 +540,197 @@ object DailyMissions {
         howToExecute = "Semprotkan fungisida kontak berbahan aktif mankozeb atau klorotalonil dosis 2 g/L secara merata pada petak yang terindikasi risiko spora tinggi.",
         scientificBasis = "Kelembaban relatif > 85% dan suhu 25-28°C memicu pelepasan konidia jamur, lapisan fungisida protektif menghambat perkecambahan tabung spora.",
         targetMetric = "Cakupan semprotan merata, sporulasi ditekan 0%"
+    )
+
+    // Stage 1 Extra Quality Missions
+
+    private fun seedThermoSterilizationMission(day: Long) = Mission(
+        id = "m$day-seed-thermo",
+        category = Category.SANITASI,
+        title = "Termoterapi benih air hangat 50°C Asas Black",
+        detail = "Rendam benih cabai dalam air hangat 50°C selama 15 menit untuk sterilisasi spora antraknosa bawaan benih dan memecah dormansi embrio.",
+        qualityImpact = "Mencegah penularan penyakit tular-benih (seed-borne) sejak hari ke-0 demi integritas pericarp buah kelak.",
+        weight = 2,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Campur air mendidih dan air sumur sesuai kalkulator termal Asas Black hingga suhu tepat 50°C. Rendam benih selama 15 menit, tiriskan lalu angin-anginkan.",
+        scientificBasis = "Spora laten Colletotrichum dan bakteri Xanthomonas terdenaturasi pada suhu 50°C tanpa merusak daya kecambah embrio biji.",
+        targetMetric = "Daya kecambah benih > 90%, benih bebas patogen 100%"
+    )
+
+    private fun cellTrayAerationMission(day: Long) = Mission(
+        id = "m$day-tray-aeration",
+        category = Category.UMUM,
+        title = "Aerasi baki semai & jaga jarak antar tray",
+        detail = "Beri jarak 10 cm antar tray semai dan letakkan baki di atas rak minimal 50 cm dari tanah.",
+        qualityImpact = "Mencegah etiolasi (batang rapuh) sehingga bibit tumbuh kekar dan siap menopang buah berbobot berat.",
+        weight = 2,
+        qualityTarget = QualityTarget.VIGOR_AKAR,
+        howToExecute = "Atur tray di rak bambu/besi berketinggian 50 cm. Beri rongga udara 10 cm antar tray semai agar sirkulasi udara bawah pot lancar.",
+        scientificBasis = "Pruning udara (air root pruning) mencegah akar melingkar (root bound) dan merangsang perbanyakan tudung akar serabut.",
+        targetMetric = "Rasio tinggi bibit terhadap diameter batang < 10 (bibit pendek kokoh)"
+    )
+
+    // Stage 2 Extra Quality Missions
+
+    private fun bedSlopeClinometerMission(day: Long) = Mission(
+        id = "m$day-bed-slope",
+        category = Category.INSPEKSI,
+        title = "Verifikasi klinometer giroskop kemiringan bedengan",
+        detail = "Gunakan sensor giroskop ponsel untuk mengukur kemiringan bedengan 0,5° - 1,0° dan saluran drainase parit.",
+        qualityImpact = "Drainase sempurna mencegah genangan air penyebab busuk akar Phytophthora yang menggugurkan buah.",
+        weight = 2,
+        qualityTarget = QualityTarget.VIGOR_AKAR,
+        howToExecute = "Buka instrumen klinometer, letakkan punggung ponsel di atas permukaan bedengan sepanjang 2 meter. Pastikan sudut kemiringan tertera 0,5° - 1,0°.",
+        scientificBasis = "Kemiringan 0,5° - 1,0° menghasilkan kecepatan aliran gravitasi air tanpa mengikis tanah bedengan mulsa (erosi nol).",
+        targetMetric = "Sudut kemiringan bedengan β = 0,5° - 1,0°, bebas genangan pascahujan"
+    )
+
+    private fun canopyCeptometerMission(day: Long) = Mission(
+        id = "m$day-ceptometer",
+        category = Category.INSPEKSI,
+        title = "Ceptometer sensor Lux uji penetrasi cahaya kanopi",
+        detail = "Ukur rasio intensitas cahaya Lux di atas tajuk vs di dasar percabangan Y menggunakan sensor cahaya ponsel.",
+        qualityImpact = "Menjamin distribusi foton surya merata untuk biosintesis karotenoid kapsantin (merah mengkilap).",
+        weight = 2,
+        qualityTarget = QualityTarget.WARNA_KILAP,
+        howToExecute = "Arahkan sensor cahaya ponsel ke langit terbuka di atas tajuk, catat Lux. Kemudian arahkan sensor di bawah tajuk cabang Y. Hitung rasio penetrasi.",
+        scientificBasis = "Hukum Beer-Lambert: fraksi transmisi cahaya I/I0 > 0,40 diperlukan untuk fotosintesis daun bawah dan pembentukan kutikula lilin buah.",
+        targetMetric = "Transmisi cahaya tajuk > 40%, Leaf Area Index (LAI) 2,5 - 3,2"
+    )
+
+    private fun humicAcidRootMission(day: Long) = Mission(
+        id = "m$day-humic-root",
+        category = Category.NUTRISI,
+        title = "Kocor asam humat 85% + mikroba pelarut fosfat",
+        detail = "Kocorkan larutan asam humat 2 g/L di zona perakaran untuk meningkatkan kapasitas tukar kation (KTK) media.",
+        qualityImpact = "Akar lateral meluas memaksimalkan serapan Kalsium dan Kalium untuk pericarp tebal berkualitas ekspor.",
+        weight = 2,
+        qualityTarget = QualityTarget.VIGOR_AKAR,
+        howToExecute = "Larutkan 20 gram asam humat larut air dan konsorsium mikroba pelarut fosfat dalam 10 liter air. Kocor 250 ml pada setiap lubang tanam.",
+        scientificBasis = "Gugus karboksil dan fenolat asam humat mengkhelat ion Ca2+ dan Mg2+, mencegah fiksasi hara oleh lempung tanah.",
+        targetMetric = "KTK tanah zona rizosfer > 25 meq/100g, serapan Kalsium meningkat > 30%"
+    )
+
+    // Stage 3 Extra Quality Missions
+
+    private fun barometerSprayCheckMission(day: Long) = Mission(
+        id = "m$day-baro-spray",
+        category = Category.INSPEKSI,
+        title = "Verifikasi barometer tekanan udara pra-semprot Kalsium",
+        detail = "Periksa tren barometer ponsel (ΔP/Δt); pastikan tidak ada penurunan tekanan curam (>1,5 hPa/jam) sebelum aplikasi pupuk daun.",
+        qualityImpact = "Mencegah pupuk Kalsium dan Boron tercuci hujan lebat sebelum terserap membran kutikula buah.",
+        weight = 2,
+        qualityTarget = QualityTarget.PERICARP_TEBAL,
+        howToExecute = "Buka instrumen barometer/cuaca di aplikasi. Pastikan grafik tekanan stabil atau naik. Hindari penyemprotan jika terdeteksi peringatan badai mikro.",
+        scientificBasis = "Penurunan tekanan udara drastis mengindikasikan konveksi awan cumulonimbus lokal yang memicu hujan lebat dalam 60-120 menit.",
+        targetMetric = "Laju perubahan tekanan |ΔP/Δt| < 1,0 hPa/jam (kondisi atmosfer stabil)"
+    )
+
+    private fun flowerVibrationPollinationMission(day: Long) = Mission(
+        id = "m$day-flower-vibrate",
+        category = Category.UMUM,
+        title = "Getarkan tali ajir pagi hari untuk penyerbukan sempurna",
+        detail = "Goyang lembut kawat atau tali ajir per baris bedengan pukul 08:00 - 09:30 saat bunga cabai membuka penuh.",
+        qualityImpact = "Penyerbukan mandiri optimal menghasilkan buah cabai lurus panjang simetris tanpa bengkok (Grade A+).",
+        weight = 2,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Berjalan santai menyusuri bedengan sambil menyentuh/menggoyang kawat bentangan ajir secara ritmis. Lakukan saat bunga kering dari embun pagi.",
+        scientificBasis = "Bunga cabai bersifat cleistogamous/chasmogamous; vibrasi mikro 20-50 Hz memicu pelepasan butir polen dari anther ke kepala putik (stigma).",
+        targetMetric = "Fruit set bunga mekar > 85%, buah lurus simetris > 90%"
+    )
+
+    private fun flowerPetalSanitationMission(day: Long) = Mission(
+        id = "m$day-petal-sanitation",
+        category = Category.SANITASI,
+        title = "Sanitasi kelopak bunga gugur di atas mulsa",
+        detail = "Bersihkan mahkota bunga kering yang menempel di ujung buah pentil atau jatuh di atas plastik mulsa.",
+        qualityImpact = "Memutus inokulum awal jamur busuk basah Choanephora yang membuat pentil buah busuk hitam.",
+        weight = 2,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Gunakan sapu lidi lembut atau tepis perlahan ujung pentil buah muda agar mahkota bunga kering terlepas dan tidak membusuk saat terkena air.",
+        scientificBasis = "Sisa kelopak bunga layu yang basah merupakan media tanam ideal bagi koloni spora Choanephora cucurbitarum.",
+        targetMetric = "Pentil buah bersih dari mahkota kering 100%, busuk pentil 0%"
+    )
+
+    // Stage 4 Extra Quality Missions
+
+    private fun mulchSoilThermistorMission(day: Long) = Mission(
+        id = "m$day-mulch-temp",
+        category = Category.INSPEKSI,
+        title = "Kalibrasi termal suhu mulsa siang hari via sensor HP",
+        detail = "Ukur suhu permukaan tanah di bawah mulsa plastik perak-hitam pukul 12:00 - 13:00; kendalikan agar tetap di bawah 32°C.",
+        qualityImpact = "Suhu rizosfer sejuk mencegah respirasi hara berlebih dan mempertahankan turgor buah cabai.",
+        weight = 2,
+        qualityTarget = QualityTarget.VIGOR_AKAR,
+        howToExecute = "Selipkan sensor ponsel di balik lipatan mulsa pada kedalaman 5 cm. Jika suhu > 32°C, alirkan air irigasi dingin ke parit selama 15 menit.",
+        scientificBasis = "Suhu tanah > 34°C menghentikan aktivitas sitokinin akar dan memicu penutupan stomata total yang menggagalkan pengisian buah.",
+        targetMetric = "Suhu media tanah mulsa < 30°C pada tengah hari"
+    )
+
+    private fun magnesiumCuticleGlossMission(day: Long) = Mission(
+        id = "m$day-mg-cuticle",
+        category = Category.NUTRISI,
+        title = "Semprot Magnesium Sulfat + K-Silikat kilap lilin kutikula",
+        detail = "Semprotkan larutan MgSO4 1 g/L dan Kalium Silikat 1 ml/L secara kabut halus ke permukaan buah menjelang merah.",
+        qualityImpact = "Membentuk lapisan lilin kristal tebal pada kutikula buah cabai sehingga merah mengkilap dan tahan simpan.",
+        weight = 3,
+        qualityTarget = QualityTarget.WARNA_KILAP,
+        howToExecute = "Larutkan 10 gram garam Inggris (MgSO4) + 10 ml K-Silikat dalam 10 liter air. Semprotkan saat matahari bersinar lembut pukul 07:00 WIB.",
+        scientificBasis = "Magnesium mengaktifkan sintesis asam lemak ester pembentuk lilin kutikula (cuticular wax) yang memantulkan cahaya dan mencegah susut air.",
+        targetMetric = "Tingkat kilap spekular buah > 80%, susut bobot simpan < 0,5%/hari"
+    )
+
+    private fun bottomLeafPruningMission(day: Long) = Mission(
+        id = "m$day-leaf-pruning",
+        category = Category.UMUM,
+        title = "Perompesan daun tua bawah kanopi (defoliasi aerasi)",
+        detail = "Pangkas 3 helai daun tertua yang menguning di bawah percabangan Y untuk melancarkan sirkulasi angin parit.",
+        qualityImpact = "Menurunkan kelembaban mikro di dasar tajuk, mencegah kolonisasi spora Antraknosa ke buah.",
+        weight = 2,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Gunakan gunting pangkas bersih. Potong tangkai daun tua menyisakan 0,5 cm dari batang utama. Kumpulkan daun pangkasan dan buang ke bak kompos.",
+        scientificBasis = "Daun tua menguning telah menjadi organ parasitik (sink bukan source) yang mengonsumsi karbohidrat namun tidak menyumbang fotosintat.",
+        targetMetric = "Bawah percabangan Y bersih dari daun kuning, aerasi dasar tajuk lancar"
+    )
+
+    // Stage 5 Extra Quality Missions
+
+    private fun pedicelFreshnessMission(day: Long) = Mission(
+        id = "m$day-pedicel",
+        category = Category.PANEN,
+        title = "Pemotongan nodus tangkai buah utuh 2,5–3,5 cm",
+        detail = "Potong tepat pada buku tangkai (nodus) menggunakan gunting pangkas; sisakan tangkai utuh 2,5 - 3,5 cm berwarna hijau cerah.",
+        qualityImpact = "Tangkai utuh segar merupakan syarat mutlak cabai Grade A+ Ekspor dan menjaga kesegaran buah >14 hari.",
+        weight = 3,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Arahkan mata gunting tepat di nodus sambungan tangkai ke ranting. Jangan mematahkan tangkai dengan tangan untuk menghindari robekan kulit buah.",
+        scientificBasis = "Tangkai buah berfungsi sebagai reservoir air mikroskopis; nodus alami menutup luka petik dan mencegah infeksi busuk pangkal buah.",
+        targetMetric = "Panjang tangkai buah 2,5 - 3,5 cm, tangkai hijau segar 100%"
+    )
+
+    private fun cielabColorCameraMission(day: Long) = Mission(
+        id = "m$day-cielab-camera",
+        category = Category.INSPEKSI,
+        title = "Audit spektral warna Kapsantin CIELAB via kamera kualitas",
+        detail = "Potret sampel 10 buah cabai di atas alas kontras putih dengan kamera DAPE untuk verifikasi nilai kromatisitas merah a* > 42.",
+        qualityImpact = "Verifikasi objektif standar warna ekspor premium tanpa keraguan visual mata telanjang.",
+        weight = 2,
+        qualityTarget = QualityTarget.WARNA_KILAP,
+        howToExecute = "Letakkan 10 cabai panen di atas kertas HVS putih. Buka fitur Kamera Kualitas Cabai DAPE, tangkap gambar dengan pencahayaan merata.",
+        scientificBasis = "Parameter ruang warna CIELAB a* mengukur saturasi spektrum merah karotenoid; a* > 42,0 mengindikasikan kadar kapsantin > 85%.",
+        targetMetric = "Nilai CIELAB a* >= 42,0, indeks keseragaman warna > 90%"
+    )
+
+    private fun fieldHeatPreCoolingMission(day: Long) = Mission(
+        id = "m$day-precooling",
+        category = Category.PANEN,
+        title = "Pendinginan cepat penurun panas lapang (Pre-Cooling 15°C)",
+        detail = "Angin-anginkan cabai yang baru dipetik di ruang teduh berventilasi kipas sejuk (15°C - 20°C) selama 30 - 45 menit sebelum ditimbang.",
+        qualityImpact = "Menghilangkan panas lapang (field heat) menghentikan respirasi cepat dan mencegah pembusukan di dalam kemasan.",
+        weight = 2,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Hamparkan cabai panen tipis 1 lapis di atas rak kawat kasa di ruang tertutup teduh. Nyalakan kipas angin sepoi-sepoi selama 45 menit.",
+        scientificBasis = "Penurunan suhu buah dari 30°C ke 18°C menurunkan laju respirasi dan produksi etilen pascapanen hingga 65%.",
+        targetMetric = "Suhu internal buah turun ke 18°C - 20°C sebelum dimasukkan ke krat penyimpanan"
     )
 }

@@ -1,5 +1,6 @@
 package id.peritanix.dape.android.ui
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.missions.DailyMissions
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -65,6 +67,34 @@ fun DailyMissionsScreen(
     var expandedMissionId by remember { mutableStateOf<String?>(null) }
     var showQualityStandardDialog by remember { mutableStateOf(false) }
 
+    // Text to Speech Engine for farmer voice guidance in the field
+    var ttsInstance by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isTtsSpeaking by remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        var tts: TextToSpeech? = null
+        tts = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = IndonesianTtsVoiceAdvisor.getIndonesianLocale()
+            }
+        }
+        ttsInstance = tts
+        onDispose {
+            tts?.stop()
+            tts?.shutdown()
+        }
+    }
+
+    fun speak(text: String, utteranceId: String = "MISSION_TTS") {
+        if (isTtsSpeaking) {
+            ttsInstance?.stop()
+            isTtsSpeaking = false
+        } else {
+            ttsInstance?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            isTtsSpeaking = true
+        }
+    }
+
     val plan = remember(hst, riskBoost) { DailyMissions.planFor(today, hst, riskBoost) }
     val score = DailyMissions.dailyQualityScore(plan, completed)
     val grade = DailyMissions.scoreGrade(score)
@@ -93,7 +123,7 @@ fun DailyMissionsScreen(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 Modifier
@@ -115,6 +145,39 @@ fun DailyMissionsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // Audio Briefing TTS Button
+            FilledTonalButton(
+                onClick = {
+                    val briefingScript = IndonesianTtsVoiceAdvisor.composeDailyMissionsBriefingScript(
+                        stageTitle = plan.stageTitle,
+                        phaseName = plan.phaseName,
+                        hst = hst,
+                        score = score,
+                        exportBadge = exportBadge,
+                        totalMissions = plan.missions.size,
+                        completedMissions = completed.count { id -> plan.missions.any { it.id == id } },
+                        nextFocusTitle = DailyMissions.nextUnfinished(plan, completed)?.title
+                    )
+                    speak(briefingScript, "BRIEFING_TTS")
+                },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.height(32.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (isTtsSpeaking) OrangePrimary else MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = if (isTtsSpeaking) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Icon(
+                    if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(if (isTtsSpeaking) "Stop" else "Audio", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            }
+
             OutlinedButton(
                 onClick = { showQualityStandardDialog = true },
                 shape = RoundedCornerShape(8.dp),
@@ -123,7 +186,7 @@ fun DailyMissionsScreen(
             ) {
                 Icon(AppIcons.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = OrangePrimary)
                 Spacer(Modifier.width(4.dp))
-                Text("Standar Mutu", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Standar", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -603,44 +666,33 @@ fun DailyMissionsScreen(
                             )
                         }
 
-                        // Context-aware shortcuts
-                        when (mission.category) {
-                            DailyMissions.Category.INSPEKSI -> {
-                                OutlinedButton(
-                                    onClick = { onNavigateToTab?.invoke(8) },
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Buka Kamera", fontSize = 10.sp)
-                                }
-                            }
-                            DailyMissions.Category.PANEN -> {
-                                OutlinedButton(
-                                    onClick = { onNavigateToTab?.invoke(3) },
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Icon(AppIcons.Chili, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Uji Panen", fontSize = 10.sp)
-                                }
-                            }
-                            else -> {
-                                OutlinedButton(
-                                    onClick = { onNavigateToTab?.invoke(9) },
-                                    shape = RoundedCornerShape(6.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(28.dp)
-                                ) {
-                                    Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Panduan", fontSize = 10.sp)
-                                }
-                            }
+                        // Context-aware shortcuts for mobile sensors & agro-physics tools
+                        val titleLower = mission.title.lowercase()
+                        val detailLower = mission.detail.lowercase()
+                        val (shortcutLabel, shortcutIcon, shortcutTab) = when {
+                            titleLower.contains("barometer") || detailLower.contains("barometer") || titleLower.contains("tekanan") ->
+                                Triple("Cek Barometer", AppIcons.WbSunny, 7)
+                            titleLower.contains("klinometer") || detailLower.contains("klinometer") || titleLower.contains("kemiringan") ->
+                                Triple("Klinometer", AppIcons.Compass, 6)
+                            titleLower.contains("ceptometer") || titleLower.contains("sensor hp") || detailLower.contains("sensor hp") || titleLower.contains("lux") ->
+                                Triple("Sensor Lab", AppIcons.Sensors, 10)
+                            titleLower.contains("cielab") || titleLower.contains("foto kamera") || titleLower.contains("kamera dape") || mission.category == DailyMissions.Category.INSPEKSI ->
+                                Triple("Buka Kamera", AppIcons.Camera, 8)
+                            mission.category == DailyMissions.Category.PANEN ->
+                                Triple("Uji Panen", AppIcons.Chili, 3)
+                            else ->
+                                Triple("Panduan SOP", AppIcons.Book, 9)
+                        }
+
+                        OutlinedButton(
+                            onClick = { onNavigateToTab?.invoke(shortcutTab) },
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(shortcutIcon, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text(shortcutLabel, fontSize = 10.sp)
                         }
                     }
 
@@ -655,6 +707,30 @@ fun DailyMissionsScreen(
                                 modifier = Modifier.padding(10.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                // Spoken SOP audio playback
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            val sopScript = IndonesianTtsVoiceAdvisor.composeMissionSopScript(
+                                                title = mission.title,
+                                                qualityTarget = mission.qualityTarget.title,
+                                                howToExecute = mission.howToExecute,
+                                                targetMetric = mission.targetMetric
+                                            )
+                                            speak(sopScript, "SOP_${mission.id}")
+                                        },
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(26.dp)
+                                    ) {
+                                        Icon(AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Dengarkan SOP Suara", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
                                 if (mission.howToExecute.isNotBlank()) {
                                     Text(
                                         "Langkah Eksekusi SOP:",
