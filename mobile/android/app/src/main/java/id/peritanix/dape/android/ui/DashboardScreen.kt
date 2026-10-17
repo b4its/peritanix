@@ -147,7 +147,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -159,16 +159,18 @@ fun DashboardScreen(
                         ) {
                             Icon(AppIcons.Dashboard, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 "Dasbor Lahan Cabai",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                             Text(
                                 "Blok A1 • Kopeng (850 mdpl)",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
                             )
                         }
                     }
@@ -177,15 +179,23 @@ fun DashboardScreen(
 
                     Surface(
                         color = Color(0xFF2E7D32),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.wrapContentSize()
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                            Text("Optimal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Text(
+                                "Optimal",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
                     }
                 }
@@ -264,7 +274,7 @@ fun DashboardScreen(
                         ) {
                             Icon(AppIcons.Sprout, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
-                        Text("Tab 1 ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text("Detail ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                     Text("Luas Lahan Cabai", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("${"%.3f".format(areaHa)} Ha", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
@@ -295,7 +305,7 @@ fun DashboardScreen(
                         ) {
                             Icon(AppIcons.WaterDrop, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
-                        Text("Tab 1 ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text("Detail ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                     Text("Topografi & TWI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("TWI 6.84", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0277BD))
@@ -331,7 +341,7 @@ fun DashboardScreen(
                         ) {
                             Icon(AppIcons.BugReport, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
-                        Text("Tab 2 ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text("Detail ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                     Text("Kesehatan Tanaman", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("$diagnosisCount Lokasi", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFC62828))
@@ -362,7 +372,7 @@ fun DashboardScreen(
                         ) {
                             Icon(AppIcons.Chili, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         }
-                        Text("Tab 3 ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text("Detail ➜", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                     Text("Estimasi Panen", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("1.85 Ton/Ha", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFFEF6C00))

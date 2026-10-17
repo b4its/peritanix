@@ -494,7 +494,11 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -506,10 +510,13 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                         Text(
                             "4. Penguncian Fortifikasi Dinding Sel",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
+                    Spacer(Modifier.width(8.dp))
                     AssistChip(
+                        modifier = Modifier.wrapContentSize(),
                         onClick = {},
                         leadingIcon = {
                             Icon(
@@ -519,7 +526,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                                 modifier = Modifier.size(14.dp)
                             )
                         },
-                        label = { Text(if (fortStatus.isLocked) "LOCKED" else "NORMAL") }
+                        label = { Text(if (fortStatus.isLocked) "LOCKED" else "NORMAL", maxLines = 1, softWrap = false) }
                     )
                 }
 
@@ -658,7 +665,11 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
 
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -670,10 +681,13 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                         Text(
                             "6. EWS Mikroklimat 72 Jam (Spora)",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
+                    Spacer(Modifier.width(8.dp))
                     AssistChip(
+                        modifier = Modifier.wrapContentSize(),
                         onClick = {},
                         leadingIcon = {
                             Icon(
@@ -683,7 +697,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                                 modifier = Modifier.size(14.dp)
                             )
                         },
-                        label = { Text(ewsRisk.riskLevel) }
+                        label = { Text(ewsRisk.riskLevel, maxLines = 1, softWrap = false) }
                     )
                 }
 

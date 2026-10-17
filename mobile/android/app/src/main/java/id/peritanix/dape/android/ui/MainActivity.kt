@@ -86,7 +86,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(end = 12.dp)
+                            modifier = Modifier.wrapContentSize().padding(end = 12.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -103,7 +103,9 @@ fun PentasixApp(queue: SyncQueueStore) {
                                     "Offline-First",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
@@ -115,13 +117,34 @@ fun PentasixApp(queue: SyncQueueStore) {
                 )
             },
             bottomBar = {
+                var menuExpanded by remember { mutableStateOf(false) }
+                val isOtherTab = tab >= 2
+                val otherTabIcon = when (tab) {
+                    2 -> AppIcons.Microscope
+                    3 -> AppIcons.Chili
+                    4 -> AppIcons.Map
+                    5 -> AppIcons.Sync
+                    else -> AppIcons.MoreVert
+                }
+                val otherTabLabel = when (tab) {
+                    2 -> "Diagnosa ▾"
+                    3 -> "Panen ▾"
+                    4 -> "Peta ▾"
+                    5 -> "Sinkron ▾"
+                    else -> "Lainnya ▾"
+                }
+
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 6.dp
                 ) {
+                    // Item 1: Dasbor
                     NavigationBarItem(
                         selected = tab == 0,
-                        onClick = { tab = 0 },
+                        onClick = {
+                            tab = 0
+                            menuExpanded = false
+                        },
                         icon = {
                             Icon(
                                 imageVector = AppIcons.Dashboard,
@@ -129,16 +152,29 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Dasbor", fontSize = 10.sp, maxLines = 1) },
+                        label = {
+                            Text(
+                                "Dasbor",
+                                fontSize = 11.sp,
+                                fontWeight = if (tab == 0) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
                             indicatorColor = MaterialTheme.colorScheme.primary
                         )
                     )
+
+                    // Item 2: Lahan
                     NavigationBarItem(
                         selected = tab == 1,
-                        onClick = { tab = 1 },
+                        onClick = {
+                            tab = 1
+                            menuExpanded = false
+                        },
                         icon = {
                             Icon(
                                 imageVector = AppIcons.Sprout,
@@ -146,75 +182,151 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Lahan", fontSize = 10.sp, maxLines = 1) },
+                        label = {
+                            Text(
+                                "Lahan",
+                                fontSize = 11.sp,
+                                fontWeight = if (tab == 1) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
                             indicatorColor = MaterialTheme.colorScheme.primary
                         )
                     )
+
+                    // Item 3: Menu Dropdown (Maksimal 3 Menu Bawah)
                     NavigationBarItem(
-                        selected = tab == 2,
-                        onClick = { tab = 2 },
+                        selected = isOtherTab,
+                        onClick = { menuExpanded = !menuExpanded },
                         icon = {
-                            Icon(
-                                imageVector = AppIcons.Microscope,
-                                contentDescription = "Diagnosa",
-                                modifier = Modifier.size(22.dp)
+                            Box {
+                                Icon(
+                                    imageVector = otherTabIcon,
+                                    contentDescription = otherTabLabel,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                DropdownMenu(
+                                    expanded = menuExpanded,
+                                    onDismissRequest = { menuExpanded = false },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Diagnosa AI Patologi",
+                                                fontWeight = if (tab == 2) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Microscope,
+                                                contentDescription = null,
+                                                tint = if (tab == 2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 2) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 2
+                                            menuExpanded = false
+                                        }
+                                    )
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Estimasi Panen & Sortasi",
+                                                fontWeight = if (tab == 3) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Chili,
+                                                contentDescription = null,
+                                                tint = if (tab == 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 3) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 3
+                                            menuExpanded = false
+                                        }
+                                    )
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Peta Spasial GIS",
+                                                fontWeight = if (tab == 4) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 4) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Map,
+                                                contentDescription = null,
+                                                tint = if (tab == 4) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 4) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 4
+                                            menuExpanded = false
+                                        }
+                                    )
+
+                                    HorizontalDivider()
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Sinkronisasi Offline",
+                                                fontWeight = if (tab == 5) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Sync,
+                                                contentDescription = null,
+                                                tint = if (tab == 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 5) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 5
+                                            menuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        },
+                        label = {
+                            Text(
+                                otherTabLabel,
+                                fontSize = 11.sp,
+                                fontWeight = if (isOtherTab) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         },
-                        label = { Text("Diagnosa", fontSize = 10.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = tab == 3,
-                        onClick = { tab = 3 },
-                        icon = {
-                            Icon(
-                                imageVector = AppIcons.Chili,
-                                contentDescription = "Panen",
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = { Text("Panen", fontSize = 10.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = tab == 4,
-                        onClick = { tab = 4 },
-                        icon = {
-                            Icon(
-                                imageVector = AppIcons.Map,
-                                contentDescription = "Peta",
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = { Text("Peta", fontSize = 10.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = tab == 5,
-                        onClick = { tab = 5 },
-                        icon = {
-                            Icon(
-                                imageVector = AppIcons.Sync,
-                                contentDescription = "Sinkron",
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = { Text("Sinkron", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,

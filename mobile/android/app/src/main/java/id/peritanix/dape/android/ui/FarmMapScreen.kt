@@ -437,11 +437,12 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                                 }
                             }
                             AssistChip(
+                                modifier = Modifier.wrapContentSize(),
                                 onClick = { selectedMarkerInfo = marker },
                                 leadingIcon = {
                                     Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(14.dp))
                                 },
-                                label = { Text("Lihat") }
+                                label = { Text("Lihat", maxLines = 1, softWrap = false) }
                             )
                         }
                     }

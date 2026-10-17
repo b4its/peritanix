@@ -73,16 +73,25 @@ fun SyncScreen(queue: SyncQueueStore) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Mutasi Tertunda di SQLite:", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Mutasi Tertunda di SQLite:",
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (pendingCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                            color = if (pendingCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.wrapContentSize()
                         ) {
                             Text(
                                 "$pendingCount entri",
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 fontWeight = FontWeight.Bold,
-                                color = if (pendingCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (pendingCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

@@ -301,7 +301,11 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -313,12 +317,15 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         Text(
                             "2.5. Grading Morfologi Buah Cabai",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
+                    Spacer(Modifier.width(8.dp))
                     AssistChip(
+                        modifier = Modifier.wrapContentSize(),
                         onClick = {},
-                        label = { Text("Grade ${morphVerdict.finalGrade}") }
+                        label = { Text("Grade ${morphVerdict.finalGrade}", maxLines = 1, softWrap = false) }
                     )
                 }
                 Text("Panjang: ${"%.1f".format(podLength)} cm | Kelengkungan: ${"%.1f".format(podCurv)}° | Merah: ${podRed.toInt()}% | Cacat: ${"%.1f".format(podDefect)}%", style = MaterialTheme.typography.bodySmall)

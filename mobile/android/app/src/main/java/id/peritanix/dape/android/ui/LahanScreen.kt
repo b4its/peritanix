@@ -323,36 +323,56 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
 
                 HorizontalDivider()
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        Text("Indeks Kebasahan (TWI)", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "%.2f".format(twi),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Column {
-                        Text("Tinggi Bedengan", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "$bedHeight cm",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = if (riskClass == "CRITICAL" || riskClass == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    AssistChip(
-                        onClick = {},
-                        leadingIcon = {
-                            Icon(
-                                if (riskClass == "CRITICAL" || riskClass == "HIGH") AppIcons.Warning else AppIcons.CheckCircle,
-                                contentDescription = null,
-                                tint = if (riskClass == "CRITICAL" || riskClass == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(16.dp)
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Indeks Kebasahan (TWI)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "%.2f".format(twi),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            AssistChip(
+                                modifier = Modifier.wrapContentSize(),
+                                onClick = {},
+                                leadingIcon = {
+                                    Icon(
+                                        if (riskClass == "CRITICAL" || riskClass == "HIGH") AppIcons.Warning else AppIcons.CheckCircle,
+                                        contentDescription = null,
+                                        tint = if (riskClass == "CRITICAL" || riskClass == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                label = { Text(riskClass, maxLines = 1, softWrap = false) }
                             )
-                        },
-                        label = { Text(riskClass) }
-                    )
+                        }
+
+                        HorizontalDivider()
+
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Tinggi Bedengan Disarankan:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "$bedHeight cm",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (riskClass == "CRITICAL" || riskClass == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 Text(
