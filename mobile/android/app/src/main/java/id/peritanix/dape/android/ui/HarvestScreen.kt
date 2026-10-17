@@ -9,8 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import id.peritanix.dape.android.core.crypto.QrMatrixGenerator
+import id.peritanix.dape.android.core.hardware.BluetoothThermalPrinter
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
+import id.peritanix.dape.android.core.physics.PodMorphologyGrader
 import id.peritanix.dape.crypto.Ed25519OfflineSigner
 import id.peritanix.dape.physics.Physics
 
@@ -41,6 +48,24 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
 
     val sinkRatio = Physics.archimedesSinkRatio(sinkCount, neutralCount, floatCount)
     val seedGrade = Physics.gradeFromSinkRatio(sinkRatio)
+
+    var podLength by remember { mutableStateOf(12.5) }
+    var podCurv by remember { mutableStateOf(12.0) }
+    var podRed by remember { mutableStateOf(92.0) }
+    var podDefect by remember { mutableStateOf(1.5) }
+    var printStatus by remember { mutableStateOf("") }
+
+    val morphVerdict = remember(podLength, podCurv, podRed, podDefect, sinkRatio) {
+        PodMorphologyGrader.evaluateGrade(
+            PodMorphologyGrader.PodMeasurement(
+                lengthCm = podLength,
+                curvatureDeg = podCurv,
+                redCoveragePct = podRed,
+                defectPct = podDefect,
+                archimedesSinkRatio = sinkRatio
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -215,23 +240,6 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            var podLength by remember { mutableStateOf(12.5) }
-            var podCurv by remember { mutableStateOf(12.0) }
-            var podRed by remember { mutableStateOf(92.0) }
-            var podDefect by remember { mutableStateOf(1.5) }
-
-            val morphVerdict = remember(podLength, podCurv, podRed, podDefect, sinkRatio) {
-                id.peritanix.dape.android.core.physics.PodMorphologyGrader.evaluateGrade(
-                    id.peritanix.dape.android.core.physics.PodMorphologyGrader.PodMeasurement(
-                        lengthCm = podLength,
-                        curvatureDeg = podCurv,
-                        redCoveragePct = podRed,
-                        defectPct = podDefect,
-                        archimedesSinkRatio = sinkRatio
-                    )
-                )
-            }
-
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(
@@ -300,6 +308,70 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // Render visual QR Code 2D Canvas
+                    val qrMatrix = remember(signedCert) {
+                        QrMatrixGenerator.generateBitMatrix(signedCert)
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(
+                            Modifier.padding(16.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("QR Code Sertifikat Mutu Fisik (Kanonikal RFC 8785)", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            androidx.compose.foundation.Canvas(
+                                modifier = Modifier.size(200.dp)
+                            ) {
+                                val moduleSize = size.width / qrMatrix.size
+                                for (r in qrMatrix.indices) {
+                                    for (c in qrMatrix[r].indices) {
+                                        if (qrMatrix[r][c]) {
+                                            drawRect(
+                                                color = Color.Black,
+                                                topLeft = Offset(c * moduleSize, r * moduleSize),
+                                                size = Size(moduleSize, moduleSize)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Text("Pindai dengan Web Verifier (PWA / Kamera WebRTC)", color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val receipt = BluetoothThermalPrinter.generateEscPosReceipt(
+                                landId = "land-peritanix-001",
+                                gradeResult = seedGrade,
+                                commercialTier = morphVerdict.commercialTier,
+                                sinkRatio = Math.round(sinkRatio * 100.0) / 100.0,
+                                sterilizationC = 52.0,
+                                photoSha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                gyroVariance = 0.42,
+                                cryptoSignatureB64 = "lcPzlao/gSP0CtQA0OyjB+p2yv3SVV2YcFj8GD2swTTWU3arLri06+KWHHut+veVbBGwwTcmh7uBDo5iVgOFCQ==",
+                                qrPayload = signedCert
+                            )
+                            printStatus = "Bukti Fisik ESC/POS Siap (${receipt.byteCount} bytes) untuk Printer Termal Bluetooth 58mm/80mm."
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🖨️ Cetak ke Printer Termal Bluetooth (ESC/POS)")
+                    }
+
+                    if (printStatus.isNotEmpty()) {
+                        Text(
+                            printStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
                     HorizontalDivider()
 
