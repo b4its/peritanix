@@ -181,6 +181,31 @@ class SyncQueueStore(private val context: Context) {
         }.start()
     }
 
+    /**
+     * Queue the Ed25519 public key + white-reference matrix for the delta-sync
+     * worker to flush (`user_key` entity). Used when there is no JWT yet or the
+     * device is offline during onboarding (item 2.2 ONLINE).
+     */
+    fun enqueueUserKey(
+        userId: String,
+        publicKeyBase64: String,
+        whiteRefR: Double,
+        whiteRefG: Double,
+        whiteRefB: Double
+    ) {
+        val key = "android-userkey-${UUID.randomUUID()}"
+        val ts = System.currentTimeMillis()
+        val json = """{"user_id":"$userId","ed25519_public_key":"$publicKeyBase64","white_reference":[$whiteRefR,$whiteRefG,$whiteRefB]}"""
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT INTO sync_queue (entity, idempotencyKey, updatedTs, rev, payloadJson) " +
+                    "VALUES (?, ?, ?, ?, ?)",
+                arrayOf("user_key", key, ts, 1L, json)
+            )
+            schedule()
+        }.start()
+    }
+
     /** Schedule a constraints-gated background sync (Wi-Fi / 4G). */
     fun schedule() {
         val constraints = Constraints.Builder()

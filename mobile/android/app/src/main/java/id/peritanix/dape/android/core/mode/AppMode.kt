@@ -67,8 +67,17 @@ class AppModeStore(private val context: Context) {
     /** Flip to the other mode, persist, and return the new mode. */
     fun toggle(): AppMode = save(AppMode.toggle(load()))
 
+    /** Whether the first-run onboarding (spectral calib + key) has completed. */
+    fun isOnboardingDone(): Boolean = prefs.getBoolean(KEY_ONBOARDING, false)
+
+    /** Mark first-run onboarding complete so it is not shown again. */
+    fun setOnboardingDone() {
+        prefs.edit().putBoolean(KEY_ONBOARDING, true).apply()
+    }
+
     companion object {
         private const val PREFS = "dape.mode"
         private const val KEY_MODE = "app_mode"
+        private const val KEY_ONBOARDING = "onboarding_done"
     }
 }
