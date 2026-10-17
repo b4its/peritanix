@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
+	import Icon from '$lib/Icon.svelte';
 	import '../app.css';
 
 	let { children } = $props();
@@ -22,27 +24,43 @@
 			window.removeEventListener('offline', update);
 		};
 	});
+
+	const nav = [
+		{ href: '/dashboard', label: 'Dashboard' },
+		{ href: '/lands/new', label: 'Lahan' },
+		{ href: '/diagnose', label: 'Diagnosis' },
+		{ href: '/fertilize', label: 'Pupuk' },
+		{ href: '/fertilizer', label: 'Dosis' },
+		{ href: '/harvest', label: 'Panen' },
+		{ href: '/certify', label: 'Sertifikat' },
+		{ href: '/verify', label: 'Verifikasi' },
+		{ href: '/economics', label: 'Ekonomi' },
+		{ href: '/models', label: 'Model' },
+		{ href: '/calibrate', label: 'Kalibrasi' },
+		{ href: '/account', label: 'Akun' }
+	];
+	let path = $derived($page.url.pathname);
 </script>
 
 <div class="app">
 	<header>
-		<a href="/" class="brand">🌶️ DAPE</a>
+		<a href="/" class="brand" aria-label="DAPE beranda">
+			<Icon name="chili" size={20} />
+			<span>DAPE</span>
+		</a>
 		<nav>
-			<a href="/dashboard">Dashboard</a>
-			<a href="/lands/new">+ Lahan</a>
-			<a href="/diagnose">Diagnosis</a>
-			<a href="/fertilize">Pupuk</a>
-			<a href="/fertilizer">Dosis</a>
-			<a href="/harvest">Panen</a>
-			<a href="/certify">Sertifikat</a>
-			<a href="/verify">Verifikasi</a>
-			<a href="/economics">Ekonomi</a>
-			<a href="/models">Model</a>
-			<a href="/calibrate">Kalibrasi</a>
-			<a href="/account">Akun</a>
+			{#each nav as item}
+				<a
+					href={item.href}
+					class:active={path === item.href || path.startsWith(item.href + '/')}
+				>
+					{item.label}
+				</a>
+			{/each}
 		</nav>
 		<span class="net" class:on={online} class:off={!online}>
-			{online ? '● Online' : '○ Offline'}
+			<Icon name="dot" size={10} />
+			{online ? 'Online' : 'Offline'}
 		</span>
 	</header>
 	<main>
@@ -56,9 +74,10 @@
 <style>
 	:global(body) {
 		margin: 0;
-		font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-		background: #f6f7f4;
-		color: #1c2520;
+		font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+		background: var(--bg);
+		color: var(--ink);
+		-webkit-font-smoothing: antialiased;
 	}
 	.app {
 		min-height: 100vh;
@@ -69,51 +88,90 @@
 		display: flex;
 		align-items: center;
 		gap: 1.5rem;
-		padding: 0.75rem 1.5rem;
-		background: #14261c;
-		color: #eafaf0;
+		padding: 0.7rem 1.5rem;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+		position: sticky;
+		top: 0;
+		z-index: 20;
 	}
 	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
 		font-weight: 700;
-		font-size: 1.15rem;
-		color: #7ff0a8;
+		font-size: 1.1rem;
+		letter-spacing: -0.01em;
+		color: var(--accent);
 		text-decoration: none;
 	}
 	nav {
 		display: flex;
-		gap: 1rem;
+		flex-wrap: wrap;
+		gap: 0.15rem;
 		flex: 1;
 	}
 	nav a {
-		color: #c9e8d4;
+		color: var(--ink-2);
 		text-decoration: none;
-		font-size: 0.95rem;
+		font-size: 0.88rem;
+		font-weight: 500;
+		padding: 0.35rem 0.6rem;
+		border-radius: var(--radius-sm);
+		transition: color 0.15s ease, background 0.15s ease;
 	}
 	nav a:hover {
-		color: #7ff0a8;
+		color: var(--orange-700);
+		background: var(--orange-50);
 	}
-	.net {
-		font-size: 0.85rem;
+	nav a.active {
+		color: var(--orange-700);
+		background: var(--accent-weak);
 		font-weight: 600;
 	}
+	.net {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		padding: 0.3rem 0.65rem;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		white-space: nowrap;
+	}
 	.net.on {
-		color: #7ff0a8;
+		color: var(--ok);
+		border-color: var(--ok-bg);
+		background: var(--ok-bg);
 	}
 	.net.off {
-		color: #ffb4a2;
+		color: var(--danger);
+		border-color: var(--danger-bg);
+		background: var(--danger-bg);
 	}
 	main {
 		flex: 1;
-		padding: 1.5rem;
+		padding: var(--space);
 		max-width: 1200px;
 		width: 100%;
 		margin: 0 auto;
-		box-sizing: border-box;
 	}
 	footer {
-		padding: 1rem 1.5rem;
+		padding: 1.25rem 1.5rem;
 		text-align: center;
 		font-size: 0.8rem;
-		color: #6b7a72;
+		color: var(--muted);
+		border-top: 1px solid var(--line);
+	}
+	@media (max-width: 720px) {
+		header {
+			flex-wrap: wrap;
+			gap: 0.75rem;
+		}
+		nav {
+			order: 3;
+			width: 100%;
+		}
 	}
 </style>
