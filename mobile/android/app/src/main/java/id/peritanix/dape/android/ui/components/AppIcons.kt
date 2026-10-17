@@ -673,4 +673,28 @@ object AppIcons {
         lineTo(13.41f, 12f)
         close()
     }
+
+    // 31. Dashboard / Grid Overview
+    val Dashboard: ImageVector = buildIcon("Dashboard") {
+        moveTo(3f, 13f)
+        lineTo(11f, 13f)
+        lineTo(11f, 3f)
+        lineTo(3f, 3f)
+        close()
+        moveTo(3f, 21f)
+        lineTo(11f, 21f)
+        lineTo(11f, 15f)
+        lineTo(3f, 15f)
+        close()
+        moveTo(13f, 21f)
+        lineTo(21f, 21f)
+        lineTo(21f, 11f)
+        lineTo(13f, 11f)
+        close()
+        moveTo(13f, 9f)
+        lineTo(21f, 9f)
+        lineTo(21f, 3f)
+        lineTo(13f, 3f)
+        close()
+    }
 }

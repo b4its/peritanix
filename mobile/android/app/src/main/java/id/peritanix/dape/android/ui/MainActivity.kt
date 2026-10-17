@@ -124,12 +124,12 @@ fun PentasixApp(queue: SyncQueueStore) {
                         onClick = { tab = 0 },
                         icon = {
                             Icon(
-                                imageVector = AppIcons.Sprout,
-                                contentDescription = "Lahan",
+                                imageVector = AppIcons.Dashboard,
+                                contentDescription = "Dasbor",
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Lahan", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text("Dasbor", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -141,12 +141,12 @@ fun PentasixApp(queue: SyncQueueStore) {
                         onClick = { tab = 1 },
                         icon = {
                             Icon(
-                                imageVector = AppIcons.Microscope,
-                                contentDescription = "Diagnosis",
+                                imageVector = AppIcons.Sprout,
+                                contentDescription = "Lahan",
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Diagnosis", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text("Lahan", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -158,12 +158,12 @@ fun PentasixApp(queue: SyncQueueStore) {
                         onClick = { tab = 2 },
                         icon = {
                             Icon(
-                                imageVector = AppIcons.Chili,
-                                contentDescription = "Panen",
+                                imageVector = AppIcons.Microscope,
+                                contentDescription = "Diagnosa",
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Panen", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text("Diagnosa", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -175,12 +175,12 @@ fun PentasixApp(queue: SyncQueueStore) {
                         onClick = { tab = 3 },
                         icon = {
                             Icon(
-                                imageVector = AppIcons.Map,
-                                contentDescription = "Peta GIS",
+                                imageVector = AppIcons.Chili,
+                                contentDescription = "Panen",
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Peta GIS", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text("Panen", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -192,12 +192,29 @@ fun PentasixApp(queue: SyncQueueStore) {
                         onClick = { tab = 4 },
                         icon = {
                             Icon(
+                                imageVector = AppIcons.Map,
+                                contentDescription = "Peta",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        label = { Text("Peta", fontSize = 10.sp, maxLines = 1) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = tab == 5,
+                        onClick = { tab = 5 },
+                        icon = {
+                            Icon(
                                 imageVector = AppIcons.Sync,
                                 contentDescription = "Sinkron",
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        label = { Text("Sinkron", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text("Sinkron", fontSize = 10.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -214,10 +231,11 @@ fun PentasixApp(queue: SyncQueueStore) {
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 when (tab) {
-                    0 -> LahanScreen(queue)
-                    1 -> DiagnosticsScreen(queue)
-                    2 -> HarvestScreen(queue)
-                    3 -> FarmMapScreen(queue)
+                    0 -> DashboardScreen(queue, onNavigateToTab = { tab = it })
+                    1 -> LahanScreen(queue)
+                    2 -> DiagnosticsScreen(queue)
+                    3 -> HarvestScreen(queue)
+                    4 -> FarmMapScreen(queue)
                     else -> SyncScreen(queue)
                 }
             }
