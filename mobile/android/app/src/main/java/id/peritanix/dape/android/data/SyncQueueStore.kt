@@ -255,6 +255,34 @@ class SyncQueueStore(private val context: Context) {
         Thread { db.openHelper.writableDatabase.execSQL("DELETE FROM farm_activities WHERE id = ?", arrayOf(id)) }.start()
     }
 
+    // --- daily mission completion --------------------------------------------
+
+    /** Mark a daily mission done for [epochDay]. */
+    fun markMissionDone(epochDay: Long, missionId: String) {
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT OR REPLACE INTO daily_mission_done (epochDay, missionId, completedAt) VALUES (?, ?, ?)",
+                arrayOf(epochDay, missionId, System.currentTimeMillis())
+            )
+        }.start()
+    }
+
+    /** Un-mark a daily mission for [epochDay]. */
+    fun unmarkMissionDone(epochDay: Long, missionId: String) {
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "DELETE FROM daily_mission_done WHERE epochDay = ? AND missionId = ?",
+                arrayOf(epochDay, missionId)
+            )
+        }.start()
+    }
+
+    /** Completed mission ids for [epochDay] (blocking; call off UI thread or use suspend). */
+    fun completedMissions(epochDay: Long): Set<String> = db.dao().completedMissionsSync(epochDay).toSet()
+
+    /** Suspend variant of [completedMissions] for coroutine use. */
+    suspend fun completedMissionsSuspend(epochDay: Long): Set<String> = db.dao().completedMissions(epochDay).toSet()
+
     /** Add activity suspend variant for coroutines. */
     suspend fun addActivitySuspend(
         epochDay: Long,

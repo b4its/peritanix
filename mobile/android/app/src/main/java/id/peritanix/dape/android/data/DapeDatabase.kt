@@ -93,6 +93,17 @@ data class FarmActivityEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+/**
+ * Completion record for a daily mission on a given day. A row exists only when
+ * the mission is marked done; deleting the row un-marks it.
+ */
+@Entity(tableName = "daily_mission_done", primaryKeys = ["epochDay", "missionId"])
+data class DailyMissionDoneEntity(
+    val epochDay: Long,
+    val missionId: String,
+    val completedAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface DapeDao {
     // --- sync queue ---
@@ -182,6 +193,19 @@ interface DapeDao {
 
     @Query("SELECT COUNT(*) FROM farm_activities")
     fun activityCount(): Int
+
+    // --- daily mission completion ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun markMissionDone(d: DailyMissionDoneEntity)
+
+    @Query("DELETE FROM daily_mission_done WHERE epochDay = :epochDay AND missionId = :missionId")
+    suspend fun unmarkMissionDone(epochDay: Long, missionId: String)
+
+    @Query("SELECT missionId FROM daily_mission_done WHERE epochDay = :epochDay")
+    suspend fun completedMissions(epochDay: Long): List<String>
+
+    @Query("SELECT missionId FROM daily_mission_done WHERE epochDay = :epochDay")
+    fun completedMissionsSync(epochDay: Long): List<String>
 }
 
 @Database(
@@ -192,9 +216,10 @@ interface DapeDao {
         SoilAssessmentEntity::class,
         HarvestBatchEntity::class,
         DeviceCalibrationEntity::class,
-        FarmActivityEntity::class
+        FarmActivityEntity::class,
+        DailyMissionDoneEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class DapeDatabase : RoomDatabase() {
