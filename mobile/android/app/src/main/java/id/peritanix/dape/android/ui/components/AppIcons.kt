@@ -931,5 +931,51 @@ object AppIcons {
         lineTo(13f, 9f)
         close()
     }
+
+    // 42. Book (Panduan Budidaya)
+    val Book: ImageVector = buildIcon("Book") {
+        moveTo(4f, 4f)
+        lineTo(11f, 4f)
+        curveTo(11.6f, 4f, 12f, 4.4f, 12f, 5f)
+        lineTo(12f, 20f)
+        curveTo(11.6f, 19.4f, 11f, 19f, 10f, 19f)
+        lineTo(4f, 19f)
+        lineTo(4f, 4f)
+        close()
+        moveTo(20f, 4f)
+        lineTo(13f, 4f)
+        curveTo(12.4f, 4f, 12f, 4.4f, 12f, 5f)
+        lineTo(12f, 20f)
+        curveTo(12.4f, 19.4f, 13f, 19f, 14f, 19f)
+        lineTo(20f, 19f)
+        lineTo(20f, 4f)
+        close()
+    }
+
+    // 43. SwapHoriz (Tukar Mode Simulasi / Riil)
+    val SwapHoriz: ImageVector = buildIcon("SwapHoriz") {
+        moveTo(6f, 7f)
+        lineTo(14.5f, 7f)
+        lineTo(11.7f, 4.2f)
+        lineTo(13.1f, 2.8f)
+        lineTo(18.3f, 8f)
+        lineTo(13.1f, 13.2f)
+        lineTo(11.7f, 11.8f)
+        lineTo(14.5f, 9f)
+        lineTo(6f, 9f)
+        lineTo(6f, 7f)
+        close()
+        moveTo(18f, 17f)
+        lineTo(9.5f, 17f)
+        lineTo(12.3f, 19.8f)
+        lineTo(10.9f, 21.2f)
+        lineTo(5.7f, 16f)
+        lineTo(10.9f, 10.8f)
+        lineTo(12.3f, 12.2f)
+        lineTo(9.5f, 15f)
+        lineTo(18f, 15f)
+        lineTo(18f, 17f)
+        close()
+    }
 }
 
