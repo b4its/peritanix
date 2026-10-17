@@ -114,4 +114,46 @@ class ActivityCalendarTest {
         assertEquals(-1L, ActivityCalendar.daysBetween(today, today.minusDays(1)))
         assertEquals(0L, ActivityCalendar.daysBetween(today, today))
     }
+
+    @Test
+    fun testRelativeDayLabel() {
+        assertEquals("Hari Ini", ActivityCalendar.relativeDayLabel(today, today))
+        assertEquals("Besok", ActivityCalendar.relativeDayLabel(today.plusDays(1), today))
+        assertEquals("Lusa", ActivityCalendar.relativeDayLabel(today.plusDays(2), today))
+        assertEquals("Dalam 5 hari", ActivityCalendar.relativeDayLabel(today.plusDays(5), today))
+        assertEquals("Dalam 2 bulan", ActivityCalendar.relativeDayLabel(today.plusDays(60), today))
+        assertEquals("Tahun depan", ActivityCalendar.relativeDayLabel(today.plusDays(365), today))
+        assertEquals("Dalam 2 tahun", ActivityCalendar.relativeDayLabel(today.plusDays(730), today))
+        assertEquals("Dalam 30 tahun", ActivityCalendar.relativeDayLabel(today.plusYears(30), today))
+        assertEquals("Kemarin", ActivityCalendar.relativeDayLabel(today.minusDays(1), today))
+        assertEquals("5 hari lalu", ActivityCalendar.relativeDayLabel(today.minusDays(5), today))
+    }
+
+    @Test
+    fun testCategoriesMetadata() {
+        assertTrue(ActivityCalendar.CATEGORIES.size >= 8)
+        val pupuk = ActivityCalendar.findCategory("PUPUK")
+        assertEquals("PUPUK", pupuk.code)
+        assertEquals("Pemupukan Susulan", pupuk.label)
+
+        val unknown = ActivityCalendar.findCategory("CUSTOM_XYZ")
+        assertEquals("CUSTOM_XYZ", unknown.code)
+    }
+
+    @Test
+    fun testSampleSeedActivities() {
+        val seeds = ActivityCalendar.sampleSeedActivities()
+        assertTrue(seeds.isNotEmpty())
+
+        // Verify all seeds are within 30 years
+        for (seed in seeds) {
+            val actDate = today.plusDays(seed.offsetDays)
+            assertTrue(
+                "Activity ${seed.title} on $actDate should be within 30 years range",
+                ActivityCalendar.inRange(actDate, today)
+            )
+            assertNotNull(seed.title)
+            assertTrue(seed.title.isNotBlank())
+        }
+    }
 }

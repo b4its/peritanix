@@ -1072,6 +1072,28 @@ object AppIcons {
         lineTo(8f, 17f)
         close()
     }
+
+    // 48. ChevronLeft
+    val ChevronLeft: ImageVector = buildIcon("ChevronLeft") {
+        moveTo(15.41f, 7.41f)
+        lineTo(14f, 6f)
+        lineTo(8f, 12f)
+        lineTo(14f, 18f)
+        lineTo(15.41f, 16.59f)
+        lineTo(10.83f, 12f)
+        close()
+    }
+
+    // 49. ChevronRight
+    val ChevronRight: ImageVector = buildIcon("ChevronRight") {
+        moveTo(10f, 6f)
+        lineTo(8.59f, 7.41f)
+        lineTo(13.17f, 12f)
+        lineTo(8.59f, 16.59f)
+        lineTo(10f, 18f)
+        lineTo(16f, 12f)
+        close()
+    }
 }
 
 

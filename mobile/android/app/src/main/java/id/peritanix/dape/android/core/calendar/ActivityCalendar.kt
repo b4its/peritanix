@@ -111,4 +111,127 @@ object ActivityCalendar {
         val m = month.coerceIn(1, 12)
         return YearMonth.of(y, m)
     }
+
+    /**
+     * Relative day label (e.g. "Hari Ini", "Besok", "Dalam 4 hari", "Dalam 2 tahun").
+     */
+    fun relativeDayLabel(date: LocalDate, today: LocalDate = LocalDate.now()): String {
+        val diff = daysBetween(today, date)
+        return when {
+            diff == 0L -> "Hari Ini"
+            diff == 1L -> "Besok"
+            diff == 2L -> "Lusa"
+            diff in 3..29 -> "Dalam $diff hari"
+            diff in 30..364 -> "Dalam ${diff / 30} bulan"
+            diff in 365..729 -> "Tahun depan"
+            diff >= 730 -> "Dalam ${diff / 365} tahun"
+            diff == -1L -> "Kemarin"
+            diff in -29..-2 -> "${-diff} hari lalu"
+            diff in -364..-30 -> "${-diff / 30} bulan lalu"
+            else -> "${-diff / 365} tahun lalu"
+        }
+    }
+
+    /**
+     * Category metadata for agronomic activities.
+     */
+    data class CategoryInfo(
+        val code: String,
+        val label: String,
+        val colorHex: Long,
+        val iconName: String
+    )
+
+    val CATEGORIES = listOf(
+        CategoryInfo("TANAM", "Tanam & Persemaian", 0xFF2E7D32, "Sprout"),
+        CategoryInfo("PUPUK", "Pemupukan Susulan", 0xFF1565C0, "Terrain"),
+        CategoryInfo("SEMPROT", "Penyemprotan Proteksi", 0xFFAD1457, "BugReport"),
+        CategoryInfo("IRIGASI", "Irigasi & Kelembaban", 0xFF00838F, "WaterDrop"),
+        CategoryInfo("WIWILAN", "Wiwilan Tunas & LAI", 0xFF6A1B9A, "Straighten"),
+        CategoryInfo("PENGAMATAN", "Pengamatan Antraknosa", 0xFFD84315, "Microscope"),
+        CategoryInfo("PANEN", "Panen & Sortasi", 0xFFE65100, "Chili"),
+        CategoryInfo("SENSOR", "Kalibrasi Sensor Lab", 0xFF37474F, "Compass"),
+        CategoryInfo("LAIN", "Aktivitas Lapangan Lainnya", 0xFF4E342E, "CheckCircle")
+    )
+
+    fun findCategory(code: String): CategoryInfo =
+        CATEGORIES.firstOrNull { it.code.equals(code, ignoreCase = true) }
+            ?: CategoryInfo(code, code, 0xFF4E342E, "CheckCircle")
+
+    /**
+     * Sample activity seed specification.
+     */
+    data class SampleActivitySpec(
+        val offsetDays: Long,
+        val kind: String,
+        val title: String,
+        val notes: String,
+        val landId: String = "Blok A1 Kopeng"
+    )
+
+    /**
+     * Initial precision micro-farming agronomic calendar schedule across the 30-year span.
+     */
+    fun sampleSeedActivities(): List<SampleActivitySpec> = listOf(
+        SampleActivitySpec(
+            offsetDays = 0,
+            kind = "PENGAMATAN",
+            title = "Pengamatan Antraknosa & Uji Buah",
+            notes = "Inspeksi lesi 35% pada Blok A1, perlakuan fungisida P-CU-01 sesuai rekomendasi lab."
+        ),
+        SampleActivitySpec(
+            offsetDays = 1,
+            kind = "SEMPROT",
+            title = "Penyemprotan Fungisida & Cek Angin",
+            notes = "Cek Acoustic Anemometer sebelum semprot (pastikan < 12 km/jam)."
+        ),
+        SampleActivitySpec(
+            offsetDays = 4,
+            kind = "PUPUK",
+            title = "Pemupukan Susulan NPK Cor & Uji Tensiometer",
+            notes = "Dosis 5 gram per lubang tanam mulsa, pantau kadar air tanah."
+        ),
+        SampleActivitySpec(
+            offsetDays = 8,
+            kind = "WIWILAN",
+            title = "Wiwilan Tunas Air & Ceptometer LAI",
+            notes = "Gunakan sensor lux ambien; pangkas tunas jika LAI tajuk > 3.5."
+        ),
+        SampleActivitySpec(
+            offsetDays = 15,
+            kind = "PANEN",
+            title = "Pemetikan Perdana & Sortasi Archimedes",
+            notes = "Target panen 1.85 Ton/Ha, sortasi densitas biji bernas 94%."
+        ),
+        SampleActivitySpec(
+            offsetDays = 30,
+            kind = "SENSOR",
+            title = "Kalibrasi Barometer & Beda Tinggi Bedengan",
+            notes = "Uji beda tinggi parit vs bedengan 40-50 cm untuk drainase optimal."
+        ),
+        SampleActivitySpec(
+            offsetDays = 365,
+            kind = "TANAM",
+            title = "Siklus Tanam Musim Hujan 2027",
+            notes = "Pengolahan tanah, pemasangan mulsa perak-hitam, dan EKF PDR mapping."
+        ),
+        SampleActivitySpec(
+            offsetDays = 1825,
+            kind = "PUPUK",
+            title = "Rotasi Lahan Cabai Periode 5 Tahunan (2031)",
+            notes = "Solarisasi tanah dan peremajaan unsur hara mikro organik."
+        ),
+        SampleActivitySpec(
+            offsetDays = 3650,
+            kind = "PENGAMATAN",
+            title = "Audit Agro-Fisika Dekade 1 (2036)",
+            notes = "Evaluasi produktivitas kumulatif dan kesuburan tanah PostGIS."
+        ),
+        SampleActivitySpec(
+            offsetDays = 10950,
+            kind = "PANEN",
+            title = "Proyeksi Keberlanjutan 30 Tahun (2056)",
+            notes = "Target regenerasi tanah cabai presisi mikro jangka panjang."
+        )
+    )
 }

@@ -43,6 +43,8 @@ mobile/.idea/
 *.keystore
 *.stale/
 *.stale
+*.stale.*
+*build.stale*
 
 # --- IDE / OS ---
 .idea/

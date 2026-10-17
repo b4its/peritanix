@@ -7,6 +7,8 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import id.peritanix.dape.android.core.calendar.ActivityCalendar
+import java.time.LocalDate
 import java.util.UUID
 
 /**
@@ -251,5 +253,54 @@ class SyncQueueStore(private val context: Context) {
     /** Remove an activity by id. */
     fun deleteActivity(id: String) {
         Thread { db.openHelper.writableDatabase.execSQL("DELETE FROM farm_activities WHERE id = ?", arrayOf(id)) }.start()
+    }
+
+    /** Add activity suspend variant for coroutines. */
+    suspend fun addActivitySuspend(
+        epochDay: Long,
+        kind: String,
+        title: String,
+        notes: String = "",
+        landId: String = ""
+    ): FarmActivityEntity {
+        val entity = FarmActivityEntity(
+            id = "act-${UUID.randomUUID()}",
+            epochDay = epochDay,
+            kind = kind,
+            title = title,
+            notes = notes,
+            landId = landId,
+            createdAt = System.currentTimeMillis()
+        )
+        db.dao().insertActivity(entity)
+        return entity
+    }
+
+    /** Delete activity suspend variant for coroutines. */
+    suspend fun deleteActivitySuspend(id: String) {
+        db.dao().deleteActivity(id)
+    }
+
+    /**
+     * Seeds initial precision micro-farming agronomic calendar schedule if the
+     * table is currently empty.
+     */
+    suspend fun seedDefaultActivitiesIfEmpty(today: LocalDate = LocalDate.now()) {
+        val count = db.dao().activityCount()
+        if (count == 0) {
+            for (spec in ActivityCalendar.sampleSeedActivities()) {
+                val actDate = today.plusDays(spec.offsetDays)
+                val entity = FarmActivityEntity(
+                    id = "act-${UUID.randomUUID()}",
+                    epochDay = ActivityCalendar.toEpochDay(actDate),
+                    kind = spec.kind,
+                    title = spec.title,
+                    notes = spec.notes,
+                    landId = spec.landId,
+                    createdAt = System.currentTimeMillis()
+                )
+                db.dao().insertActivity(entity)
+            }
+        }
     }
 }
