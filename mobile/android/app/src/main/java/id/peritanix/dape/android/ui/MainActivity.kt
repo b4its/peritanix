@@ -211,6 +211,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     7 -> AppIcons.WbSunny
                     8 -> AppIcons.Camera
                     9 -> AppIcons.Book
+                    10 -> AppIcons.Sensors
                     else -> AppIcons.MoreVert
                 }
                 val otherTabLabel = when (tab) {
@@ -222,6 +223,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     7 -> "Cuaca ▾"
                     8 -> "Kualitas ▾"
                     9 -> "Panduan ▾"
+                    10 -> "Sensor Lab ▾"
                     else -> "Lainnya ▾"
                 }
 
@@ -511,6 +513,33 @@ fun PentasixApp(queue: SyncQueueStore) {
                                             menuExpanded = false
                                         }
                                     )
+
+                                    HorizontalDivider()
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Sensor Lab (GNSS & Proximity)",
+                                                fontWeight = if (tab == 10) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 10) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Sensors,
+                                                contentDescription = null,
+                                                tint = if (tab == 10) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 10) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 10
+                                            menuExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         },
@@ -609,6 +638,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 7 -> WeatherScreen(weatherRepo)
                                 8 -> ChiliQualityScreen()
                                 9 -> GrowingGuideScreen()
+                                10 -> SensorLabScreen()
                                 else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                             }
                         }
