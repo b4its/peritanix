@@ -86,7 +86,10 @@ mobile/
     │   │   ├── FarmMapScreen.kt         # Full-screen interactive GIS farm map (polygon, TWI grid, disease markers, vectors)
     │   │   ├── HarvestScreen.kt         # Pod morphology, Archimedes density, Asas Black TTS, anti-cheat QR
     │   │   ├── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
+    │   │   ├── theme/
+    │   │   │   └── PentasixTheme.kt     # Harvest Orange Material 3 design system & palettes
     │   │   └── components/
+    │   │       ├── AppIcons.kt          # Custom scalable vector icons (zero emojis)
     │   │       ├── InteractiveFarmMap.kt # Interactive GIS farm map with multi-layer overlays & tap inspector
     │   │       └── SlippyTileEngine.kt   # Free Slippy basemap tiles (OSM/Carto/Satellite/Topo), disk cache & offline vector engine
     │   ├── core/
