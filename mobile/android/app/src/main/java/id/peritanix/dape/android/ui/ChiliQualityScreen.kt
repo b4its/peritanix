@@ -224,7 +224,7 @@ private fun CameraPermissionPrompt(onRequest: () -> Unit) {
 }
 
 @Composable
-private fun CameraPreview(controller: CameraQualityController) {
+internal fun CameraPreview(controller: CameraQualityController) {
     AndroidView(
         factory = { ctx ->
             android.view.TextureView(ctx).also { controller.attachPreview(it) }

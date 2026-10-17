@@ -56,8 +56,21 @@ fun PentasixApp(queue: SyncQueueStore) {
         var tab by remember { mutableStateOf(0) }
         val modeStore = remember { AppModeStore(context.applicationContext) }
         var mode by remember { mutableStateOf(modeStore.load()) }
+        var onboardingDone by remember { mutableStateOf(modeStore.isOnboardingDone()) }
         val toggleMode = {
             mode = modeStore.toggle()
+        }
+
+        // First-run gate: mandatory spectral calibration + Ed25519 key setup.
+        if (!onboardingDone) {
+            OnboardingScreen(
+                queue = queue,
+                onComplete = {
+                    modeStore.setOnboardingDone()
+                    onboardingDone = true
+                }
+            )
+            return@PentasixTheme
         }
 
         Scaffold(
