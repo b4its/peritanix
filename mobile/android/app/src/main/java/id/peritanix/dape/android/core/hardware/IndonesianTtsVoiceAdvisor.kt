@@ -221,4 +221,49 @@ object IndonesianTtsVoiceAdvisor {
             checkpoints.mapIndexed { idx, cp -> "Poin ${idx + 1}, $cp" }.joinToString(". ") +
             ". Bila seluruh poin terpenuhi, hasil kerja Anda memenuhi standar Grade A."
     }
+
+    /**
+     * Menyusun skrip narasi audio bahasa Indonesia untuk audit indeks mutu cabai (CQI).
+     */
+    fun composeChiliQualityAuditScript(
+        overallScore: Int,
+        marketGrade: String,
+        pericarpThicknessMm: Double,
+        capsaicinShu: Int,
+        colorCapsanthinPct: Double,
+        diseaseFreeRatePct: Double,
+        chemicalResiduePpm: Double,
+        shelfLifeDays: Int,
+        qualitySummary: String
+    ): String {
+        val residueDesc = if (chemicalResiduePpm <= 0.05) {
+            "residu pestisida nol koma nol ppm, memenuhi kriteria bebas residu ekspor"
+        } else {
+            "residu pestisida $chemicalResiduePpm ppm"
+        }
+        return "Audit Indeks Mutu Cabai DAPE. Skor mutu keseluruhan: $overallScore persen, dengan predikat $marketGrade. " +
+            "Proyeksi ketebalan dinding buah: $pericarpThicknessMm milimeter. " +
+            "Tingkat kepedasan kapsaisin: $capsaicinShu Scoville Heat Unit. " +
+            "Intensitas warna merah kapsantin: $colorCapsanthinPct persen. " +
+            "Tingkat kesehatan buah bebas patogen: $diseaseFreeRatePct persen. " +
+            "Kandungan $residueDesc. " +
+            "Proyeksi daya simpan pascapanen: $shelfLifeDays hari. " +
+            qualitySummary
+    }
+
+    /**
+     * Menyusun skrip narasi audio bahasa Indonesia langsung dari model [id.peritanix.dape.android.core.missions.DailyMissions.ChiliQualityIndex].
+     */
+    fun composeChiliQualityAuditScript(cqi: id.peritanix.dape.android.core.missions.DailyMissions.ChiliQualityIndex): String =
+        composeChiliQualityAuditScript(
+            overallScore = cqi.overallScore,
+            marketGrade = cqi.marketGrade,
+            pericarpThicknessMm = cqi.pericarpThicknessMm,
+            capsaicinShu = cqi.capsaicinShu,
+            colorCapsanthinPct = cqi.colorCapsanthinPct,
+            diseaseFreeRatePct = cqi.diseaseFreeRatePct,
+            chemicalResiduePpm = cqi.chemicalResiduePpm,
+            shelfLifeDays = cqi.shelfLifeDays,
+            qualitySummary = cqi.qualitySummary
+        )
 }

@@ -492,7 +492,7 @@ class DailyMissionsTest {
     @Test
     fun testAgronomyGlossary() {
         val entries = DailyMissions.AgronomyGlossary.entries
-        assertEquals(10, entries.size)
+        assertEquals(13, entries.size)
         entries.forEach { entry ->
             assertTrue("Term non-blank", entry.term.isNotBlank())
             assertTrue("Definition non-blank", entry.definition.isNotBlank())
@@ -509,6 +509,9 @@ class DailyMissionsTest {
         assertTrue(terms.any { it.contains("Trichoderma", ignoreCase = true) })
         assertTrue(terms.any { it.contains("Archimedes", ignoreCase = true) })
         assertTrue(terms.any { it.contains("Termoterapi", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Mikoriza", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Waktu Henti Semprot", ignoreCase = true) || it.contains("PHI", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Kalium Sulfat", ignoreCase = true) || it.contains("SOP", ignoreCase = true) })
     }
 
     @Test
@@ -561,6 +564,122 @@ class DailyMissionsTest {
         )
         assertTrue(qgScript.contains("kendali mutu akhir"))
         assertTrue(qgScript.contains("Tangkai utuh 2 cm"))
+    }
+
+    @Test
+    fun testCalculateChiliQualityIndex_emptyVsCompleted() {
+        val plan = DailyMissions.planFor(today, 65) // Stage 4 Fruiting
+        val allIds = ids(plan)
+
+        // Case 1: 0 completed missions
+        val cqiEmpty = DailyMissions.calculateChiliQualityIndex(plan, emptySet())
+        assertEquals(0, cqiEmpty.overallScore)
+        assertTrue(cqiEmpty.pericarpThicknessMm in 1.15..1.35)
+        assertEquals(35_000, cqiEmpty.capsaicinShu)
+        assertEquals(60.0, cqiEmpty.colorCapsanthinPct, 0.5)
+        assertTrue("chemical residue should be detected if uncompleted", cqiEmpty.chemicalResiduePpm > 0.3)
+        assertEquals(7, cqiEmpty.shelfLifeDays)
+        assertTrue(cqiEmpty.marketGrade.contains("Grade Standar"))
+        assertEquals(0, cqiEmpty.completedPillarsCount)
+
+        // Case 2: 100% completed missions
+        val cqiFull = DailyMissions.calculateChiliQualityIndex(plan, allIds)
+        assertEquals(100, cqiFull.overallScore)
+        assertTrue("pericarp should meet export standard > 1.8mm", cqiFull.pericarpThicknessMm >= 1.80)
+        assertTrue("capsaicin should exceed 80k SHU", cqiFull.capsaicinShu >= 80_000)
+        assertTrue("color capsanthin should exceed 85%", cqiFull.colorCapsanthinPct >= 85.0)
+        assertTrue("disease free rate should exceed 95%", cqiFull.diseaseFreeRatePct >= 95.0)
+        assertEquals("zero residue expected when 100% completed", 0.00, cqiFull.chemicalResiduePpm, 0.01)
+        assertTrue("shelf life should exceed 14 days", cqiFull.shelfLifeDays >= 14)
+        assertTrue(cqiFull.marketGrade.contains("Grade A+"))
+        assertEquals(cqiFull.totalPillarsCount, cqiFull.completedPillarsCount)
+        assertTrue(cqiFull.qualitySummary.contains("Kualitas cabai istimewa"))
+    }
+
+    @Test
+    fun testNewQualityGroundedMissionsInPhases() {
+        // Stage 1: Mycorrhiza
+        val p1 = DailyMissions.planFor(today, -5)
+        val mMyco = p1.missions.find { it.id.contains("mycorrhiza") }
+        assertNotNull("Mycorrhiza mission missing in stage 1", mMyco)
+        assertEquals(DailyMissions.QualityTarget.VIGOR_AKAR, mMyco!!.qualityTarget)
+        assertTrue(mMyco.title.contains("Mikoriza"))
+        assertTrue(mMyco.qualityImpact.contains("pericarp") || mMyco.qualityImpact.contains("kalsium"))
+
+        // Stage 2: Magnesium Sulfate
+        val p2 = DailyMissions.planFor(today, 20)
+        val mMg = p2.missions.find { it.id.contains("magnesium-sulfate") }
+        assertNotNull("Magnesium mission missing in stage 2", mMg)
+        assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mMg!!.qualityTarget)
+        assertTrue(mMg.title.contains("Magnesium Sulfat"))
+
+        // Stage 3: Amino Acid & Zinc Pollen Viability
+        val p3 = DailyMissions.planFor(today, 45)
+        val mAmino = p3.missions.find { it.id.contains("amino-zinc") }
+        assertNotNull("Amino acid mission missing in stage 3", mAmino)
+        assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mAmino!!.qualityTarget)
+        assertTrue(mAmino.title.contains("Asam Amino") && mAmino.title.contains("Zink"))
+
+        // Stage 4: PHI Zero Residue & SOP Potassium Sulfate
+        val p4 = DailyMissions.planFor(today, 65)
+        val mPhi = p4.missions.find { it.id.contains("phi-zero-residue") }
+        val mSop = p4.missions.find { it.id.contains("potassium-sulfate") }
+        assertNotNull("PHI mission missing in stage 4", mPhi)
+        assertNotNull("SOP Potassium Sulfate mission missing in stage 4", mSop)
+        assertEquals(DailyMissions.QualityTarget.BEBAS_CACAT, mPhi!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.WARNA_KILAP, mSop!!.qualityTarget)
+        assertTrue(mPhi.title.contains("PHI H-14"))
+        assertTrue(mSop.title.contains("Kalium Sulfat bebas klorin"))
+
+        // Stage 5: Hot Water 52C Sterilization
+        val p5 = DailyMissions.planFor(today, 95)
+        val mHotWater = p5.missions.find { it.id.contains("hotwater-immersion") }
+        assertNotNull("Hot water immersion missing in stage 5", mHotWater)
+        assertEquals(DailyMissions.QualityTarget.GRADE_A_PANEN, mHotWater!!.qualityTarget)
+        assertTrue(mHotWater.title.contains("52°C"))
+    }
+
+    @Test
+    fun testProTipsForQualityBoosterMissions() {
+        val p4 = DailyMissions.planFor(today, 65)
+        val mPhi = p4.missions.first { it.id.contains("phi-zero-residue") }
+        val mSop = p4.missions.first { it.id.contains("potassium-sulfate") }
+
+        val phiTips = DailyMissions.getAgronomistProTips(mPhi)
+        assertTrue(phiTips.isNotEmpty())
+        assertTrue(phiTips.any { it.contains("PHI") || it.contains("Bacillus") })
+
+        val sopTips = DailyMissions.getAgronomistProTips(mSop)
+        assertTrue(sopTips.isNotEmpty())
+        assertTrue(sopTips.any { it.contains("klorin") || it.contains("kapsantin") })
+
+        val p1 = DailyMissions.planFor(today, -5)
+        val mMyco = p1.missions.first { it.id.contains("mycorrhiza") }
+        val mycoTips = DailyMissions.getAgronomistProTips(mMyco)
+        assertTrue(mycoTips.isNotEmpty())
+        assertTrue(mycoTips.any { it.contains("mikoriza") || it.contains("fungisida") })
+
+        val p5 = DailyMissions.planFor(today, 95)
+        val m52 = p5.missions.first { it.id.contains("hotwater-immersion") }
+        val tips52 = DailyMissions.getAgronomistProTips(m52)
+        assertTrue(tips52.isNotEmpty())
+        assertTrue(tips52.any { it.contains("52°C") || it.contains("Asas Black") })
+    }
+
+    @Test
+    fun testChiliQualityAuditTtsScript() {
+        val plan = DailyMissions.planFor(today, 65)
+        val cqi = DailyMissions.calculateChiliQualityIndex(plan, ids(plan))
+        val script = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeChiliQualityAuditScript(cqi)
+
+        assertTrue(script.contains("Audit Indeks Mutu Cabai DAPE"))
+        assertTrue(script.contains("Skor mutu keseluruhan: 100 persen"))
+        assertTrue(script.contains("Grade A+"))
+        assertTrue(script.contains("ketebalan dinding buah"))
+        assertTrue(script.contains("Scoville Heat Unit"))
+        assertTrue(script.contains("kapsantin"))
+        assertTrue(script.contains("bebas residu"))
+        assertTrue(script.contains("daya simpan"))
     }
 }
 

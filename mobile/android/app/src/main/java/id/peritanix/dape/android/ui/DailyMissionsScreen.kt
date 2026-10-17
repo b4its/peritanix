@@ -72,6 +72,7 @@ fun DailyMissionsScreen(
     var expandedMissionId by remember { mutableStateOf<String?>(null) }
     var showQualityStandardDialog by remember { mutableStateOf(false) }
     var showGlossaryDialog by remember { mutableStateOf(false) }
+    var showCqiDialog by remember { mutableStateOf(false) }
     var feedbackToastText by remember { mutableStateOf<String?>(null) }
     var selectedMissionForDetailDialog by remember { mutableStateOf<DailyMissions.Mission?>(null) }
     var startInWizardMode by remember { mutableStateOf(false) }
@@ -206,12 +207,23 @@ fun DailyMissionsScreen(
             }
 
             OutlinedButton(
-                onClick = { showQualityStandardDialog = true },
+                onClick = { showCqiDialog = true },
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                 modifier = Modifier.height(32.dp)
             ) {
                 Icon(AppIcons.Science, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                Spacer(Modifier.width(3.dp))
+                Text("Audit CQI", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            OutlinedButton(
+                onClick = { showQualityStandardDialog = true },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Icon(AppIcons.Chili, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
                 Spacer(Modifier.width(3.dp))
                 Text("Standar", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -357,7 +369,9 @@ fun DailyMissionsScreen(
 
         // Quality Scorecard & Export Grade
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showCqiDialog = true },
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = when {
@@ -376,7 +390,7 @@ fun DailyMissionsScreen(
                 ) {
                     Column {
                         Text(
-                            "Skor Kualitas Harian",
+                            "Indeks Kualitas Cabai (CQI)",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.85f)
                         )
@@ -405,16 +419,28 @@ fun DailyMissionsScreen(
                     trackColor = Color.White.copy(alpha = 0.3f)
                 )
 
-                Text(
-                    grade,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.95f)
-                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        grade,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.95f)
+                    )
+                    Text(
+                        "Audit CQI Lengkap ▾",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.2f), thickness = 1.dp)
 
-                // 5-Pillar Live Achievement Matrix
+                // 6-Pillar Live Achievement Matrix (Full Grid)
                 Text(
                     "Pencapaian Pilar Mutu Cabai Hari Ini:",
                     fontSize = 11.sp,
@@ -422,35 +448,42 @@ fun DailyMissionsScreen(
                     color = Color.White.copy(alpha = 0.9f)
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    pillarProgress.entries.take(4).forEach { (target, counts) ->
-                        val (done, total) = counts
-                        val isComplete = done == total && total > 0
-                        Surface(
-                            color = if (isComplete) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.weight(1f)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    pillarProgress.entries.chunked(3).forEach { rowEntries ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    target.title.split(" ").first(),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    "$done/$total",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = if (isComplete) Color(0xFFC8E6C9) else Color.White.copy(alpha = 0.8f)
-                                )
+                            rowEntries.forEach { (target, counts) ->
+                                val (done, total) = counts
+                                val isComplete = done == total && total > 0
+                                Surface(
+                                    color = if (isComplete) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            target.title.split(" ").take(2).joinToString(" "),
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            "$done/$total",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isComplete) Color(0xFFC8E6C9) else Color.White.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
+                            }
+                            repeat(3 - rowEntries.size) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }
@@ -1450,7 +1483,7 @@ fun DailyMissionsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "10 Istilah Standar Operasional GAP Budidaya Cabai Grade A+ Ekspor:",
+                        "${DailyMissions.AgronomyGlossary.entries.size} Istilah Standar Operasional GAP Budidaya Cabai Grade A+ Ekspor:",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1484,6 +1517,241 @@ fun DailyMissionsScreen(
                 }
             }
         )
+    }
+
+    // Modal Dialog: Audit Indeks Mutu Cabai (CQI Presisi)
+    if (showCqiDialog) {
+        val cqi = DailyMissions.calculateChiliQualityIndex(plan, completed)
+
+        AlertDialog(
+            onDismissRequest = { showCqiDialog = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(AppIcons.Science, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(24.dp))
+                        Column {
+                            Text("Audit Indeks Mutu Cabai (CQI)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(cqi.marketGrade, fontSize = 10.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    IconButton(
+                        onClick = {
+                            val script = IndonesianTtsVoiceAdvisor.composeChiliQualityAuditScript(cqi)
+                            speak(script, "CQI_TTS")
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp,
+                            contentDescription = null,
+                            tint = OrangePrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Skor terpadu
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Skor Kepatuhan Mutu", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("${cqi.overallScore}%", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = OrangePrimary)
+                            }
+                            LinearProgressIndicator(
+                                progress = { cqi.overallScore / 100f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = OrangePrimary
+                            )
+                            Text(
+                                cqi.qualitySummary,
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Text(
+                        "6 Parameter Kunci Kualitas Cabai Terbaik:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    // Parameter 1: Tebal Pericarp
+                    CqiMetricCard(
+                        name = "Ketebalan Dinding Buah (Pericarp)",
+                        valueText = "${cqi.pericarpThicknessMm} mm",
+                        targetSpec = "Standar Ekspor: > 1.80 mm",
+                        isTargetMet = cqi.pericarpThicknessMm >= 1.80,
+                        progress = (cqi.pericarpThicknessMm / 2.2).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Lamela tengah disemen Kalsium Pektat & Silika. Menjamin cabai renyah, padat, dan tahan benturan."
+                    )
+
+                    // Parameter 2: Kepedasan Kapsaisin
+                    CqiMetricCard(
+                        name = "Tingkat Kepedasan (Capsaicinoids)",
+                        valueText = "${"%,d".format(cqi.capsaicinShu)} SHU",
+                        targetSpec = "Standar Ekspor: > 80.000 SHU",
+                        isTargetMet = cqi.capsaicinShu >= 80_000,
+                        progress = (cqi.capsaicinShu / 120_000f).coerceIn(0f, 1f),
+                        scientificNote = "Biosintesis alkaloid pada plasenta dipacu defisit air terukur dan rasio Kalium tinggi."
+                    )
+
+                    // Parameter 3: Warna Merah Kapsantin
+                    CqiMetricCard(
+                        name = "Kromatisitas Warna Merah (Kapsantin)",
+                        valueText = "${cqi.colorCapsanthinPct}%",
+                        targetSpec = "Standar Ekspor: > 85.0%",
+                        isTargetMet = cqi.colorCapsanthinPct >= 85.0,
+                        progress = (cqi.colorCapsanthinPct / 100.0).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Karotenogenesis pigmen kapsantin & kapsorubin distimulasi Kalium Sulfat bebas klorin."
+                    )
+
+                    // Parameter 4: Bebas Patogen & Antraknosa
+                    CqiMetricCard(
+                        name = "Tingkat Bebas Patogen & Antraknosa",
+                        valueText = "${cqi.diseaseFreeRatePct}% Sehat",
+                        targetSpec = "Target Panen: 100% Bebas Cacat",
+                        isTargetMet = cqi.diseaseFreeRatePct >= 95.0,
+                        progress = (cqi.diseaseFreeRatePct / 100.0).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Sterilisasi spora laten, sanitasi proaktif, dan inokulasi biokontrol Trichoderma."
+                    )
+
+                    // Parameter 5: Residu Kimia Sintetis
+                    CqiMetricCard(
+                        name = "Residu Pestisida Kimia Sintetis (MRL)",
+                        valueText = if (cqi.chemicalResiduePpm <= 0.05) "0.00 ppm (Nol Residu)" else "${cqi.chemicalResiduePpm} ppm",
+                        targetSpec = "Standar Ekspor MRL: < 0.05 ppm",
+                        isTargetMet = cqi.chemicalResiduePpm <= 0.05,
+                        progress = (1.0 - (cqi.chemicalResiduePpm / 0.50)).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Protokol PHI H-14 menghentikan kimia sintetis; beralih total ke agens hayati Bacillus subtilis."
+                    )
+
+                    // Parameter 6: Daya Simpan Pascapanen
+                    CqiMetricCard(
+                        name = "Daya Simpan Pascapanen (Shelf-Life)",
+                        valueText = "${cqi.shelfLifeDays} Hari",
+                        targetSpec = "Standar Pasar: > 14 Hari (suhu 12-15°C)",
+                        isTargetMet = cqi.shelfLifeDays >= 14,
+                        progress = (cqi.shelfLifeDays / 21f).coerceIn(0f, 1f),
+                        scientificNote = "Petik pagi 07:00-10:00 turgor maksimal + termoterapi 52°C mematikan spora busuk simpan."
+                    )
+
+                    // Pilar Progres
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Status Kepatuhan Pilar Mutu Cabai:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            pillarProgress.forEach { (target, counts) ->
+                                val (done, total) = counts
+                                val isDone = done >= total && total > 0
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(target.title, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                                    Text(
+                                        "$done/$total misi (${if (isDone) "Tuntas" else "Proses"})",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDone) GreenSuccess else OrangePrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showCqiDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White)
+                ) {
+                    Text("Tutup Audit")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CqiMetricCard(
+    name: String,
+    valueText: String,
+    targetSpec: String,
+    isTargetMet: Boolean,
+    progress: Float,
+    scientificNote: String
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(name, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                Surface(
+                    color = if (isTargetMet) GreenSuccess else OrangePrimary,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        valueText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                color = if (isTargetMet) GreenSuccess else OrangePrimary,
+                trackColor = MaterialTheme.colorScheme.outlineVariant
+            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(targetSpec, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (isTargetMet) "Target Tercapai" else "Perlu Ditingkatkan", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isTargetMet) GreenSuccess else OrangePrimary)
+            }
+            Text(scientificNote, fontSize = 9.sp, lineHeight = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

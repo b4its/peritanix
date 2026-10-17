@@ -128,6 +128,7 @@ object DailyMissions {
                     add(hardeningOffMission(epochDay))
                     add(seedThermoSterilizationMission(epochDay))
                     add(cellTrayAerationMission(epochDay))
+                    add(mycorrhizaBioStimulantMission(epochDay))
                 }
                 2 -> { // Vegetatif (1 s.d. 35 HST)
                     add(wiwilMission(epochDay))
@@ -137,6 +138,7 @@ object DailyMissions {
                     add(bedSlopeClinometerMission(epochDay))
                     add(canopyCeptometerMission(epochDay))
                     add(humicAcidRootMission(epochDay))
+                    add(secondaryMacroMagnesiumMission(epochDay))
                 }
                 3 -> { // Pembungaan (36 s.d. 55 HST) — Kritis kualitas dinding buah & bunga
                     add(calciumBoronMission(epochDay))
@@ -146,6 +148,7 @@ object DailyMissions {
                     add(barometerSprayCheckMission(epochDay))
                     add(flowerVibrationPollinationMission(epochDay))
                     add(flowerPetalSanitationMission(epochDay))
+                    add(aminoAcidPollenViabilityMission(epochDay))
                 }
                 4 -> { // Pembuahan & Pematangan (56 s.d. 75 HST) — Kunci warna & kepedasan
                     add(potassiumMission(epochDay))
@@ -155,6 +158,8 @@ object DailyMissions {
                     add(mulchSoilThermistorMission(epochDay))
                     add(magnesiumCuticleGlossMission(epochDay))
                     add(bottomLeafPruningMission(epochDay))
+                    add(preHarvestIntervalZeroResidueMission(epochDay))
+                    add(potassiumSulfateColorGlossMission(epochDay))
                 }
                 else -> { // Panen & Pascapanen (76 s.d. 120 HST) — Standar Grade A+ Ekspor
                     add(harvestTimeMorningMission(epochDay))
@@ -165,6 +170,7 @@ object DailyMissions {
                     add(pedicelFreshnessMission(epochDay))
                     add(cielabColorCameraMission(epochDay))
                     add(fieldHeatPreCoolingMission(epochDay))
+                    add(hotWater52DegreeSterilizationMission(epochDay))
                 }
             }
         }.toMutableList()
@@ -217,6 +223,109 @@ object DailyMissions {
             val done = missions.count { it.id in completedIds }
             Pair(done, missions.size)
         }
+    }
+
+    /**
+     * Indeks Kualitas Cabai Komprehensif (Chili Quality Index / CQI).
+     *
+     * Memproyeksikan parameter fisik dan biokimia buah cabai berdasarkan kepatuhan
+     * pengerjaan pilar-pilar GAP harian:
+     * - Ketebalan dinding buah (pericarp) dalam mm (standar ekspor > 1.80 mm)
+     * - Tingkat kepedasan (capsaicinoids) dalam Scoville Heat Unit (SHU > 80.000)
+     * - Indeks kromatisitas warna kapsantin merah dalam % (standar ekspor > 85.0%)
+     * - Tingkat kesehatan buah bebas patogen & patek (0% antraknosa / 100% sehat)
+     * - Residu pestisida kimia sintetis dalam ppm (Batas Maksimum Residu / MRL < 0.05 ppm, target 0.00 ppm)
+     * - Estimasi daya simpan pascapanen pada suhu ruang sejuk (target > 14 hari)
+     */
+    data class ChiliQualityIndex(
+        val overallScore: Int,
+        val pericarpThicknessMm: Double,
+        val capsaicinShu: Int,
+        val colorCapsanthinPct: Double,
+        val diseaseFreeRatePct: Double,
+        val chemicalResiduePpm: Double,
+        val shelfLifeDays: Int,
+        val marketGrade: String,
+        val qualitySummary: String,
+        val completedPillarsCount: Int,
+        val totalPillarsCount: Int
+    )
+
+    /**
+     * Menghitung prakiraan parameter mutu fisik dan biokimia buah cabai (Chili Quality Index / CQI).
+     */
+    fun calculateChiliQualityIndex(plan: DailyPlan, completedIds: Set<String>): ChiliQualityIndex {
+        val score = dailyQualityScore(plan, completedIds)
+        val scoreRatio = score / 100.0
+        val pillarProgress = getPillarProgress(plan, completedIds)
+
+        fun ratioFor(vararg targets: QualityTarget): Double {
+            var done = 0
+            var total = 0
+            for (t in targets) {
+                val pair = pillarProgress[t]
+                if (pair != null) {
+                    done += pair.first
+                    total += pair.second
+                }
+            }
+            return if (total > 0) done.toDouble() / total else scoreRatio
+        }
+
+        val pericarpRatio = ratioFor(QualityTarget.PERICARP_TEBAL, QualityTarget.VIGOR_AKAR)
+        val capsaicinRatio = ratioFor(QualityTarget.KAPSAISIN_PEDAS)
+        val colorRatio = ratioFor(QualityTarget.WARNA_KILAP)
+        val diseaseRatio = ratioFor(QualityTarget.BEBAS_CACAT)
+        val harvestRatio = ratioFor(QualityTarget.GRADE_A_PANEN)
+
+        // Metrik terhitung berbasis standar agronomi cabai SNI 01-4480-1998 & GAP ekspor
+        val rawPericarp = 1.20 + 0.85 * pericarpRatio + 0.15 * scoreRatio
+        val pericarpThicknessMm = Math.round(rawPericarp * 100.0) / 100.0
+
+        val capsaicinShu = Math.round(35_000.0 + 65_000.0 * capsaicinRatio + 15_000.0 * scoreRatio).toInt()
+
+        val rawColor = 60.0 + 30.0 * colorRatio + 5.0 * scoreRatio
+        val colorCapsanthinPct = Math.round(rawColor * 10.0) / 10.0
+
+        val rawDisease = 70.0 + 26.0 * diseaseRatio + 4.0 * scoreRatio
+        val diseaseFreeRatePct = Math.round(rawDisease * 10.0) / 10.0
+
+        val rawResidue = (0.45 * (1.0 - diseaseRatio) * (1.0 - scoreRatio * 0.5)).coerceAtLeast(0.0)
+        val chemicalResiduePpm = Math.round(rawResidue * 100.0) / 100.0
+
+        val rawShelf = 7.0 + 11.0 * harvestRatio + 3.0 * scoreRatio
+        val shelfLifeDays = Math.round(rawShelf).toInt()
+
+        val completedPillars = pillarProgress.values.count { it.first >= it.second && it.second > 0 }
+        val totalPillars = pillarProgress.size
+
+        val marketGrade = when {
+            score >= 90 -> "Grade A+ (Ekspor & Industri Premium)"
+            score >= 75 -> "Grade A (Pasar Swalayan Modern)"
+            score >= 50 -> "Grade B (Pasar Induk Komersial)"
+            else -> "Grade Standar (Perlu Optimalisasi Nutrisi)"
+        }
+
+        val summary = when {
+            score >= 90 -> "Kualitas cabai istimewa! Dinding pericarp tebal ${pericarpThicknessMm} mm kokoh terhadap benturan, kepedasan $capsaicinShu SHU pekat, warna merah kapsantin $colorCapsanthinPct%, dan bebas residu pestisida siap tembus pasar ekspor global."
+            score >= 70 -> "Kualitas cabai sangat baik. Dinding buah terlapisi kalsium pektat (${pericarpThicknessMm} mm), pigmen warna mulai solid ($colorCapsanthinPct%). Tuntaskan sisa misi pilar untuk mengunci predikat Grade A+."
+            score >= 40 -> "Pertumbuhan cabai moderat (${pericarpThicknessMm} mm). Perkuat aplikasi Kalsium, Kalium, dan bioproteksi patek untuk mencegah penyusutan mutu panen."
+            else -> "Cabai berisiko rapuh dan rentan patek. Dinding pericarp saat ini masih di bawah standar (${pericarpThicknessMm} mm). Segera eksekusi misi kalsium terlarut dan sanitasi kebun."
+        }
+
+        return ChiliQualityIndex(
+            overallScore = score,
+            pericarpThicknessMm = pericarpThicknessMm,
+            capsaicinShu = capsaicinShu,
+            colorCapsanthinPct = colorCapsanthinPct,
+            diseaseFreeRatePct = diseaseFreeRatePct,
+            chemicalResiduePpm = chemicalResiduePpm,
+            shelfLifeDays = shelfLifeDays,
+            marketGrade = marketGrade,
+            qualitySummary = summary,
+            completedPillarsCount = completedPillars,
+            totalPillarsCount = totalPillars
+        )
     }
 
     /** Filter misi berdasarkan target mutu. */
@@ -408,15 +517,45 @@ object DailyMissions {
                 "Lakukan pewiwilan saat matahari pagi sudah bersinar terik agar luka pangkasan cepat membentuk lapisan gabus (suberisasi) penangkal bakteri.",
                 "Hindari menyentuh luka pangkas dengan tangan basah atau sarung tangan yang kotor untuk mencegah penularan penyakit layu bakteri."
             )
-            titleLower.contains("panen") || titleLower.contains("petik") || titleLower.contains("sortir") -> listOf(
-                "Patahkan tangkai buah cabai pada nodus persendian alami dengan gerakan mengangkat ke arah atas, jangan ditarik paksa ke bawah.",
-                "Gunakan sarung tangan katun bersih saat memetik agar lapisan lilin alami (kutikula) buah cabai tidak terkikis oleh keringat tangan.",
-                "Lakukan pendinginan awal (pre-cooling) di ruang teduh beraliran udara sejuk selama 30-45 menit untuk membuang panas lapangan sebelum dikemas."
+            titleLower.contains("52") || titleLower.contains("termoterapi") -> listOf(
+                "Jaga suhu air presisi pada 52°C ± 0,5°C; gunakan panduan gayung Asas Black DAPE untuk akurasi instan.",
+                "Rendam cabai tepat 3 menit (180 detik) sambil digoyang perlahan, jangan melebihi waktu agar pericarp tetap segar.",
+                "Segera tiriskan dan angin-anginkan di rak kawat kasa sejuk berventilasi untuk membuang uap air permukaan."
             )
             titleLower.contains("archimedes") || titleLower.contains("apung") -> listOf(
                 "Gunakan air bersih bersuhu normal (25°C) pada ember transparan saat melakukan uji apung Archimedes.",
                 "Cabai Grade A+ ekspor berdinding tebal (>1.8 mm) akan langsung tenggelam ke dasar karena massa jenis pericarp lebih tinggi dari air.",
                 "Pisahkan buah yang mengapung atau melayang karena mengindikasikan dinding buah tipis, berongga udara besar, atau terdapat larva hama di dalam."
+            )
+            titleLower.contains("panen") || titleLower.contains("petik") || titleLower.contains("sortir") -> listOf(
+                "Patahkan tangkai buah cabai pada nodus persendian alami dengan gerakan mengangkat ke arah atas, jangan ditarik paksa ke bawah.",
+                "Gunakan sarung tangan katun bersih saat memetik agar lapisan lilin alami (kutikula) buah cabai tidak terkikis oleh keringat tangan.",
+                "Lakukan pendinginan awal (pre-cooling) di ruang teduh beraliran udara sejuk selama 30-45 menit untuk membuang panas lapangan sebelum dikemas."
+            )
+            titleLower.contains("mikoriza") || titleLower.contains("fma") -> listOf(
+                "Pastikan inokulan mikoriza menyentuh langsung perakaran bibit di dasar lubang tanam.",
+                "Hindari aplikasi fungisida kimia sistemik selama minimal 14 hari pasca-inokulasi agar spora Glomus leluasa berkoloni.",
+                "Pertahankan kelembaban media semai di kisaran 60% tanpa becek agar miselium jamur aktif bernapas."
+            )
+            titleLower.contains("magnesium") || titleLower.contains("epsom") -> listOf(
+                "Larutkan Magnesium Sulfat dalam wadah terpisah sebelum dicampur ke tangki kocor.",
+                "Hindari mencampur langsung dengan Kalsium Nitrat dalam konsentrasi tinggi tanpa pengenceran air terlebih dahulu.",
+                "Aplikasi terbaik di pagi hari saat stomata aktif untuk memaksimalkan sintesis molekul klorofil."
+            )
+            titleLower.contains("asam amino") || titleLower.contains("prolin") || titleLower.contains("polen") -> listOf(
+                "Semprotkan kabut sangat halus (mist) ke bunga yang baru mekar (anthesis) di bawah pukul 08:30 WIB.",
+                "Gunakan tekanan semprot rendah (1.5 - 2 bar) agar butir polen tidak rontok terhempas angin nozel.",
+                "Kandungan L-Prolin dan Zink bekerja sinergis mencegah malformasi buah sehingga cabai tumbuh lurus silindris."
+            )
+            titleLower.contains("phi") || titleLower.contains("zero residue") || titleLower.contains("waktu henti") -> listOf(
+                "Tancapkan tanda zona PHI H-14 di pintu blok lahan yang mendekati masa panen.",
+                "Ganti perlindungan kimia dengan bio-agensia Bacillus subtilis atau Trichoderma cair berstandar pangan.",
+                "Pastikan tangki semprot telah dicuci bersih dengan deterjen netral dan dibilas 3 kali dari residu kimia sebelumnya."
+            )
+            titleLower.contains("kalium sulfat") || titleLower.contains("sop") || titleLower.contains("kapsantin") -> listOf(
+                "Gunakan pupuk Kalium Sulfat (SOP/ZK) berkadar klorin rendah (< 1%) untuk mencegah daun terbakar dan buah lembek.",
+                "Sulfur berperan sebagai aktivator enzim sintesis karotenoid kapsantin yang menghasilkan warna merah menyala.",
+                "Kocorkan merata di batas lingkaran perakaran aktif (tajuk terluar) untuk serapan maksimal."
             )
             titleLower.contains("likat") || titleLower.contains("perangkap") || titleLower.contains("hama") -> listOf(
                 "Gantungkan perangkap likat kuning setinggi 15 - 20 cm tepat di atas pucuk kanopi cabai dan naikkan secara berkala seiring pertambahan tinggi tanaman.",
@@ -610,6 +749,21 @@ object DailyMissions {
                 term = "Termoterapi Asas Black",
                 definition = "Perlakuan pemanasan air bersuhu presisi 50-52°C selama 15 menit menggunakan bejana berinsulasi panas.",
                 practicalSignificance = "Menginaktivasi spora jamur Colletotrichum (Antraknosa/Patek) yang menempel pada kulit benih tanpa merusak embrio benih."
+            ),
+            GlossaryEntry(
+                term = "FMA Mikoriza",
+                definition = "Fungi Mikoriza Arbuskula bersimbiosis pada korteks akar memperluas zona serapan hara hingga 400%.",
+                practicalSignificance = "Memfasilitasi penyerapan fosfat dan kalsium terikat tanah untuk fondasi pembentukan dinding buah tebal dan kokoh."
+            ),
+            GlossaryEntry(
+                term = "Waktu Henti Semprot (PHI)",
+                definition = "Pre-Harvest Interval: jeda waktu wajib antara aplikasi pestisida terakhir dengan pemetikan buah.",
+                practicalSignificance = "Menjamin residu kimia terurai alami oleh sinar UV lapang hingga mencapai zero residue (0.0 ppm) standar ekspor."
+            ),
+            GlossaryEntry(
+                term = "Kalium Sulfat Bebas Klorin (SOP)",
+                definition = "Pupuk kalium berkadar sulfur tinggi (K2O 50%, S 18%) dengan kandungan klorida kurang dari 1%.",
+                practicalSignificance = "Merangsang enzim karotenogenesis kapsantin merah menyala tanpa menimbulkan fitotoksisitas klorida pada buah."
             )
         )
     }
@@ -1941,6 +2095,225 @@ object DailyMissions {
         durationMinutes = 30,
         troubleshootingTip = "Gunakan kipas angin angin-anginkan di ruangan teduh berventilasi; jangan langsung memasukkan cabai hangat ke dalam cold storage bersuhu < 10°C karena memicu chilling injury.",
         qualitySigns = "Suhu internal buah turun dari 32°C ke 18-20°C dalam waktu < 2 jam, memblokir degradasi vitamin C dan kapsantin pascapanen."
+    )
+
+    private fun mycorrhizaBioStimulantMission(day: Long) = Mission(
+        id = "m$day-mycorrhiza",
+        category = Category.NUTRISI,
+        title = "Inokulasi FMA Mikoriza perakaran bibit (Fungus Mycorrhiza Arbuscular)",
+        detail = "Aplikasi inokulan FMA pada media semai sedini mungkin untuk melipatgandakan serapan fosfat, kalsium pektat, dan air.",
+        qualityImpact = "Hifa mikoriza memperluas zona perakaran hingga 400%, membangun fondasi translokasi kalsium yang menjamin buah padat berdinding tebal kelak.",
+        weight = 3,
+        qualityTarget = QualityTarget.VIGOR_AKAR,
+        howToExecute = "Taburkan 5 gram inokulan mikoriza granular ke dalam lubang semai atau polibag bibit tepat di dekat zona perakaran benih.",
+        scientificBasis = "Simbiosis mutualisme Glomus sp. mengeluarkan enzim fosfatase yang melarutkan fosfat terikat dan memfasilitasi absorpsi kation Ca2+ ke dinding sel tanaman muda.",
+        targetMetric = "100% lubang semai terinokulasi mikoriza, kolonisasi hifa akar > 60%",
+        toolsAndMaterials = listOf(
+            "Inokulan FMA Mikoriza murni (Glomus intraradices / Gigaspora sp.)",
+            "Sendok takar dosis 5 gram",
+            "Media semai steril kompos dan arang sekam"
+        ),
+        executionSteps = listOf(
+            "Buat lubang tanam kecil sedalam 3-4 cm pada polibag atau tray semai.",
+            "Takar 5 gram butiran inokulan mikoriza dengan sendok takar bersih.",
+            "Masukkan butiran inokulan langsung ke dasar lubang agar bersentuhan langsung dengan akar bibit.",
+            "Tutup tipis dengan media semai dan siram dengan air berkadar klorin rendah hingga lembab."
+        ),
+        optimalTiming = "Pagi hari pukul 06:30 - 08:30 WIB saat suhu media semai sejuk (24°C - 27°C)",
+        commonMistakesToAvoid = listOf(
+            "Mengaplikasikan fungisida kimia sistemik bersamaan dengan mikoriza yang dapat mematikan spora jamur bermanfaat.",
+            "Menebar mikoriza di permukaan tanah yang terkena sinar UV matahari terik secara langsung."
+        ),
+        successVerification = "Bibit tumbuh dengan perakaran putih lebat berserabut banyak tanpa gejala kerdil.",
+        safetyGear = listOf("Masker partikel", "Sarung tangan lateks bersih"),
+        standardDosagePerLiter = 5.0,
+        dosageUnit = "gram",
+        durationMinutes = 30,
+        troubleshootingTip = "Hindari pupuk kimia konsentrasi tinggi selama 7 hari pascainokulasi agar hifa FMA berhasil menembus korteks akar tanpa terhambat salinitas pupuk.",
+        qualitySigns = "Volume perakaran bibit meningkat 3 kali lipat, daun hijau tebal dengan kandungan lignin prima sejak awal masa persemaian."
+    )
+
+    private fun secondaryMacroMagnesiumMission(day: Long) = Mission(
+        id = "m$day-magnesium-sulfate",
+        category = Category.NUTRISI,
+        title = "Aplikasi hara makro sekunder Magnesium Sulfat larut (Epsom Salt)",
+        detail = "Kocor Magnesium Sulfat (MgSO4) larut 2 g/L untuk memperkuat inti porfirin klorofil, memaksimalkan laju translokasi fotosintat gula ke dinding buah.",
+        qualityImpact = "Klorofil hijau pekat memaksimalkan fotosintesis pembentukan kalsium pektat dan selulosa sehingga daging buah cabai padat dan berdinding tebal.",
+        weight = 2,
+        qualityTarget = QualityTarget.PERICARP_TEBAL,
+        howToExecute = "Larutkan 2 gram Magnesium Sulfat per liter air bersih. Kocorkan 200 ml larutan per pangkal batang tanaman.",
+        scientificBasis = "Ion Mg2+ merupakan atom pusat molekul klorofil dan kofaktor enzim RuBisCO, sedangkan ion sulfat SO4(2-) memacu sintesis asam amino esensial sistein dan metionin.",
+        targetMetric = "Kadar klorofil SPAD > 55, daun hijau tua mengkilap tanpa klorosis interveinal",
+        toolsAndMaterials = listOf(
+            "Pupuk Magnesium Sulfat larut murni (MgO 16%, S 13%)",
+            "Ember ukur dan gayung kocor volume 200 ml",
+            "Timbangan digital presisi"
+        ),
+        executionSteps = listOf(
+            "Timbang 32 gram Magnesium Sulfat untuk tangki kocor 16 Liter (dosis 2 g/L).",
+            "Larutkan dalam ember berisi air bersih hingga kristal larut homogen tanpa endapan.",
+            "Tuang larutan ke tangki kocor atau ember kerja.",
+            "Kocorkan larutan sebanyak 200 ml tepat di zona perakaran aktif berjarak 10 cm dari batang utama."
+        ),
+        optimalTiming = "Pagi hari pukul 07:00 - 09:30 WIB saat kelembaban tanah optimal untuk penyerapan perakaran",
+        commonMistakesToAvoid = listOf(
+            "Mencampur Magnesium konsentrasi tinggi bersamaan dengan Kalsium nitrat dalam satu tangki pekat tanpa pengenceran air terlebih dahulu (memicu presipitasi kalsium sulfat).",
+            "Mengocorkan pada tanah kering berdebu tanpa penyiraman awal."
+        ),
+        successVerification = "Helaian daun hijau tua merata tanpa ada gejala urat daun kuning (interveinal chlorosis).",
+        safetyGear = listOf("Sarung tangan kebun", "Sepatu bot kebun"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Bila daun muda mulai menunjukkan klorosis di sela tulang daun, kombinasikan dengan aplikasi semprot foliar konsentrasi ringan 1 g/L di pagi hari.",
+        qualitySigns = "Ketebalan daun meningkat, laju asimilasi fotosintesis naik 25%, memasok karbohidrat melimpah ke bakal buah muda."
+    )
+
+    private fun aminoAcidPollenViabilityMission(day: Long) = Mission(
+        id = "m$day-amino-zinc",
+        category = Category.NUTRISI,
+        title = "Semprot Asam Amino L-Prolin & Zink viabilitas polen (Pencegah Buah Bengkok)",
+        detail = "Aplikasi foliar asam amino bebas dan kelat seng (Zn-EDTA) pada pucuk bunga untuk mengatasi stres panas, melipatgandakan viabilitas polen dan keberhasilan penyerbukan.",
+        qualityImpact = "Penyerbukan ovul sempurna menghasilkan biji cabai tersusun rapat teratur, dinding buah silindris mulus tanpa lekukan bengkok atau buah kopong kempes.",
+        weight = 3,
+        qualityTarget = QualityTarget.PERICARP_TEBAL,
+        howToExecute = "Campurkan 1,5 ml/L asam amino cair dan 0,5 g/L Zn-EDTA. Semprotkan kabut halus ke bunga mekar dan pucuk tanaman.",
+        scientificBasis = "L-Prolin bertindak sebagai osmoprotektan pelindung membran butir polen terhadap cekaman panas, sedangkan Zink memacu elongasi tabung polen menuju putik sel telur.",
+        targetMetric = "Tingkat pembentukan buah (fruit set) > 85%, persentase buah bengkok cacat < 2%",
+        toolsAndMaterials = listOf(
+            "Biostimulan Asam Amino nabati (L-Prolin, Asam Glutamat)",
+            "Kelat Zink murni (Zn-EDTA 14%)",
+            "Tangki sprayer nozel kabut kerucut halus (cone nozzle)",
+            "Gelas ukur mili liter"
+        ),
+        executionSteps = listOf(
+            "Takar 24 ml konsentrat Asam Amino dan 8 gram Zn-EDTA untuk tangki semprot 16 Liter.",
+            "Larutkan secara berurutan dalam ember kecil lalu tuang ke tangki semprot yang telah terisi air separuhnya.",
+            "Penuhi air hingga 16 Liter dan aduk homogen.",
+            "Semprotkan kabut halus mengarah ke tajuk pembungaan dengan kecepatan langkah konstan."
+        ),
+        optimalTiming = "Pagi hari pukul 06:30 - 08:30 WIB saat stomata bunga dan daun terbuka penuh sebelum suhu melebihi 30°C",
+        commonMistakesToAvoid = listOf(
+            "Menyemprot di siang hari terik saat suhu > 32°C yang menyebabkan bunga kering dan cairan semprot menguap cepat.",
+            "Menggunakan nozel semprot beraliran kasar (jet stream) yang dapat merontokkan mahkota bunga."
+        ),
+        successVerification = "Bunga mekar terfertilisasi menjadi bakal buah muda (calyx menutup kencang) tanpa gugur massal.",
+        safetyGear = listOf("Masker kain penutup hidung", "Kacamata pelindung", "Sarung tangan nitril"),
+        standardDosagePerLiter = 1.5,
+        dosageUnit = "ml",
+        durationMinutes = 40,
+        troubleshootingTip = "Semprotkan dengan tekanan sedang (2 bar) agar butiran kabut menempel di putik tanpa menghempaskan bunga.",
+        qualitySigns = "Buah cabai berkembang lurus simetris panjang > 12 cm, biji padat merata di seluruh plasenta, pericarp tebal tanpa lekuk rongga kosong."
+    )
+
+    private fun preHarvestIntervalZeroResidueMission(day: Long) = Mission(
+        id = "m$day-phi-zero-residue",
+        category = Category.SANITASI,
+        title = "Protokol Waktu Henti Semprot (PHI H-14 Zero Chemical Residue)",
+        detail = "Hentikan total pestisida kimia sintetis 14 hari sebelum panen. Beralih 100% ke bio-pestisida hayati (Bacillus subtilis & Trichoderma) untuk jaminan batas residu ekspor 0.0 ppm.",
+        qualityImpact = "Menjamin cabai lolos uji laboratorium MRL (Maximum Residue Limit) internasional dengan residu kimia 0.0 ppm, aman dikonsumsi segar dan layak ekspor.",
+        weight = 3,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Hentikan penggunaan fungisida/insektisida sintetis. Semprotkan biokontrol Bacillus subtilis atau Trichoderma cair dosis 3 ml/L sebagai perlindungan biologis permukaan buah.",
+        scientificBasis = "Waktu paruh (half-life) pestisida membutuhkan minimal 14 hari degradasi fotolitik sinar UV lapang, sementara kolonisasi Bacillus menghasilkan lipopeptida iturin yang memblokir jamur tanpa residu toksik.",
+        targetMetric = "Zero chemical residue (MRL < 0.01 ppm / LOQ), lolos sertifikasi GAP prima",
+        toolsAndMaterials = listOf(
+            "Agen pengendali hayati Bacillus subtilis / Trichoderma harzianum",
+            "Papan peringatan 'Waktu Henti Semprot Kimia (PHI H-14)'",
+            "Buku catatan aplikasi kebun GAP (Field Logbook)"
+        ),
+        executionSteps = listOf(
+            "Tancapkan tanda zona bebas semprot kimia pada pintu masuk petak kebun yang mendekati masa panen.",
+            "Takar 48 ml agen hayati Bacillus subtilis cair untuk tangki 16 Liter.",
+            "Pastikan tangki telah dibilas bersih dari sisa residu kimia pestisida sebelumnya.",
+            "Semprotkan kabut halus ke seluruh buah cabai merah dan setengah matang pada petang hari.",
+            "Catat tanggal penghentian pestisida sintetis di Logbook GAP untuk verifikasi ketertelusuran."
+        ),
+        optimalTiming = "Sore hari pukul 16:00 - 17:45 WIB agar mikroorganisme hayati terhindar dari radiasi UV terik siang",
+        commonMistakesToAvoid = listOf(
+            "Menyemprot insektisida/fungisida kimia berspektrum luas beberapa hari sebelum panen demi mengejar tampilan buah mengkilap instan (meninggalkan residu terlarang).",
+            "Menggunakan tangki semprot bekas kimia beracun yang belum dibilas bersih deterjen netral."
+        ),
+        successVerification = "Buah cabai bersih alami tanpa lapisan bercak residu putih obat, tercatat resmi di buku rekam jejak GAP.",
+        safetyGear = listOf("Masker kain", "Sarung tangan kebun", "Papan label tanda petak"),
+        standardDosagePerLiter = 3.0,
+        dosageUnit = "ml",
+        durationMinutes = 35,
+        troubleshootingTip = "Bila ditemukan serangan ulat pada fase PHI, gunakan agen hayati bakteri Bacillus thuringiensis (Bt) atau perangkap feromon atraktan tanpa pestisida sistemik.",
+        qualitySigns = "Buah cabai memenuhi standar keamanan pangan internasional (Codex Alimentarius), tidak terdeteksi residu organofosfat atau piretroid (0.0 ppm)."
+    )
+
+    private fun potassiumSulfateColorGlossMission(day: Long) = Mission(
+        id = "m$day-potassium-sulfate",
+        category = Category.NUTRISI,
+        title = "Pemupukan Kalium Sulfat bebas klorin (SOP / ZK) perangsang kapsantin",
+        detail = "Kocorkan Kalium Sulfat (K2O 50%, S 18%) bebas klorida untuk mempercepat biosintesis pigmen karotenoid kapsantin merah menyala dan memperkuat lapisan lilin kutikula.",
+        qualityImpact = "Kandungan Sulfur menginduksi sintesis pigmen merah pekat mengkilap (kapsantin & kapsorubin), sementara ketiadaan klorin menjaga sel buah tidak lembek dan tahan simpan lama.",
+        weight = 3,
+        qualityTarget = QualityTarget.WARNA_KILAP,
+        howToExecute = "Larutkan 3 gram Kalium Sulfat per liter air. Kocorkan 250 ml larutan per tanaman pada masa pematangan buah.",
+        scientificBasis = "Ion K+ mengatur potensial osmotik vakuola sel pericarp, sementara sulfur merupakan gugus aktif pembentukan koenzim A yang penting pada jalur metabolisme karotenoid biosintesis kapsantin.",
+        targetMetric = "Kromatisitas warna merah CIELAB a* > 40, kadar kapsantin buah > 85%, kilau buah mulus",
+        toolsAndMaterials = listOf(
+            "Pupuk Kalium Sulfat larut air (SOP/ZK - K2O 50%, S 18%, Cl < 1%)",
+            "Timbangan digital baku",
+            "Ember ukur kocor 250 ml"
+        ),
+        executionSteps = listOf(
+            "Timbang 48 gram Kalium Sulfat untuk tangki kocor 16 Liter (dosis 3 g/L).",
+            "Aduk dalam ember berisi air bersih hingga larut sempurna.",
+            "Kocorkan sebanyak 250 ml larutan di sekitar perakaran tanaman berbuah.",
+            "Ulangi aplikasi setiap 7 hari sekali selama periode pembesaran dan pematangan buah."
+        ),
+        optimalTiming = "Pagi hari pukul 06:30 - 09:00 WIB saat aktivitas transpirasi tanaman aktif",
+        commonMistakesToAvoid = listOf(
+            "Menggunakan pupuk Kalium Klorida (KCl / MOP berkadar Cl > 45%) pada cabai fase buah matang yang menyebabkan buah lunak, ujung pucuk gosong, dan warna kusam kecokelatan.",
+            "Meningkatkan dosis berlebihan (> 5 g/L) yang dapat memicu defisiensi ion Kalsium dan Magnesium karena antagonisme kation."
+        ),
+        successVerification = "Buah cabai berubah warna merah tua menyala merata dari pangkal hingga ujung buah dengan permukaan mengkilap keras.",
+        safetyGear = listOf("Sarung tangan kebun", "Sepatu bot kebun"),
+        standardDosagePerLiter = 3.0,
+        dosageUnit = "gram",
+        durationMinutes = 40,
+        troubleshootingTip = "Pastikan menggunakan pupuk berspesifikasi SOP/ZK khusus hortikultura larut air, bukan KCL tambang agar bebas garam klorida perusak turgor buah.",
+        qualitySigns = "Buah berwarna merah menyala pekat seragam 100%, tekstur kulit buah berkerut tegas elastis, tidak mudah layu atau keriput."
+    )
+
+    private fun hotWater52DegreeSterilizationMission(day: Long) = Mission(
+        id = "m$day-hotwater-immersion",
+        category = Category.PANEN,
+        title = "Termoterapi air hangat 52°C pascapanen (Sterilisasi Laten Antraknosa)",
+        detail = "Celupkan buah cabai segar dalam air bersuhu presisi 52°C selama 3 menit sesuai formula Asas Black DAPE untuk denaturasi total spora jamur patek tanpa merusak pericarp.",
+        qualityImpact = "Membasmi 100% miselium dan konidia jamur laten pada pori kutikula buah, menjamin cabai bebas busuk patek selama pengiriman hingga > 14 hari.",
+        weight = 3,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Campurkan air mendidih dan air sumur sesuai kalkulator Asas Black DAPE hingga suhu stabil 52°C. Celupkan cabai dalam keranjang kawat selama tepat 3 menit, lalu tiriskan segera.",
+        scientificBasis = "Suhu 52°C selama 180 detik menyebabkan koagulasi protein struktural spora Colletotrichum gloeosporioides tanpa merusak lapisan kutikula buah dan kadar vitamin C.",
+        targetMetric = "Suhu air presisi 52°C ± 0,5°C, durasi perendaman tepat 180 detik, insidensi busuk simpan 0%",
+        toolsAndMaterials = listOf(
+            "Wadah perendaman air hangat higienis (stainless / food-grade)",
+            "Keranjang kawat kasa pencelup cabai",
+            "Air mendidih dan air sumur bersih (proporsi kalkulator DAPE)",
+            "Termometer digital dan stopwatch (atau fitur Timer DAPE)"
+        ),
+        executionSteps = listOf(
+            "Siapkan air hangat bersuhu tepat 52°C dalam wadah menggunakan panduan rasio gayung DAPE.",
+            "Tempatkan cabai hasil sortasi Grade A ke dalam keranjang kawat kasa berlubang.",
+            "Celupkan keranjang hingga seluruh buah terendam sempurna ke dalam air 52°C.",
+            "Nyalakan stopwatch hitung mundur tepat 3 menit (180 detik) sambil digoyang perlahan.",
+            "Segera angkat keranjang tepat pada menit ke-3 dan tiriskan di atas rak pengering berangin sejuk."
+        ),
+        optimalTiming = "Pukul 10:00 - 13:00 WIB segera setelah proses sortasi pascapetik selesai",
+        commonMistakesToAvoid = listOf(
+            "Suhu air melebihi 55°C yang dapat melepuh atau melunakkan jaringan epidermis buah cabai.",
+            "Merendam lebih dari 3 menit yang berisiko menurunkan kesegaran tangki buah cabai.",
+            "Menumpuk cabai basah di tempat lembab tanpa proses penganginan."
+        ),
+        successVerification = "Cabai bersih kering tanpa sisa spora, permukaan buah tetap kencang mengkilap, tangkai buah tetap hijau segar.",
+        safetyGear = listOf("Sarung tangan tahan panas", "Celemek kerja bersih", "Stopwatch"),
+        durationMinutes = 25,
+        troubleshootingTip = "Gunakan panduan suara TTS DAPE untuk menghitung mundur 180 detik dan memonitor suhu tanpa perlu melihat layar.",
+        qualitySigns = "Daya simpan cabai di suhu ruang meningkat dari 5 hari menjadi 16-21 hari tanpa muncul bercak busuk antraknosa."
     )
 
     // EWS defensive addition
