@@ -369,6 +369,25 @@ mobile-down: init ## Stop the mobile toolchain
 # -----------------------------------------------------------------------------
 AGOAL ?= help
 
-android: ## Android host targets: make android <goal> (e.g. up, test, install)
+android: ## Android host targets: make android <goal> (e.g. up, test, install, preview)
 	$(MAKE) -C mobile $(AGOAL)
+
+preview: ## Tampilkan live preview/emulator layar device fisik ke laptop (scrcpy)
+	$(MAKE) -C mobile preview
+
+mobile-preview: preview ## Alias untuk preview layar device fisik ke laptop
+
+android-preview: preview ## Alias untuk preview layar device fisik ke laptop
+
+android-up: ## Build, install, dan launch aplikasi di device fisik aktif (host SDK)
+	$(MAKE) -C mobile up
+
+android-up-preview: ## Build, install, launch, dan buka preview layar laptop sekaligus
+	$(MAKE) -C mobile up-preview
+
+preview-kill: ## Tutup jendela preview scrcpy yang aktif
+	$(MAKE) -C mobile preview-kill
+
+android-preview-kill: preview-kill ## Alias untuk menutup preview scrcpy
+
 

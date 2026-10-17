@@ -148,31 +148,86 @@ emulator-list: ## Tampilkan daftar AVD
 # Lifecycle (build / install / run)
 # =============================================================================
 
-.PHONY: up
+SCRCPY ?= $(shell which scrcpy 2>/dev/null || echo /usr/bin/scrcpy)
 
-up: ## Build + install + launch di device aktif; nyalakan emulator bila tidak ada device
-	@if [ -x "$(ADB)" ] && [ -n "$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -1)" ]; then \
-		printf "$(C_GREEN)[mobile]$(C_RESET) device sudah terhubung, langsung build+install+run.\n"; \
+.PHONY: up preview mirror up-preview preview-kill
+
+up: ## Build + install + launch di device aktif (tambahkan PREVIEW=1 untuk buka layar laptop)
+	@dev=$$("$(ADB)" devices 2>/dev/null | grep -w "device" | head -1 | awk '{print $$1}'); \
+	if [ -n "$$dev" ]; then \
+		model=$$("$(ADB)" -s "$$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r'); \
+		printf "$(C_GREEN)[mobile]$(C_RESET) device fisik terhubung ($$model - $$dev), langsung build+install+run.\n"; \
 		$(MAKE) --no-print-directory run; \
 	else \
-		printf "$(C_YELLOW)[mobile]$(C_RESET) tidak ada device — mencoba menyalakan emulator...\n"; \
+		printf "$(C_YELLOW)[mobile]$(C_RESET) tidak ada device fisik — mencoba menyalakan emulator...\n"; \
 		$(MAKE) --no-print-directory emulator; \
 		$(MAKE) --no-print-directory wait-device; \
 		$(MAKE) --no-print-directory run; \
+	fi; \
+	if [ "$(PREVIEW)" = "1" ] || [ "$(PREVIEW)" = "true" ]; then \
+		$(MAKE) --no-print-directory preview; \
 	fi
+
+preview: ## Tampilkan live preview/emulator layar device fisik ke laptop (scrcpy)
+	@dev=$$("$(ADB)" devices 2>/dev/null | grep -w "device" | head -1 | awk '{print $$1}'); \
+	if [ -z "$$dev" ]; then \
+		printf "  $(C_YELLOW)[mobile]$(C_RESET) tidak ada device aktif, mencoba menyalakan emulator...\n"; \
+		$(MAKE) --no-print-directory emulator || exit 1; \
+		$(MAKE) --no-print-directory wait-device; \
+		dev=$$("$(ADB)" devices 2>/dev/null | grep -w "device" | head -1 | awk '{print $$1}'); \
+	fi; \
+	model=$$("$(ADB)" -s "$$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r'); \
+	printf "$(C_GREEN)[mobile]$(C_RESET) membuka live preview layar device fisik ($$model - $$dev) ke laptop...\n"; \
+	if [ -x "$(SCRCPY)" ] || command -v scrcpy >/dev/null 2>&1; then \
+		pkill -x scrcpy 2>/dev/null || true; \
+		nohup scrcpy -s "$$dev" \
+			--window-title="Pentasix — Device Preview ($$model)" \
+			--stay-awake \
+			--show-touches \
+			--max-size=1280 \
+			</dev/null >/tmp/pentasix-scrcpy.log 2>&1 & \
+		pid=$$!; \
+		sleep 1; \
+		echo "  scrcpy berjalan di latar belakang (PID: $$pid, log: /tmp/pentasix-scrcpy.log)"; \
+		printf "  $(C_GREEN)ok$(C_RESET) jendela preview Pentasix terbuka di layar laptop.\n"; \
+	else \
+		printf "  $(C_RED)scrcpy tidak ditemukan$(C_RESET). Pasang via paket manager sistem Anda.\n"; \
+		exit 1; \
+	fi
+
+mirror: preview ## Alias untuk preview device ke laptop
+
+up-preview: ## Build + install + launch + buka preview layar laptop sekaligus
+	@$(MAKE) --no-print-directory up PREVIEW=1
+
+preview-kill: ## Tutup jendela preview scrcpy yang aktif
+	@printf "$(C_CYAN)[mobile]$(C_RESET) menutup preview scrcpy...\n"
+	@pkill -x scrcpy 2>/dev/null || printf "  (tidak ada preview scrcpy yang berjalan)\n"
+	@printf "  $(C_GREEN)ok$(C_RESET) preview ditutup.\n"
 
 .PHONY: emulator
 
-emulator: ## Nyalakan AVD di latar belakang (AVD=<nama> untuk memilih)
-	@[ -x "$(EMULATOR)" ] || { printf "  $(C_RED)emulator binary tidak ditemukan ($(EMULATOR))$(C_RESET)\n"; exit 1; }
-	@if [ -z "$(AVD)" ]; then printf "  $(C_RED)tidak ada AVD; buat dulu lewat Android Studio / avdmanager$(C_RESET)\n"; exit 1; fi
-	@printf "$(C_CYAN)[mobile]$(C_RESET) menyalakan AVD '%s'...\n" "$(AVD)"
-	@nohup "$(EMULATOR)" -avd "$(AVD)" -no-snapshot-save >/tmp/dape-emulator.log 2>&1 & echo "  pid $$! (log: /tmp/dape-emulator.log)"
+emulator: ## Nyalakan emulator / preview (AVD=<nama> untuk memilih)
+	@dev=$$("$(ADB)" devices 2>/dev/null | grep -w "device" | head -1 | awk '{print $$1}'); \
+	if [ -n "$$dev" ]; then \
+		model=$$("$(ADB)" -s "$$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r'); \
+		printf "$(C_GREEN)[mobile]$(C_RESET) device fisik terhubung ($$model - $$dev). Menjalankan preview ke laptop...\n"; \
+		$(MAKE) --no-print-directory preview; \
+	elif [ -x "$(EMULATOR)" ]; then \
+		if [ -z "$(AVD)" ]; then printf "  $(C_RED)tidak ada AVD; buat dulu lewat Android Studio / avdmanager$(C_RESET)\n"; exit 1; fi; \
+		printf "$(C_CYAN)[mobile]$(C_RESET) menyalakan AVD '%s'...\n" "$(AVD)"; \
+		nohup "$(EMULATOR)" -avd "$(AVD)" -no-snapshot-save >/tmp/dape-emulator.log 2>&1 & echo "  pid $$! (log: /tmp/dape-emulator.log)"; \
+	else \
+		printf "  $(C_RED)emulator binary tidak ditemukan ($(EMULATOR)) dan tidak ada device fisik terhubung$(C_RESET)\n"; \
+		printf "  Hubungkan HP via USB / aktifkan USB Debugging, lalu jalankan 'make preview'.\n"; \
+		exit 1; \
+	fi
 
 .PHONY: down
 
-down: ## Matikan emulator yang berjalan
-	@printf "$(C_CYAN)[mobile]$(C_RESET) mematikan emulator...\n"
+down: ## Matikan emulator atau preview yang berjalan
+	@printf "$(C_CYAN)[mobile]$(C_RESET) mematikan emulator/preview...\n"
+	@$(MAKE) --no-print-directory preview-kill || true
 	@[ -x "$(ADB)" ] && $(ADB) devices | awk 'NR>1 && $$1 ~ /^emulator-/ {print $$1}' | while read -r s; do \
 		printf "  stopping %s\n" "$$s"; $(ADB) -s "$$s" emu kill; \
 	done || true

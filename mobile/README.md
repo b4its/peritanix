@@ -39,8 +39,11 @@ Or delegate from the repo root: `make android <goal>` (e.g. `make android up`).
 | `help` | Tampilkan semua target |
 | `doctor` | Cek toolchain (java, sdk, adb, emulator, avd) |
 | `info` | Info detail proyek & aplikasi (versi, SDK, git, SHA-1/SHA-256 signing) |
-| `up` | Build + install + launch di device aktif; nyalakan emulator bila tidak ada device |
-| `down` | Matikan emulator yang berjalan |
+| `up` | Build + install + launch di device aktif (opsi: `PREVIEW=1`) |
+| `up-preview` | Build + install + launch + buka preview laptop (scrcpy) |
+| `preview` / `mirror` | Tampilkan live preview/emulator layar device fisik ke laptop (scrcpy) |
+| `preview-kill` | Tutup jendela preview scrcpy yang aktif |
+| `down` | Matikan emulator / preview yang berjalan |
 | `build` / `apk` | Build APK debug |
 | `release` | Build APK release |
 | `rebuild` | Clean lalu build ulang |
