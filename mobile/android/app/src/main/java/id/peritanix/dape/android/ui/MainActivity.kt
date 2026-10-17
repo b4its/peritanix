@@ -212,6 +212,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     8 -> AppIcons.Camera
                     9 -> AppIcons.Book
                     10 -> AppIcons.Sensors
+                    11 -> AppIcons.Calendar
                     else -> AppIcons.MoreVert
                 }
                 val otherTabLabel = when (tab) {
@@ -224,6 +225,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     8 -> "Kualitas ▾"
                     9 -> "Panduan ▾"
                     10 -> "Sensor Lab ▾"
+                    11 -> "Kalender ▾"
                     else -> "Lainnya ▾"
                 }
 
@@ -305,7 +307,11 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 DropdownMenu(
                                     expanded = menuExpanded,
                                     onDismissRequest = { menuExpanded = false },
-                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                    // Cap the height so the 11-item overflow menu stays
+                                    // scrollable and every item (incl. Kalender) is reachable.
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .heightIn(max = 420.dp)
                                 ) {
                                     DropdownMenuItem(
                                         text = {
@@ -540,6 +546,31 @@ fun PentasixApp(queue: SyncQueueStore) {
                                             menuExpanded = false
                                         }
                                     )
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Kalender Aktivitas (30 Tahun)",
+                                                fontWeight = if (tab == 11) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 11) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Calendar,
+                                                contentDescription = null,
+                                                tint = if (tab == 11) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 11) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 11
+                                            menuExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         },
@@ -639,6 +670,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 8 -> ChiliQualityScreen()
                                 9 -> GrowingGuideScreen()
                                 10 -> SensorLabScreen()
+                                11 -> CalendarScreen(queue)
                                 else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                             }
                         }

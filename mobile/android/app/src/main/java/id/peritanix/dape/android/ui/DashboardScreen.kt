@@ -894,6 +894,28 @@ fun DashboardScreen(
             }
         }
 
+        // Calendar quick-action (30-year activity calendar)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Kalender Aktivitas",
+                        message = "Lihat & catat aktivitas kebun pada tanggal mana pun (30 tahun).",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(11)
+                },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.Calendar, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Kalender Aktivitas", fontSize = 12.sp)
+            }
+        }
+
         // =====================================================================
         // 6. Offline-First Sync & Cryptography Audit Status
         // =====================================================================
