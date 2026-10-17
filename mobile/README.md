@@ -11,7 +11,7 @@ All operations are containerized via Docker and orchestrated through the root Ma
 
 ```bash
 make mobile-up      # Start the JDK + Android toolchain container
-make mobile-test    # 99 unit tests (40 pure JVM + 59 Android unit tests)
+make mobile-test    # 102 unit tests (40 pure JVM + 62 Android unit tests)
 make mobile-run     # Physics smoke CLI (prints calorimetry, TWI, GDD, cert)
 make mobile-build   # Assemble Android debug APK via Docker (requires mounted Android SDK)
 make mobile-apk     # Copy built APK to ./dist/app-debug.apk (~13 MB)
@@ -86,8 +86,8 @@ mobile/
     │   │   ├── HarvestScreen.kt         # Pod morphology, Archimedes density, Asas Black TTS, anti-cheat QR
     │   │   └── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
     │   ├── core/
-    │   │   ├── crypto/                  # AndroidKeystoreEd25519Bridge hardware identity wrapper
-    │   │   ├── hardware/                # GpsPolygonTracker, WaterLevelOverlayController, IndonesianTtsVoiceAdvisor, Camera2, Clinometer
+    │   │   ├── crypto/                  # AndroidKeystoreEd25519Bridge, QrMatrixGenerator (2D visual QR)
+    │   │   ├── hardware/                # GpsPolygonTracker, WaterLevelOverlayController, BluetoothThermalPrinter, IndonesianTtsVoiceAdvisor, Camera2, Clinometer
     │   │   ├── physics/                 # StokesStageManager, MicroclimateEws, PodMorphology, ImmersionTrace
     │   │   └── ai_edge/                 # Edge inference runner (trans-illumination, fruit counting, U-Net, LightGBM tabular)
     │   └── data/
@@ -99,7 +99,7 @@ mobile/
     │   ├── burst_aligner.cpp            # ORB feature matching & homography warp
     │   ├── sediment_edge_detector.cpp   # Canny edge & Hough line boundary detection
     │   └── archimedes_float_counter.cpp # HSV color mask & contour centroid counting
-    └── app/src/test/java/               # Android unit tests (59 tests)
+    └── app/src/test/java/               # Android unit tests (62 tests)
         └── id/peritanix/dape/android/
             ├── AndroidPhysicsCoreTest.kt
             ├── AndroidNativeBridgesTest.kt
@@ -116,7 +116,8 @@ mobile/
             ├── AndroidMicroclimateEwsTest.kt
             ├── AndroidPodMorphologyAndAntiCheatTest.kt
             ├── AndroidModelInferencePipelineTest.kt
-            └── AndroidIndonesianTtsVoiceAdvisorTest.kt
+            ├── AndroidIndonesianTtsVoiceAdvisorTest.kt
+            └── AndroidQrAndThermalPrintTest.kt
 ```
 
 ## Cross-Platform Determinism Guarantee
