@@ -87,7 +87,8 @@ mobile/
     │   │   ├── HarvestScreen.kt         # Pod morphology, Archimedes density, Asas Black TTS, anti-cheat QR
     │   │   ├── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
     │   │   └── components/
-    │   │       └── InteractiveFarmMap.kt # Pure-offline vector GIS canvas, multi-layer overlays, & tap inspector
+    │   │       ├── InteractiveFarmMap.kt # Interactive GIS farm map with multi-layer overlays & tap inspector
+    │   │       └── SlippyTileEngine.kt   # Free Slippy basemap tiles (OSM/Carto/Satellite/Topo), disk cache & offline vector engine
     │   ├── core/
     │   │   ├── crypto/                  # AndroidKeystoreEd25519Bridge, QrMatrixGenerator (2D visual QR)
     │   │   ├── hardware/                # GpsPolygonTracker, WaterLevelOverlayController, BluetoothThermalPrinter, IndonesianTtsVoiceAdvisor, Camera2, Clinometer
@@ -102,7 +103,7 @@ mobile/
     │   ├── burst_aligner.cpp            # ORB feature matching & homography warp
     │   ├── sediment_edge_detector.cpp   # Canny edge & Hough line boundary detection
     │   └── archimedes_float_counter.cpp # HSV color mask & contour centroid counting
-    └── app/src/test/java/               # Android unit tests (72 tests)
+    └── app/src/test/java/               # Android unit tests (77 tests)
         └── id/peritanix/dape/android/
             ├── AndroidPhysicsCoreTest.kt
             ├── AndroidNativeBridgesTest.kt
