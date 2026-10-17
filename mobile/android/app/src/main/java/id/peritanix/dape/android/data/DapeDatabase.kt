@@ -78,6 +78,21 @@ data class DeviceCalibrationEntity(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+/**
+ * A logged farm activity for the 30-year activity calendar. `epochDay` is
+ * [java.time.LocalDate.toEpochDay] so a day lookup is a simple indexed query.
+ */
+@Entity(tableName = "farm_activities", indices = [Index("epochDay")])
+data class FarmActivityEntity(
+    @PrimaryKey val id: String,
+    val epochDay: Long,
+    val kind: String,          // TANAM | PUPUK | SEMPROT | PANEN | PANEN_UJI | LAIN
+    val title: String,
+    val notes: String = "",
+    val landId: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface DapeDao {
     // --- sync queue ---
@@ -148,6 +163,25 @@ interface DapeDao {
 
     @Query("SELECT * FROM device_calibrations ORDER BY timestamp DESC LIMIT 1")
     suspend fun latestCalibration(): DeviceCalibrationEntity?
+
+    // --- farm activities (30-year calendar) ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertActivity(a: FarmActivityEntity)
+
+    @Query("SELECT * FROM farm_activities WHERE epochDay = :epochDay ORDER BY createdAt ASC")
+    suspend fun activitiesForDay(epochDay: Long): List<FarmActivityEntity>
+
+    @Query("SELECT * FROM farm_activities WHERE epochDay = :epochDay ORDER BY createdAt ASC")
+    fun activitiesForDaySync(epochDay: Long): List<FarmActivityEntity>
+
+    @Query("SELECT DISTINCT epochDay FROM farm_activities WHERE epochDay BETWEEN :fromDay AND :toDay")
+    suspend fun activityDaysInRange(fromDay: Long, toDay: Long): List<Long>
+
+    @Query("DELETE FROM farm_activities WHERE id = :id")
+    suspend fun deleteActivity(id: String)
+
+    @Query("SELECT COUNT(*) FROM farm_activities")
+    fun activityCount(): Int
 }
 
 @Database(
@@ -157,9 +191,10 @@ interface DapeDao {
         DiagnosisEntity::class,
         SoilAssessmentEntity::class,
         HarvestBatchEntity::class,
-        DeviceCalibrationEntity::class
+        DeviceCalibrationEntity::class,
+        FarmActivityEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class DapeDatabase : RoomDatabase() {

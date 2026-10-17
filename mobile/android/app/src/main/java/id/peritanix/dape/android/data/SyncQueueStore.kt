@@ -223,4 +223,33 @@ class SyncQueueStore(private val context: Context) {
 
     fun dao(): DapeDao = db.dao()
     fun database(): DapeDatabase = db
+
+    // --- 30-year calendar activities -----------------------------------------
+
+    /** Add a farm activity on a given epoch-day. Runs off the UI thread. */
+    fun addActivity(epochDay: Long, kind: String, title: String, notes: String = "", landId: String = "") {
+        val id = "act-${UUID.randomUUID()}"
+        Thread {
+            db.openHelper.writableDatabase.execSQL(
+                "INSERT OR REPLACE INTO farm_activities (id, epochDay, kind, title, notes, landId, createdAt) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                arrayOf(id, epochDay, kind, title, notes, landId, System.currentTimeMillis())
+            )
+        }.start()
+    }
+
+    /** Activities for one day (blocking; call off UI thread or use activitiesForDaySuspend). */
+    fun activitiesForDay(epochDay: Long): List<FarmActivityEntity> = db.dao().activitiesForDaySync(epochDay)
+
+    /** Suspend variant for coroutine use. */
+    suspend fun activitiesForDaySuspend(epochDay: Long): List<FarmActivityEntity> = db.dao().activitiesForDay(epochDay)
+
+    /** Set of epoch-days that have at least one activity within [fromDay, toDay]. */
+    suspend fun activityDaysInRange(fromDay: Long, toDay: Long): Set<Long> =
+        db.dao().activityDaysInRange(fromDay, toDay).toSet()
+
+    /** Remove an activity by id. */
+    fun deleteActivity(id: String) {
+        Thread { db.openHelper.writableDatabase.execSQL("DELETE FROM farm_activities WHERE id = ?", arrayOf(id)) }.start()
+    }
 }
