@@ -149,7 +149,92 @@ class DailyMissionsTest {
             DailyMissions.planFor(today, hst).missions.forEach { m ->
                 assertTrue("mission ${m.id} missing quality impact", m.qualityImpact.isNotBlank())
                 assertTrue("mission ${m.id} weight > 0", m.weight > 0)
+                assertTrue("mission ${m.id} missing howToExecute", m.howToExecute.isNotBlank())
+                assertTrue("mission ${m.id} missing scientificBasis", m.scientificBasis.isNotBlank())
+                assertTrue("mission ${m.id} missing targetMetric", m.targetMetric.isNotBlank())
             }
         }
     }
+
+    @Test
+    fun testQualityTargetsAndPillarsCovered() {
+        assertEquals(6, DailyMissions.QualityTarget.values().size)
+        DailyMissions.QualityTarget.values().forEach { target ->
+            assertTrue(target.title.isNotBlank())
+            assertTrue(target.goalMetric.isNotBlank())
+            assertTrue(target.description.isNotBlank())
+        }
+    }
+
+    @Test
+    fun testPillarProgressCalculation() {
+        val plan = DailyMissions.planFor(today, 45) // stage 3
+        val emptyProgress = DailyMissions.getPillarProgress(plan, emptySet())
+        emptyProgress.values.forEach { (done, total) ->
+            assertEquals(0, done)
+            assertTrue(total > 0)
+        }
+
+        val allIds = ids(plan)
+        val fullProgress = DailyMissions.getPillarProgress(plan, allIds)
+        fullProgress.values.forEach { (done, total) ->
+            assertEquals(total, done)
+        }
+    }
+
+    @Test
+    fun testFilterByTarget() {
+        val plan = DailyMissions.planFor(today, 45)
+        val pericarpMissions = DailyMissions.filterByTarget(plan, DailyMissions.QualityTarget.PERICARP_TEBAL)
+        assertTrue(pericarpMissions.isNotEmpty())
+        pericarpMissions.forEach {
+            assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, it.qualityTarget)
+        }
+
+        val allMissions = DailyMissions.filterByTarget(plan, null)
+        assertEquals(plan.missions.size, allMissions.size)
+    }
+
+    @Test
+    fun testExportGradeBadge() {
+        assertEquals("Grade A+ (Standar Ekspor)", DailyMissions.exportGradeBadge(95))
+        assertEquals("Grade A (Pasar Swalayan)", DailyMissions.exportGradeBadge(80))
+        assertEquals("Grade B (Pasar Induk)", DailyMissions.exportGradeBadge(60))
+        assertEquals("Grade Standar (Perlu Optimasi)", DailyMissions.exportGradeBadge(20))
+    }
+
+    @Test
+    fun testSpecificQualityMissionsPresentAcrossStages() {
+        // Stage 1: Persemaian -21..0 HST
+        val s1 = DailyMissions.planFor(today, -5)
+        val s1Titles = s1.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s1Titles.contains("trichoderma"))
+        assertTrue(s1Titles.contains("hardening") || s1Titles.contains("pengerasan"))
+
+        // Stage 2: Vegetatif 1..35 HST
+        val s2 = DailyMissions.planFor(today, 20)
+        val s2Titles = s2.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s2Titles.contains("silika"))
+        assertTrue(s2Titles.contains("likat kuning"))
+
+        // Stage 3: Pembungaan 36..55 HST
+        val s3 = DailyMissions.planFor(today, 45)
+        val s3Titles = s3.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s3Titles.contains("metil eugenol") || s3Titles.contains("lalat buah"))
+        assertTrue(s3Titles.contains("phospat") || s3Titles.contains("mkp"))
+
+        // Stage 4: Pembuahan 56..75 HST
+        val s4 = DailyMissions.planFor(today, 65)
+        val s4Titles = s4.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s4Titles.contains("defisit air") || s4Titles.contains("kapsaisin"))
+        assertTrue(s4Titles.contains("pecah") || s4Titles.contains("crack"))
+
+        // Stage 5: Panen 76..120 HST (Stage 5 is active when hst > 90, e.g. 100)
+        val s5 = DailyMissions.planFor(today, 100)
+        val s5Titles = s5.missions.joinToString(" ") { it.title.lowercase() }
+        assertTrue(s5Titles.contains("07:00") || s5Titles.contains("pagi"))
+        assertTrue(s5Titles.contains("archimedes") || s5Titles.contains("apung"))
+        assertTrue(s5Titles.contains("krat") || s5Titles.contains("ventilasi"))
+    }
 }
+

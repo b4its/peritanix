@@ -698,7 +698,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 9 -> GrowingGuideScreen(queue = queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                                 10 -> SensorLabScreen()
                                 11 -> CalendarScreen(queue)
-                                12 -> DailyMissionsScreen(queue)
+                                12 -> DailyMissionsScreen(queue, onNavigateToTab = { tab = it })
                                 else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                             }
                         }

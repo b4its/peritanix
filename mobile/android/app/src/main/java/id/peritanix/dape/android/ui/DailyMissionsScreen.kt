@@ -1,8 +1,11 @@
 package id.peritanix.dape.android.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -26,32 +30,49 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
+private val OrangePrimary = Color(0xFFE65100)
+private val GreenSuccess = Color(0xFF2E7D32)
+private val BlueWater = Color(0xFF1565C0)
+private val PurpleInspect = Color(0xFF6A1B9A)
+private val CrimsonSanitation = Color(0xFFC2185B)
+
 /**
- * Misi Harian Kualitas Cabai Terbaik.
+ * Misi Harian Kualitas Cabai Terbaik (Grade A+ Ekspor).
  *
- * Menampilkan misi-misi harian (deterministik per HST & fase tumbuh) yang
- * diarahkan untuk memaksimalkan kualitas panen: nutrisi Ca/B/Si, sanitasi
- * Antraknosa, manajemen air, inspeksi kamera, dan panen tepat kematangan.
- * Penyelesaian misi disimpan offline di Room (daily_mission_done) dan memberi
- * skor kualitas harian berbobot.
+ * Menampilkan misi-misi harian deterministik per HST dan fase pertumbuhan tanaman,
+ * berorientasi langsung pada 5 pilar mutu cabai:
+ *  - Ketebalan pericarp (>1.8 mm, Ca/B/Si)
+ *  - Kepedasan & konsentrasi kapsaisin (SHU >80.000)
+ *  - Warna merah cerah mengkilap (Kapsantin >85%)
+ *  - 0% patogen & antraknosa (sanitasi presisi)
+ *  - Panen turgor prima pagi hari & sterilisasi 52°C.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DailyMissionsScreen(queue: SyncQueueStore? = null) {
+fun DailyMissionsScreen(
+    queue: SyncQueueStore? = null,
+    onNavigateToTab: ((Int) -> Unit)? = null
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val today = remember { LocalDate.now() }
     val epochDay = remember { today.toEpochDay() }
 
-    var hst by remember { mutableStateOf(38) } // demo default: fase pembungaan
+    var hst by remember { mutableStateOf(45) } // Demo default: fase pembungaan / ovarium buah
     var completed by remember { mutableStateOf<Set<String>>(emptySet()) }
-
-    // Optional EWS risk boost demo toggle for spore-defense mission.
     var riskBoost by remember { mutableStateOf(0.0) }
+    var selectedTargetFilter by remember { mutableStateOf<DailyMissions.QualityTarget?>(null) }
+    var expandedMissionId by remember { mutableStateOf<String?>(null) }
+    var showQualityStandardDialog by remember { mutableStateOf(false) }
 
     val plan = remember(hst, riskBoost) { DailyMissions.planFor(today, hst, riskBoost) }
     val score = DailyMissions.dailyQualityScore(plan, completed)
     val grade = DailyMissions.scoreGrade(score)
+    val exportBadge = DailyMissions.exportGradeBadge(score)
+    val pillarProgress = remember(plan, completed) { DailyMissions.getPillarProgress(plan, completed) }
+    val filteredMissions = remember(plan, selectedTargetFilter) {
+        DailyMissions.filterByTarget(plan, selectedTargetFilter)
+    }
 
     fun reload() {
         scope.launch(Dispatchers.IO) {
@@ -62,144 +83,704 @@ fun DailyMissionsScreen(queue: SyncQueueStore? = null) {
     LaunchedEffect(epochDay) { reload() }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(36.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .background(OrangePrimary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text("Misi Harian Kualitas Terbaik", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("${plan.stageTitle} · ${plan.phaseName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Misi Harian Mutu Terbaik",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "${plan.stageTitle} · ${plan.phaseName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(
+                onClick = { showQualityStandardDialog = true },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Icon(AppIcons.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = OrangePrimary)
+                Spacer(Modifier.width(4.dp))
+                Text("Standar Mutu", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
-        // HST control + risk toggle
+        // HST Control & Phase Presets
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Umur Tanaman (HST): $hst", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                Slider(value = hst.toFloat(), onValueChange = { hst = it.toInt() }, valueRange = -21f..120f)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Risiko jamur (EWS): ${(riskBoost * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
-                    Checkbox(checked = riskBoost >= 0.5, onCheckedChange = { riskBoost = if (it) 0.8 else 0.0 })
-                    Text("aktifkan misi protektif", style = MaterialTheme.typography.labelSmall)
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Umur Tanaman: $hst HST (${plan.phaseName})",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "Tahap ${plan.stageIndex}/5",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Slider(
+                    value = hst.toFloat(),
+                    onValueChange = { hst = it.toInt() },
+                    valueRange = -21f..120f
+                )
+
+                // Quick phase presets
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val presets = listOf(
+                        Pair("Semai", -10),
+                        Pair("Vegetatif", 20),
+                        Pair("Bunga", 45),
+                        Pair("Buah", 65),
+                        Pair("Panen", 95)
+                    )
+                    presets.forEach { (label, targetHst) ->
+                        val isSelected = (plan.stageIndex == 1 && targetHst == -10) ||
+                            (plan.stageIndex == 2 && targetHst == 20) ||
+                            (plan.stageIndex == 3 && targetHst == 45) ||
+                            (plan.stageIndex == 4 && targetHst == 65) ||
+                            (plan.stageIndex == 5 && targetHst == 95)
+
+                        FilledTonalButton(
+                            onClick = { hst = targetHst },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isSelected) OrangePrimary else MaterialTheme.colorScheme.surface
+                            ),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(26.dp)
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 9.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                // Defensive EWS Risk Switch
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Icon(AppIcons.Shield, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(16.dp))
+                    Text("Risiko EWS Jamur/Antraknosa:", style = MaterialTheme.typography.labelSmall)
+                    Checkbox(
+                        checked = riskBoost >= 0.5,
+                        onCheckedChange = { riskBoost = if (it) 0.8 else 0.0 },
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        if (riskBoost >= 0.5) "Aktif (Risiko 80%)" else "Normal",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (riskBoost >= 0.5) FontWeight.Bold else FontWeight.Normal,
+                        color = if (riskBoost >= 0.5) Color(0xFFC2185B) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
 
-        // Score card
+        // Quality Scorecard & Export Grade
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Skor Kualitas Harian", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Text("$score%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    score >= 90 -> Color(0xFF1B5E20)
+                    score >= 70 -> Color(0xFF2E7D32)
+                    score >= 40 -> Color(0xFFE65100)
+                    else -> Color(0xFFC2185B)
                 }
+            )
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            "Skor Kualitas Harian",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                        Text(
+                            exportBadge,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
+                    Text(
+                        "$score%",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                }
+
                 LinearProgressIndicator(
                     progress = { score / 100f },
-                    modifier = Modifier.fillMaxWidth().height(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f)
                 )
-                Text(grade, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+
+                Text(
+                    grade,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.95f)
+                )
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.2f), thickness = 1.dp)
+
+                // 5-Pillar Live Achievement Matrix
+                Text(
+                    "Pencapaian Pilar Mutu Cabai Hari Ini:",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    pillarProgress.entries.take(4).forEach { (target, counts) ->
+                        val (done, total) = counts
+                        val isComplete = done == total && total > 0
+                        Surface(
+                            color = if (isComplete) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    target.title.split(" ").first(),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    "$done/$total",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isComplete) Color(0xFFC8E6C9) else Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        // "Focus today" = next unfinished
+        // Focus Next Unfinished Mission
         DailyMissions.nextUnfinished(plan, completed)?.let { next ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("FOKUS BERIKUTNYA", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                    Text(next.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                    Text(next.qualityImpact, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        Modifier
+                            .size(34.dp)
+                            .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.TrendingUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "FOKUS PRIORITAS KUALITAS HARI INI",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            next.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            next.qualityImpact,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
         }
 
-        Text("Daftar Misi Hari Ini (${plan.missions.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        // Sub-filter tabs by Quality Target
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Daftar Misi (${filteredMissions.size}/${plan.missions.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (selectedTargetFilter != null) {
+                    TextButton(
+                        onClick = { selectedTargetFilter = null },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                        modifier = Modifier.height(24.dp)
+                    ) {
+                        Text("Reset Filter", fontSize = 11.sp, color = OrangePrimary)
+                    }
+                }
+            }
 
-        plan.missions.forEach { mission ->
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedTargetFilter == null,
+                        onClick = { selectedTargetFilter = null },
+                        label = { Text("Semua (${plan.missions.size})", fontSize = 11.sp) }
+                    )
+                }
+                val targetsWithMissions = plan.missions.map { it.qualityTarget }.distinct()
+                items(targetsWithMissions) { target ->
+                    val count = plan.missions.count { it.qualityTarget == target }
+                    val done = plan.missions.count { it.qualityTarget == target && it.id in completed }
+                    FilterChip(
+                        selected = selectedTargetFilter == target,
+                        onClick = {
+                            selectedTargetFilter = if (selectedTargetFilter == target) null else target
+                        },
+                        label = {
+                            Text(
+                                "${target.title.split(" ").first()} ($done/$count)",
+                                fontSize = 11.sp
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        // Mission Cards
+        filteredMissions.forEach { mission ->
             val done = mission.id in completed
+            val isExpanded = expandedMissionId == mission.id
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (done) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+                    containerColor = if (done) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.surface
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = if (done) 0.dp else 2.dp)
             ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Checkbox(
-                        checked = done,
-                        onCheckedChange = { checked ->
-                            if (checked) {
-                                queue?.markMissionDone(epochDay, mission.id)
-                                PentasixNotificationHub.notify(
-                                    context = context, title = "Misi Selesai",
-                                    message = "${mission.title} — kualitas harian meningkat.",
-                                    type = NotificationType.SUCCESS, postSystemNotification = false
-                                )
-                            } else {
-                                queue?.unmarkMissionDone(epochDay, mission.id)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Checkbox(
+                            checked = done,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    queue?.markMissionDone(epochDay, mission.id)
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Misi Mutu Selesai",
+                                        message = "${mission.title} — skor mutu cabai meningkat.",
+                                        type = NotificationType.SUCCESS,
+                                        postSystemNotification = false
+                                    )
+                                } else {
+                                    queue?.unmarkMissionDone(epochDay, mission.id)
+                                }
+                                completed = if (checked) completed + mission.id else completed - mission.id
+                                scope.launch {
+                                    kotlinx.coroutines.delay(120)
+                                    reload()
+                                }
                             }
-                            // optimistic UI
-                            completed = if (checked) completed + mission.id else completed - mission.id
-                            scope.launch { kotlinx.coroutines.delay(120); reload() }
-                        }
-                    )
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CategoryDot(mission.category)
+                        )
+
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            // Category & Quality Pillar Badges
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                CategoryDot(mission.category)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        mission.qualityTarget.title,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                    )
+                                }
+                                if (mission.targetAmount > 1) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            "Target: ${mission.targetAmount} sampel",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Title
                             Text(
                                 mission.title,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                                textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                            )
+
+                            // Detail text
+                            Text(
+                                mission.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Quality Impact Row
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    AppIcons.TrendingUp,
+                                    contentDescription = null,
+                                    tint = OrangePrimary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    mission.qualityImpact,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangePrimary
+                                )
+                            }
+
+                            // Target metric pill
+                            if (mission.targetMetric.isNotBlank()) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    ) {
+                                        Icon(
+                                            AppIcons.Shield,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            "Metrik: ${mission.targetMetric}",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Action buttons: Expand SOP & cross navigation
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = {
+                                expandedMissionId = if (isExpanded) null else mission.id
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(
+                                if (isExpanded) AppIcons.Close else AppIcons.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                if (isExpanded) "Tutup SOP" else "Panduan SOP & Ilmiah",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-                        Text(mission.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("★ ${mission.qualityImpact}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+
+                        // Context-aware shortcuts
+                        when (mission.category) {
+                            DailyMissions.Category.INSPEKSI -> {
+                                OutlinedButton(
+                                    onClick = { onNavigateToTab?.invoke(8) },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Buka Kamera", fontSize = 10.sp)
+                                }
+                            }
+                            DailyMissions.Category.PANEN -> {
+                                OutlinedButton(
+                                    onClick = { onNavigateToTab?.invoke(3) },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Icon(AppIcons.Chili, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Uji Panen", fontSize = 10.sp)
+                                }
+                            }
+                            else -> {
+                                OutlinedButton(
+                                    onClick = { onNavigateToTab?.invoke(9) },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Panduan", fontSize = 10.sp)
+                                }
+                            }
+                        }
                     }
-                    if (mission.targetAmount > 1) {
-                        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
-                            Text("×${mission.targetAmount}", fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+
+                    // Expandable SOP Details
+                    AnimatedVisibility(visible = isExpanded) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (mission.howToExecute.isNotBlank()) {
+                                    Text(
+                                        "Langkah Eksekusi SOP:",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        mission.howToExecute,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                if (mission.scientificBasis.isNotBlank()) {
+                                    Text(
+                                        "Landasan Ilmiah Agro-Fisika:",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = OrangePrimary
+                                    )
+                                    Text(
+                                        mission.scientificBasis,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (mission.targetMetric.isNotBlank()) {
+                                    Text(
+                                        "Target Fisik Terukur: ${mission.targetMetric}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = GreenSuccess
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        Text(
-            "Misi dihasilkan otomatis sesuai fase tanaman (HST) dan diarahkan untuk memaksimalkan grade panen: nutrisi pericarp, sanitasi patogen, dan kematangan tepat waktu.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+        // Quality Principles Info Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(AppIcons.Science, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(16.dp))
+                    Text("Sinergi Kualitas Cabai DAPE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+                Text(
+                    "Misi harian ini didesain agar petani menghasilkan cabai mutu terbaik: dinding pericarp tebal (>1.8 mm) via Ca/B/Si, rasa pedas tajam via defisit air terukur, kilap merah merata via Kalium/Magnesium, bebas cacat berkat sanitasi EWS, dan kesegaran maksimal saat petik pagi 07:00-10:00 WIB.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    // Modal Dialog: Standar Kualitas Cabai Grade A+ Ekspor
+    if (showQualityStandardDialog) {
+        AlertDialog(
+            onDismissRequest = { showQualityStandardDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(AppIcons.Chili, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(24.dp))
+                    Text("Standar Mutu Cabai Grade A+", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Kriteria Fisik & Kimia Cabai Kualitas Terbaik:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    QualityMetricItem("Tebal Dinding Buah (Pericarp)", "> 1,8 mm (tahan simpan >14 hari)")
+                    QualityMetricItem("Tingkat Kepedasan", "> 80.000 SHU (Scoville Heat Units)")
+                    QualityMetricItem("Keseragaman Warna", "Merah cerah mengkilap > 85% (CIELAB a* > 35)")
+                    QualityMetricItem("Keutuhan Fisik", "Tangkai utuh 2-3 cm, 0% busuk/antraknosa")
+                    QualityMetricItem("Kepadatan & Rongga", "Uji apung Archimedes >80% tenggelam")
+                    QualityMetricItem("Sterilisasi Spora Laten", "Termoterapi air hangat 52°C selama 3 menit")
+                    QualityMetricItem("Pengemasan Pascapanen", "Krat berventilasi maks 15 kg di ruang teduh")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showQualityStandardDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Text("Tutup", color = Color.White)
+                }
+            }
         )
-        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun QualityMetricItem(title: String, spec: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+            Text(spec, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+        }
     }
 }
 
 @Composable
 private fun CategoryDot(category: DailyMissions.Category) {
     val color = when (category) {
-        DailyMissions.Category.AIR -> Color(0xFF1565C0)
-        DailyMissions.Category.NUTRISI -> Color(0xFF2E7D32)
-        DailyMissions.Category.SANITASI -> Color(0xFFAD1457)
-        DailyMissions.Category.INSPEKSI -> Color(0xFF6A1B9A)
-        DailyMissions.Category.PANEN -> Color(0xFFF57C00)
+        DailyMissions.Category.AIR -> BlueWater
+        DailyMissions.Category.NUTRISI -> GreenSuccess
+        DailyMissions.Category.SANITASI -> CrimsonSanitation
+        DailyMissions.Category.INSPEKSI -> PurpleInspect
+        DailyMissions.Category.PANEN -> OrangePrimary
         DailyMissions.Category.UMUM -> Color(0xFF6D4C41)
     }
     Box(Modifier.size(9.dp).background(color, CircleShape))
