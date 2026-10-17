@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.theme.OrangePrimary
@@ -41,6 +43,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PentasixApp(queue: SyncQueueStore) {
+    val context = LocalContext.current
+    val weatherRepo = remember { WeatherRepository(context.applicationContext) }
     var isDarkTheme by remember { mutableStateOf(false) }
 
     PentasixTheme(darkTheme = isDarkTheme) {
@@ -125,6 +129,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     4 -> AppIcons.Map
                     5 -> AppIcons.Sync
                     6 -> AppIcons.Compass
+                    7 -> AppIcons.WbSunny
                     else -> AppIcons.MoreVert
                 }
                 val otherTabLabel = when (tab) {
@@ -133,6 +138,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     4 -> "Peta ▾"
                     5 -> "Sinkron ▾"
                     6 -> "Kompas ▾"
+                    7 -> "Cuaca ▾"
                     else -> "Lainnya ▾"
                 }
 
@@ -344,6 +350,32 @@ fun PentasixApp(queue: SyncQueueStore) {
                                             menuExpanded = false
                                         }
                                     )
+                                    HorizontalDivider()
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Cuaca & Hujan Lapangan",
+                                                fontWeight = if (tab == 7) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 7) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.WbSunny,
+                                                contentDescription = null,
+                                                tint = if (tab == 7) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 7) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 7
+                                            menuExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         },
@@ -372,14 +404,15 @@ fun PentasixApp(queue: SyncQueueStore) {
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 when (tab) {
-                    0 -> DashboardScreen(queue, onNavigateToTab = { tab = it })
+                    0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                     1 -> LahanScreen(queue)
                     2 -> DiagnosticsScreen(queue)
                     3 -> HarvestScreen(queue)
                     4 -> FarmMapScreen(queue)
                     5 -> SyncScreen(queue)
                     6 -> CompassCalibrationScreen()
-                    else -> DashboardScreen(queue, onNavigateToTab = { tab = it })
+                    7 -> WeatherScreen(weatherRepo)
+                    else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                 }
             }
         }

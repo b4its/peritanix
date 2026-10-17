@@ -18,10 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import kotlinx.coroutines.delay
 
 /**
  * Halaman Dashboard Utama Pentasix.
@@ -38,9 +40,30 @@ import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 @Composable
 fun DashboardScreen(
     queue: SyncQueueStore? = null,
+    weatherRepo: WeatherRepository? = null,
     onNavigateToTab: (Int) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+
+    // Observe dynamic weather and live rain state from weatherRepo
+    val isRaining = weatherRepo?.isRaining ?: false
+    val rainStartTime = weatherRepo?.rainStartTimeMs ?: 0L
+    val currentTemp = weatherRepo?.currentTempC ?: 21.5
+    val currentRh = weatherRepo?.currentRhPct ?: 82.0
+    val currentWind = weatherRepo?.currentWindKmh ?: 8.5
+    val accumulatedGdd = weatherRepo?.lastSyncResult?.accumulatedGdd30Days ?: 780.0
+    val weatherLabel = weatherRepo?.currentCondition?.label ?: "Optimal"
+
+    var elapsedRainSec by remember {
+        mutableStateOf(if (isRaining && rainStartTime > 0L) (System.currentTimeMillis() - rainStartTime) / 1000L else 0L)
+    }
+
+    LaunchedEffect(isRaining, rainStartTime) {
+        while (isRaining && rainStartTime > 0L) {
+            elapsedRainSec = (System.currentTimeMillis() - rainStartTime) / 1000L
+            delay(1000L)
+        }
+    }
 
     // Query Room SQLite data counts
     var landCount by remember { mutableStateOf(queue?.landCount() ?: 1) }
@@ -132,7 +155,9 @@ fun DashboardScreen(
         // 1. Executive Agro-Climate Header Card
         // =====================================================================
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToTab(7) }, // Navigate to Weather
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -178,7 +203,7 @@ fun DashboardScreen(
                     Spacer(Modifier.width(8.dp))
 
                     Surface(
-                        color = Color(0xFF2E7D32),
+                        color = if (isRaining) Color(0xFF1976D2) else Color(0xFF2E7D32),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.wrapContentSize()
                     ) {
@@ -187,9 +212,14 @@ fun DashboardScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Icon(
+                                if (isRaining) AppIcons.Umbrella else AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
                             Text(
-                                "Optimal",
+                                if (isRaining) "Hujan Aktif" else weatherLabel,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -215,21 +245,112 @@ fun DashboardScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Suhu", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("21.5°C", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text("${"%.1f".format(currentTemp)}°C", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Kelembapan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("82% RH", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text("${currentRh.toInt()}% RH", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Thermal GDD", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("780 °C-h", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                            Text("${accumulatedGdd.toInt()} °C-h", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Angin", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Icon(AppIcons.Wind, contentDescription = null, tint = Color(0xFFEF6C00), modifier = Modifier.size(12.dp))
-                                Text("8.5 km/j", fontWeight = FontWeight.Bold, color = Color(0xFFEF6C00), style = MaterialTheme.typography.bodyMedium)
+                                Text("${"%.1f".format(currentWind)} km/j", fontWeight = FontWeight.Bold, color = Color(0xFFEF6C00), style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Live Rain Alert & Running Stopwatch Banner
+        if (isRaining) {
+            val hrs = elapsedRainSec / 3600
+            val mins = (elapsedRainSec % 3600) / 60
+            val secs = elapsedRainSec % 60
+            val timeStr = String.format("%02d:%02d:%02d", hrs, mins, secs)
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToTab(7) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1976D2)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(Color(0xFF1976D2), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(AppIcons.Umbrella, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("SEDANG HUJAN DI LAHAN", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF0D47A1))
+                                    Surface(color = Color(0xFFD32F2F), shape = RoundedCornerShape(4.dp)) {
+                                        Text("LIVE", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                    }
+                                }
+                                Text("Intensitas: $weatherLabel", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+
+                        Text("Cuaca ➜", fontSize = 11.sp, color = Color(0xFF1976D2), fontWeight = FontWeight.Bold)
+                    }
+
+                    // Stopwatch ticker row
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        shadowElevation = 1.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("DURASI HUJAN BERJALAN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1976D2))
+                                Text(
+                                    timeStr,
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color(0xFF0D47A1)
+                                )
+                            }
+                            Button(
+                                onClick = { weatherRepo?.stopRain() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(AppIcons.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Tandai Berakhir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -624,6 +745,27 @@ fun DashboardScreen(
                 Icon(AppIcons.RotateRight, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Kalibrasi Sensor", fontSize = 12.sp)
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { onNavigateToTab(7) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.WbSunny, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Cuaca & Hujan", fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = { onNavigateToTab(5) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Sinkron Data", fontSize = 12.sp)
             }
         }
 
