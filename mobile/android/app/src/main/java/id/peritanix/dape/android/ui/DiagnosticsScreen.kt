@@ -1,7 +1,10 @@
 package id.peritanix.dape.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +17,7 @@ import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.PericarpFortificationManager
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.pathology.PathologyClassifier
@@ -146,33 +150,55 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 1: Diferensiasi Morfologi Keriting Daun On-Device ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "1. Diferensiasi Keriting Daun & Lesi On-Device",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Microscope, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "1. Diferensiasi Keriting Daun & Lesi On-Device",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Pemisahan patologi daun: Thrips vs Tungau vs Gemini vs Antraknosa.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-                Text("Arah Lengkungan Daun:", style = MaterialTheme.typography.bodySmall)
+                Text("Arah Lengkungan Daun:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("up" to "Ke Atas (Perahu)", "down" to "Ke Bawah (Sendok)", "none" to "Datar").forEach { (valKey, label) ->
                         FilterChip(
                             selected = curlDirection == valKey,
                             onClick = { curlDirection = valKey },
-                            label = { Text(label) }
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
 
-                Text("Warna Permukaan Bawah Daun:", style = MaterialTheme.typography.bodySmall)
+                Text("Warna Permukaan Bawah Daun:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("silvery" to "Keperakan (Thrips)", "bronze" to "Tembaga (Tungau)", "normal" to "Normal").forEach { (valKey, label) ->
                         FilterChip(
                             selected = undersideColor == valKey,
                             onClick = { undersideColor = valKey },
-                            label = { Text(label) }
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -208,6 +234,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -221,6 +248,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                 // U-Net Lite 4-Class Lesion Severity Analysis
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -229,8 +257,8 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                             Text("Severity: ${unetResult.calculatedSeverityPct}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
                         Text("• Jaringan Sehat: ${healthyPct.toInt()}% | Klorosis: ${chloroticPct.toInt()}% | Nekrosis: ${necroticPct.toInt()}%", style = MaterialTheme.typography.bodySmall)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Simulasi Lesi:", style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterVertically))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Simulasi Lesi:", style = MaterialTheme.typography.bodySmall)
                             FilterChip(
                                 selected = necroticPct == 12.0f,
                                 onClick = {
@@ -299,16 +327,24 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text("Simpan Diagnosis & Petakan ke Peta GIS")
                 }
 
                 if (saveStatus.isNotEmpty()) {
-                    Text(
-                        saveStatus,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(
+                            saveStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -316,16 +352,38 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 2: Pemicu Uji Ooze Destruktif (FR-2.3) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (oozeResult.isMandatory) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "2. Pemicu Uji Ooze Destruktif (Layu Bakteri vs Jamur)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(if (oozeResult.isMandatory) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Science, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "2. Pemicu Uji Ooze Destruktif (Layu Bakteri vs Jamur)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Prosedur potong batang & celup air untuk membedakan Ralstonia dan Fusarium.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(
@@ -333,7 +391,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                         onCheckedChange = { isWilting = it }
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isWilting) "Gejala Layu Terdeteksi" else "Tanaman Tidak Layu")
+                    Text(if (isWilting) "Gejala Layu Terdeteksi" else "Tanaman Tidak Layu", fontWeight = FontWeight.SemiBold)
                 }
 
                 Text("Kelembaban Tanah: ${soilMoisturePct.toInt()}%")
@@ -344,12 +402,15 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                 )
 
                 if (oozeResult.isMandatory) {
-                    Text(
-                        "PERINGATAN: ${oozeResult.reason}",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                        Text(
+                            "PERINGATAN: ${oozeResult.reason}",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     Text(
                         "Prosedur Lapangan: Potong batang 2 cm di atas permukaan tanah, celupkan pangkal ke gelas berisi air bening. Jika keluar kabut/asap putih dalam 1-3 menit, positif Ralstonia solanacearum (cabut dan musnahkan segera).",
                         style = MaterialTheme.typography.bodySmall
@@ -367,51 +428,97 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 3: Active Leaf Trans-Illumination (FR-2.2) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "3. Uji Trans-Iluminasi Daun Kontak 0 cm (FR-2.2)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Kamera kontak langsung ke daun dengan LED Flash menyala penuh untuk membaca transmisi optik mesofil dan hifa laten pra-gejala.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Rasio Transmisi Hijau: ${transResult.greenAttenuationRatio}")
-                    Text("Kerapatan Optik: ${transResult.mesophyllOpticalDensity}")
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Camera, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "3. Uji Trans-Iluminasi Daun Kontak 0 cm (FR-2.2)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Kamera kontak langsung ke daun dengan LED Flash untuk deteksi hifa laten.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                Text(
-                    transResult.latencyAdvisory,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Rasio Transmisi Hijau: ${transResult.greenAttenuationRatio}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text("Kerapatan Optik: ${transResult.mesophyllOpticalDensity}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(
+                        if (transResult.isLatentFungalDetected) AppIcons.Warning else AppIcons.CheckCircle,
+                        contentDescription = null,
+                        tint = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        transResult.latencyAdvisory,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (transResult.isLatentFungalDetected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
         // --- Card 4: Pericarp Fortification Lock & Nitrogen Blocking (FR-3.2) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (fertValidation.isCriticalBlock) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "4. Penguncian Fortifikasi Dinding Sel (FR-3.2)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Text(
+                            "4. Penguncian Fortifikasi Dinding Sel",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     AssistChip(
                         onClick = {},
+                        leadingIcon = {
+                            Icon(
+                                if (fortStatus.isLocked) AppIcons.Warning else AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = if (fortStatus.isLocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
                         label = { Text(if (fortStatus.isLocked) "LOCKED" else "NORMAL") }
                     )
                 }
@@ -429,18 +536,21 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                                 proposedFertilizer = name
                                 proposedNitrogenPct = nPct
                             },
-                            label = { Text(name) }
+                            label = { Text(name, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
 
                 if (fertValidation.isCriticalBlock) {
-                    Text(
-                        fertValidation.warningMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Text(
+                            fertValidation.warningMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         "Tindakan Korektif Wajib: ${fertValidation.correctiveAction}",
                         style = MaterialTheme.typography.bodySmall,
@@ -457,6 +567,7 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                 // Stoichiometry Box
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -473,23 +584,41 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 5: Estimasi Populasi Buah & Yield On-Device (FR-2.1) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "5. Estimasi Populasi Buah & Hasil Panen (YOLO Yield)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Deteksi on-device buah hijau, semburat, dan merah matang untuk proyeksi tonase panen ke depan.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.TrendingUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "5. Estimasi Populasi Buah & Hasil Panen (YOLO Yield)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Deteksi on-device buah hijau, semburat, dan merah matang.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Buah Hijau: $greenFruits")
-                    Text("Semburat: $turningFruits")
-                    Text("Merah Matang: $ripeFruits")
+                    Text("Buah Hijau: $greenFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                    Text("Semburat: $turningFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                    Text("Merah Matang: $ripeFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                 }
 
                 HorizontalDivider()
@@ -514,7 +643,9 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 6: Early Warning System (EWS) Mikroklimat 72 Jam (FR-3.1) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             var ewsTemp by remember { mutableStateOf(28.0) }
             var ewsHumidity by remember { mutableStateOf(85.0) }
@@ -525,15 +656,33 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                 )
             }
 
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "6. EWS Mikroklimat 72 Jam (Spora Antraknosa)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.Timer, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Text(
+                            "6. EWS Mikroklimat 72 Jam (Spora)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     AssistChip(
                         onClick = {},
+                        leadingIcon = {
+                            Icon(
+                                if (ewsRisk.riskLevel == "CRITICAL" || ewsRisk.riskLevel == "HIGH") AppIcons.Warning else AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = if (ewsRisk.riskLevel == "CRITICAL" || ewsRisk.riskLevel == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
                         label = { Text(ewsRisk.riskLevel) }
                     )
                 }
@@ -580,19 +729,36 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
         // --- Card 7: Peta Sebaran Spasial Infeksi Penyakit & Korelasi TWI ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "7. Peta Sebaran Spasial Infeksi & Korelasi TWI",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Peta interaktif offline: korelasi titik infeksi patologi dengan zona genangan air (TWI tinggi) dan arah angin penyebaran spora.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "7. Peta Sebaran Spasial Infeksi & Korelasi TWI",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Korelasi titik infeksi patologi dengan zona genangan air dan arah angin spora.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 InteractiveFarmMap(
                     modifier = Modifier

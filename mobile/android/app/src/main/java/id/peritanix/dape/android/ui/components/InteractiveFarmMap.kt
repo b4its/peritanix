@@ -443,7 +443,10 @@ fun InteractiveFarmMap(
                 FilterChip(
                     selected = showPolygon,
                     onClick = { showPolygon = !showPolygon },
-                    label = { Text("🌾 Lahan", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(AppIcons.Sprout, contentDescription = null, modifier = Modifier.size(13.dp))
+                    },
+                    label = { Text("Lahan", fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF2E7D32),
                         selectedLabelColor = Color.White
@@ -452,7 +455,10 @@ fun InteractiveFarmMap(
                 FilterChip(
                     selected = showTwiGrid,
                     onClick = { showTwiGrid = !showTwiGrid },
-                    label = { Text("💧 TWI", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(AppIcons.WaterDrop, contentDescription = null, modifier = Modifier.size(13.dp))
+                    },
+                    label = { Text("TWI", fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF0277BD),
                         selectedLabelColor = Color.White
@@ -461,7 +467,10 @@ fun InteractiveFarmMap(
                 FilterChip(
                     selected = showDiseaseMarkers,
                     onClick = { showDiseaseMarkers = !showDiseaseMarkers },
-                    label = { Text("🔬 Penyakit", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(AppIcons.BugReport, contentDescription = null, modifier = Modifier.size(13.dp))
+                    },
+                    label = { Text("Penyakit", fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFC62828),
                         selectedLabelColor = Color.White
@@ -470,7 +479,10 @@ fun InteractiveFarmMap(
                 FilterChip(
                     selected = showFlowVectors,
                     onClick = { showFlowVectors = !showFlowVectors },
-                    label = { Text("💨 Vektor", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(AppIcons.Wind, contentDescription = null, modifier = Modifier.size(13.dp))
+                    },
+                    label = { Text("Vektor", fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFEF6C00),
                         selectedLabelColor = Color.White
@@ -479,7 +491,10 @@ fun InteractiveFarmMap(
                 FilterChip(
                     selected = showGpsDot,
                     onClick = { showGpsDot = !showGpsDot },
-                    label = { Text("📍 GPS", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(13.dp))
+                    },
+                    label = { Text("GPS", fontSize = 11.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF1565C0),
                         selectedLabelColor = Color.White
@@ -497,10 +512,19 @@ fun InteractiveFarmMap(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             BasemapStyle.values().forEach { style ->
+                val styleIcon = when (style) {
+                    BasemapStyle.OPEN_STREET_MAP -> AppIcons.Map
+                    BasemapStyle.CARTO_VOYAGER -> AppIcons.HomeVillage
+                    BasemapStyle.SATELLITE_AERIAL -> AppIcons.Satellite
+                    BasemapStyle.TOPOGRAPHIC -> AppIcons.Terrain
+                }
                 FilterChip(
                     selected = currentBasemapStyle == style,
                     onClick = { currentBasemapStyle = style },
-                    label = { Text("${style.icon} ${style.displayName.take(8)}", fontSize = 10.sp) },
+                    leadingIcon = {
+                        Icon(styleIcon, contentDescription = null, modifier = Modifier.size(12.dp))
+                    },
+                    label = { Text(style.displayName.take(8), fontSize = 10.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF2E7D32),
                         selectedLabelColor = Color.White,
@@ -526,8 +550,9 @@ fun InteractiveFarmMap(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                Icon(AppIcons.Shield, contentDescription = null, tint = Color(0xFF81C784), modifier = Modifier.size(12.dp))
                 Text(
-                    "🌐 ${currentBasemapStyle.displayName} (Offline Cache)",
+                    "${currentBasemapStyle.displayName} (Offline Cache)",
                     fontSize = 10.sp,
                     color = Color(0xFFE0E0E0),
                     fontFamily = FontFamily.Monospace
@@ -549,7 +574,7 @@ fun InteractiveFarmMap(
                     contentColor = Color.White,
                     shape = CircleShape
                 ) {
-                    Text("+", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Icon(AppIcons.Add, contentDescription = "Zoom In", modifier = Modifier.size(18.dp))
                 }
                 SmallFloatingActionButton(
                     onClick = { zoomFactor = (zoomFactor / 1.35f).coerceAtLeast(0.25f) },
@@ -557,7 +582,7 @@ fun InteractiveFarmMap(
                     contentColor = Color.White,
                     shape = CircleShape
                 ) {
-                    Text("−", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Icon(AppIcons.Remove, contentDescription = "Zoom Out", modifier = Modifier.size(18.dp))
                 }
                 SmallFloatingActionButton(
                     onClick = {
@@ -569,7 +594,7 @@ fun InteractiveFarmMap(
                     contentColor = Color.White,
                     shape = CircleShape
                 ) {
-                    Text("⛶", fontSize = 14.sp)
+                    Icon(AppIcons.GpsFixed, contentDescription = "Reset View", modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -594,40 +619,51 @@ fun InteractiveFarmMap(
                         when (element) {
                             is SelectedMapElement.MarkerElement -> {
                                 val m = element.marker
-                                Text(
-                                    "🔬 ${m.title}",
-                                    fontWeight = FontWeight.Bold,
-                                    color = when (m.diseaseType) {
-                                        "ANTHRACNOSE" -> Color(0xFFFF5252)
-                                        "BEGOMOVIRUS" -> Color(0xFFFFD740)
-                                        "RALSTONIA" -> Color(0xFFE040FB)
-                                        "PHYTOPHTHORA" -> Color(0xFFFF4081)
-                                        else -> Color(0xFF69F0AE)
-                                    },
-                                    style = MaterialTheme.typography.titleSmall
-                                )
+                                val markerColor = when (m.diseaseType) {
+                                    "ANTHRACNOSE" -> Color(0xFFFF5252)
+                                    "BEGOMOVIRUS" -> Color(0xFFFFD740)
+                                    "RALSTONIA" -> Color(0xFFE040FB)
+                                    "PHYTOPHTHORA" -> Color(0xFFFF4081)
+                                    else -> Color(0xFF69F0AE)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.BugReport, contentDescription = null, tint = markerColor, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        m.title,
+                                        fontWeight = FontWeight.Bold,
+                                        color = markerColor,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                }
                             }
                             is SelectedMapElement.VertexElement -> {
-                                Text(
-                                    "📍 Titik Pematang #${element.index + 1}",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF81C784),
-                                    style = MaterialTheme.typography.titleSmall
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.GpsFixed, contentDescription = null, tint = Color(0xFF81C784), modifier = Modifier.size(16.dp))
+                                    Text(
+                                        "Titik Pematang #${element.index + 1}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF81C784),
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                }
                             }
                             is SelectedMapElement.TwiCellElement -> {
                                 val c = element.cell
-                                Text(
-                                    "💧 Sel TWI [${c.row}, ${c.col}]: ${c.riskClass}",
-                                    fontWeight = FontWeight.Bold,
-                                    color = when (c.riskClass) {
-                                        "CRITICAL" -> Color(0xFFFF5252)
-                                        "HIGH" -> Color(0xFFFFAB40)
-                                        "MODERATE" -> Color(0xFF69F0AE)
-                                        else -> Color(0xFF40C4FF)
-                                    },
-                                    style = MaterialTheme.typography.titleSmall
-                                )
+                                val cellRiskColor = when (c.riskClass) {
+                                    "CRITICAL" -> Color(0xFFFF5252)
+                                    "HIGH" -> Color(0xFFFFAB40)
+                                    "MODERATE" -> Color(0xFF69F0AE)
+                                    else -> Color(0xFF40C4FF)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.WaterDrop, contentDescription = null, tint = cellRiskColor, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        "Sel TWI [${c.row}, ${c.col}]: ${c.riskClass}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = cellRiskColor,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                }
                             }
                         }
 
@@ -635,7 +671,7 @@ fun InteractiveFarmMap(
                             onClick = { selectedElement = null },
                             modifier = Modifier.size(24.dp)
                         ) {
-                            Text("✕", color = Color.LightGray, fontSize = 14.sp)
+                            Icon(AppIcons.Remove, contentDescription = "Close", tint = Color.LightGray, modifier = Modifier.size(14.dp))
                         }
                     }
 

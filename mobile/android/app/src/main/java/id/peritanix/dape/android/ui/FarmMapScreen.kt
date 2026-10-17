@@ -3,6 +3,7 @@ package id.peritanix.dape.android.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -17,11 +18,12 @@ import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.data.SyncQueueStore
+import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 
 /**
- * Peta GIS Interaktif Terintegrasi (Tahap 1.1 GPS & FR-1.3 Topografi TWI & FR-2 Pathology).
+ * Peta GIS Interaktif Terintegrasi Pentasix (Tahap 1.1 GPS, FR-1.3 Topografi TWI, FR-2 Pathology).
  *
  * Visualizes:
  *   1. Polygon boundary recorded by GPS perimeter walk.
@@ -37,7 +39,6 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
     // --- State: GPS Polygon Tracker ---
     val polygonTracker = remember {
         GpsPolygonTracker().apply {
-            // Seed initial smallholder plot (~0.25 Ha)
             val baseLat = -7.123456
             val baseLon = 110.456789
             addPoint(baseLat, baseLon, 850.0, 3.2f)
@@ -148,47 +149,81 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- Header Card ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    "🗺️ Peta GIS Lahan & Spasial Penyakit",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Peta GIS realistis berbasis tile OpenStreetMap, topografi desa, & citra satelit (100% offline-ready dengan disk cache). Memvisualisasikan batas GPS, kontur drainase TWI, dan sebaran penyakit.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    Column {
+                        Text(
+                            "Peta GIS Lahan & Spasial Penyakit",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Basemap tile OpenStreetMap, topografi desa, & citra satelit (100% offline-ready dengan disk cache).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 // Stats Dashboard Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
-                        Text("Luas Lahan", style = MaterialTheme.typography.labelSmall)
-                        Text("${"%.3f".format(areaHa)} Ha", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                    }
-                    Column {
-                        Text("Keliling", style = MaterialTheme.typography.labelSmall)
-                        Text("${"%.1f".format(perimeterMeters)} m", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                    }
-                    Column {
-                        Text("Titik Penyakit", style = MaterialTheme.typography.labelSmall)
-                        Text("${markers.size} Lokasi", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)
-                    }
-                    Column {
-                        Text("Status Batas", style = MaterialTheme.typography.labelSmall)
-                        Text(if (isClosed) "Tertutup ✓" else "Terbuka", fontWeight = FontWeight.Bold, color = if (isClosed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.titleSmall)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Luas Lahan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${"%.3f".format(areaHa)} Ha", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        }
+                        Column {
+                            Text("Keliling", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${"%.1f".format(perimeterMeters)} m", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        }
+                        Column {
+                            Text("Titik Penyakit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${markers.size} Lokasi", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleSmall)
+                        }
+                        Column {
+                            Text("Status Batas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                if (isClosed) {
+                                    Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
+                                }
+                                Text(
+                                    if (isClosed) "Tertutup" else "Terbuka",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isClosed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -197,13 +232,15 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
         // --- Interactive Vector Canvas Map ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 InteractiveFarmMap(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(340.dp),
+                        .height(350.dp),
                     polygonPoints = polygonTracker.getPoints(),
                     twiCells = localGrid,
                     diseaseMarkers = markers,
@@ -216,19 +253,34 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                     onMarkerClick = { selectedMarkerInfo = it }
                 )
 
-                // Legend row
+                // Clean Legend row with vector indicators
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🟢 Batas Lahan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text("🔴 Kritis TWI (≥7.0)", fontSize = 11.sp, color = Color(0xFFD32F2F), fontWeight = FontWeight.SemiBold)
-                    Text("🟡 Gemini", fontSize = 11.sp, color = Color(0xFFFBC02D), fontWeight = FontWeight.SemiBold)
-                    Text("🟣 Ralstonia", fontSize = 11.sp, color = Color(0xFF7B1FA2), fontWeight = FontWeight.SemiBold)
-                    Text("💨 Angin (ENE)", fontSize = 11.sp, color = Color(0xFFFFB74D), fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(8.dp).background(Color(0xFF2E7D32), CircleShape))
+                        Text("Lahan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(8.dp).background(Color(0xFFD32F2F), CircleShape))
+                        Text("Kritis TWI", fontSize = 11.sp, color = Color(0xFFD32F2F), fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(8.dp).background(Color(0xFFFBC02D), CircleShape))
+                        Text("Gemini", fontSize = 11.sp, color = Color(0xFFF57F17), fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(8.dp).background(Color(0xFF7B1FA2), CircleShape))
+                        Text("Ralstonia", fontSize = 11.sp, color = Color(0xFF7B1FA2), fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(AppIcons.Wind, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(12.dp))
+                        Text("Angin ENE", fontSize = 11.sp, color = Color(0xFFE65100), fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -236,7 +288,9 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
         // --- Map Simulation & Action Controls ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -248,7 +302,6 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            // Expand polygon walking step
                             val baseLat = -7.123456
                             val baseLon = 110.456789
                             val cur = polygonTracker.getPoints().size
@@ -266,12 +319,13 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                         },
                         modifier = Modifier.weight(1f)
                     ) {
+                        Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("+ Titik GPS Pematang")
                     }
 
                     OutlinedButton(
                         onClick = {
-                            // Add a new disease waypoint
                             val newId = "m-${System.currentTimeMillis().toString().takeLast(4)}"
                             val latOff = ((-20..20).random()) * 0.000015
                             val lonOff = ((-20..20).random()) * 0.000015
@@ -291,6 +345,8 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                         },
                         modifier = Modifier.weight(1f)
                     ) {
+                        Icon(AppIcons.BugReport, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("+ Titik Infeksi")
                     }
                 }
@@ -298,14 +354,15 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            // Toggle heavy rain / high catchment pooling
                             baseUpslope = if (baseUpslope > 250.0) 150.0 else 380.0
                             baseSlope = if (baseSlope < 3.0) 4.5 else 2.1
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (baseUpslope > 250.0) "Kembali Normal" else "Simulasi Hujan Lebat (Genangan)")
+                        Icon(AppIcons.WaterDrop, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (baseUpslope > 250.0) "Kembali Normal" else "Simulasi Hujan Lebat")
                     }
 
                     OutlinedButton(
@@ -324,6 +381,8 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                         },
                         modifier = Modifier.weight(0.7f)
                     ) {
+                        Icon(AppIcons.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("Reset Peta")
                     }
                 }
@@ -333,18 +392,34 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
         // --- Daftar Titik Pantau Infeksi & Tindakan Agronomis ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "Daftar Titik Pantau Infeksi di Lahan (${markers.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.BugReport, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        "Daftar Titik Pantau Infeksi (${markers.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 markers.forEach { marker ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Row(
@@ -363,6 +438,9 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                             }
                             AssistChip(
                                 onClick = { selectedMarkerInfo = marker },
+                                leadingIcon = {
+                                    Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(14.dp))
+                                },
                                 label = { Text("Lihat") }
                             )
                         }

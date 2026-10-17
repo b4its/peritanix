@@ -3,6 +3,7 @@ package id.peritanix.dape.android.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -13,10 +14,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.physics.Physics
 import java.io.File
@@ -80,29 +83,68 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
         // --- Card 0: Perekaman Poligon GPS Lahan (Tahap 1.1) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "0. Pemetaan Poligon Batas Lahan (GPS Presisi)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Petani berjalan menyusuri pematang lahan untuk merekam poligon tertutup PostGIS (Target: 0,1 - 2,0 Ha).",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.GpsFixed, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "0. Pemetaan Poligon Batas Lahan (GPS Presisi)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Menyusuri pematang lahan untuk merekam poligon PostGIS (Target: 0,1 - 2,0 Ha).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Titik GPS: $pointCount")
-                    Text("Keliling: ${"%.1f".format(perimeterMeters)} m")
-                    Text("Luas: ${"%.3f".format(areaHa)} Ha", fontWeight = FontWeight.Bold)
+                // Stats Surface
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Titik GPS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$pointCount Titik", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Column {
+                            Text("Keliling", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${"%.1f".format(perimeterMeters)} m", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Column {
+                            Text("Luas Lahan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${"%.3f".format(areaHa)} Ha", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            // Demo walk adding points around a smallholder chili plot (~0.25 Ha)
                             val baseLat = -7.123456
                             val baseLon = 110.456789
                             when (pointCount) {
@@ -120,6 +162,8 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         },
                         modifier = Modifier.weight(1f)
                     ) {
+                        Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(if (pointCount == 0) "Mulai GPS" else "+ Titik Batas")
                     }
 
@@ -135,6 +179,8 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         },
                         modifier = Modifier.weight(0.7f)
                     ) {
+                        Icon(AppIcons.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("Reset")
                     }
                 }
@@ -142,10 +188,18 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 if (areaHa > 0) {
                     AssistChip(
                         onClick = {},
+                        leadingIcon = {
+                            Icon(
+                                AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = if (polygonTracker.isWithinSmallholderRange()) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         label = {
                             Text(
                                 if (polygonTracker.isWithinSmallholderRange())
-                                    "✓ Skala Mikro-Perkebunan Cabai (0,1 - 2,0 Ha)"
+                                    "Skala Mikro Cabai Sesuai (0,1 - 2,0 Ha)"
                                 else "Di luar rentang mikro-lahan"
                             )
                         }
@@ -188,16 +242,24 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("Simpan Poligon Lahan ke Room SQLite")
                     }
 
                     if (gpsSaveStatus.isNotEmpty()) {
-                        Text(
-                            gpsSaveStatus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                gpsSaveStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
@@ -206,21 +268,39 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
         // --- Card 1: Hidrologi Mikro & TWI (Hukum Darcy & Topografi) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "1. Hidrologi Mikro & TWI (Topografi Bedengan)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Sensor Klinometer: Rotasi lereng β=${"%.1f".format(slopeDeg)}° | Daerah tangkapan a=${upslopeArea.toInt()} m²/m",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.WaterDrop, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "1. Hidrologi Mikro & TWI (Topografi Bedengan)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Sensor Klinometer: β=${"%.1f".format(slopeDeg)}° | Daerah tangkapan a=${upslopeArea.toInt()} m²/m",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Kemiringan Lereng: ${"%.1f".format(slopeDeg)}°")
+                    Text("Kemiringan Lereng: ${"%.1f".format(slopeDeg)}°", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
                 Slider(
                     value = slopeDeg.toFloat(),
@@ -229,7 +309,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 )
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Daerah Tangkapan (a): ${upslopeArea.toInt()} m²/m")
+                    Text("Daerah Tangkapan (a): ${upslopeArea.toInt()} m²/m", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
                 Slider(
                     value = upslopeArea.toFloat(),
@@ -239,7 +319,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
 
                 HorizontalDivider()
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("Indeks Kebasahan (TWI)", style = MaterialTheme.typography.bodySmall)
                         Text(
@@ -259,6 +339,14 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     }
                     AssistChip(
                         onClick = {},
+                        leadingIcon = {
+                            Icon(
+                                if (riskClass == "CRITICAL" || riskClass == "HIGH") AppIcons.Warning else AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = if (riskClass == "CRITICAL" || riskClass == "HIGH") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         label = { Text(riskClass) }
                     )
                 }
@@ -278,7 +366,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF202020), RoundedCornerShape(8.dp))
+                        .background(Color(0xFF202020), RoundedCornerShape(10.dp))
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -315,35 +403,63 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
         // --- Card 2: Sedimentasi Stokes & Water-Level Camera Tilt Lock ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "2. Analisis Tekstur Tanah & Panduan Kocok Botol (Hukum Stokes)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Penyelarasan Water-Level Shutter Lock: HP wajib tegak lurus 90° ± 5° terhadap botol.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Science, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "2. Analisis Tekstur Tanah & Panduan Kocok (Hukum Stokes)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Penyelarasan Water-Level Shutter Lock: HP tegak lurus 90° ± 5°.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 // Water-Level Camera Tilt Bar
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Orientasi HP (Sensor Gravitasi):", style = MaterialTheme.typography.labelMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(AppIcons.Straighten, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Text("Orientasi HP (Sensor Gravitasi):", style = MaterialTheme.typography.labelMedium)
+                            }
                             Text("Pitch: 0.8° | Roll: -0.4°", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                         }
-                        Text(
-                            "✓ POSISI 90° TEGAK LURUS: Shutter Kamera Terbuka (Bebas Distorsi Perspektif)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                            Text(
+                                "POSISI 90° TEGAK LURUS: Shutter Kamera Terbuka",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
@@ -353,12 +469,16 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         onClick = {},
                         modifier = Modifier.weight(1f)
                     ) {
+                        Icon(AppIcons.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text("Tahap 1: 40s Pasir", style = MaterialTheme.typography.labelSmall)
                     }
                     OutlinedButton(
                         onClick = {},
                         modifier = Modifier.weight(1f)
                     ) {
+                        Icon(AppIcons.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text("Tahap 2: 2h Debu", style = MaterialTheme.typography.labelSmall)
                     }
                 }
@@ -404,18 +524,40 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
         // --- Card 3: Pemupukan Preskriptif Terkalibrasi ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "3. Dosis Pemupukan Preskriptif (Kocor / L)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Sprout, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "3. Dosis Pemupukan Preskriptif (Kocor / L)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Dihitung matematis berdasarkan umur tanaman (HST) & pH tanah.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Umur Tanaman (HST): $hst HST")
-                    Text("pH Tanah: ${"%.1f".format(soilPh)}")
+                    Text("Umur Tanaman: $hst HST", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                    Text("pH Tanah: ${"%.1f".format(soilPh)}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                 }
                 Slider(
                     value = hst.toFloat(),
@@ -431,26 +573,29 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 HorizontalDivider()
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("NPK 16-16-16", style = MaterialTheme.typography.bodySmall)
-                        Text("${fertPlan.npk16_16_16GPerL} g/L", fontWeight = FontWeight.Bold)
+                        Text("${fertPlan.npk16_16_16GPerL} g/L", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("KNO3 Kalium", style = MaterialTheme.typography.bodySmall)
-                        Text("${fertPlan.kno3GPerL} g/L", fontWeight = FontWeight.Bold)
+                        Text("${fertPlan.kno3GPerL} g/L", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Kalsium Nitrat", style = MaterialTheme.typography.bodySmall)
-                        Text("${fertPlan.calciumGPerL} g/L", fontWeight = FontWeight.Bold)
+                        Text("${fertPlan.calciumGPerL} g/L", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
                 if (fertPlan.dolomiteGPerM2 > 0) {
-                    Text(
-                        "Advis pH Masam: Aplikasi dolomit ${fertPlan.dolomiteGPerM2} g/m² sebelum pemupukan.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Text(
+                            "Advis pH Masam: Aplikasi dolomit ${fertPlan.dolomiteGPerM2} g/m² sebelum pemupukan.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
 
                 Text(
@@ -462,12 +607,13 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                 // Distilasi Edge AI Tabular On-Device (< 10 ms)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Distilasi Edge AI Tabular (LightGBM)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                            Text("< 10 ms (${aiFertMix.executionTimeMs} ms)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            Text("< 10 ms (${aiFertMix.executionTimeMs} ms)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                         }
                         Text("• NPK 16-16-16: ${aiFertMix.npk16_16_16GPerL} g/L", style = MaterialTheme.typography.bodySmall)
                         Text("• KNO3 Kalium: ${aiFertMix.kno3GPerL} g/L", style = MaterialTheme.typography.bodySmall)
@@ -493,16 +639,24 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Simpan Penilaian Tanah (Room SQLite Offline-First)")
+                    Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Simpan Penilaian Tanah (Room SQLite)")
                 }
 
                 if (saveStatus.isNotEmpty()) {
-                    Text(
-                        saveStatus,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(
+                            saveStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -510,18 +664,36 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
         // --- Card 4: Kalibrasi Spektral LED Flash Onboarding (Tahap 1.1) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "4. Kalibrasi Spektral LED Flash (Onboarding 0 Lux)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Kalibrasi perangkat terhadap kertas HVS putih dalam mangkuk gelap untuk kompensasi deviasi warna antar-merek HP.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.FlashOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "4. Kalibrasi Spektral LED Flash (Onboarding 0 Lux)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Kompensasi deviasi warna sensor antar-merek HP menggunakan referensi kertas HVS putih.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Button(
                     onClick = {
@@ -546,16 +718,29 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text("Jalankan Kalibrasi Mangkuk Gelap (0 Lux)")
                 }
 
                 if (calibStatus.isNotEmpty()) {
-                    Text(
-                        calibStatus,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            if (calibStatus.startsWith("Kalibrasi Berhasil")) AppIcons.CheckCircle else AppIcons.Warning,
+                            contentDescription = null,
+                            tint = if (calibStatus.startsWith("Kalibrasi Berhasil")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            calibStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (calibStatus.startsWith("Kalibrasi Berhasil")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }

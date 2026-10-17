@@ -1,23 +1,27 @@
 package id.peritanix.dape.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import id.peritanix.dape.android.core.crypto.QrMatrixGenerator
 import id.peritanix.dape.android.core.hardware.BluetoothThermalPrinter
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
 import id.peritanix.dape.android.core.physics.PodMorphologyGrader
+import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.crypto.Ed25519OfflineSigner
 import id.peritanix.dape.physics.Physics
 
@@ -76,21 +80,39 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         // --- Card 1: Termoterapi Air Panas 52°C (Asas Black) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "1. Termoterapi Benih & Sterilisasi 52°C (Asas Black)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Koreksi Barometrik Elevasi: ${elevationM.toInt()} mdpl | Titik Didih: ${"%.2f".format(ratio.boilingPointC)}°C",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Timer, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "1. Termoterapi Benih & Sterilisasi 52°C (Asas Black)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Koreksi Barometrik: ${elevationM.toInt()} mdpl | Titik Didih: ${"%.2f".format(ratio.boilingPointC)}°C",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Elevasi Kebun: ${elevationM.toInt()} mdpl")
+                    Text("Elevasi Kebun: ${elevationM.toInt()} mdpl", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                 }
                 Slider(
                     value = elevationM.toFloat(),
@@ -99,7 +121,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                 )
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Suhu Air Sumur: ${"%.1f".format(wellTempC)}°C")
+                    Text("Suhu Air Sumur: ${"%.1f".format(wellTempC)}°C", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
                 }
                 Slider(
                     value = wellTempC.toFloat(),
@@ -132,6 +154,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -144,7 +167,9 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                             onClick = { isTtsPlaying = !isTtsPlaying },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (isTtsPlaying) "⏹ Hentikan Pemutaran Suara" else "▶ Putar Panduan Suara Takaran Gayung")
+                            Icon(if (isTtsPlaying) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (isTtsPlaying) "Hentikan Pemutaran Suara" else "Putar Panduan Suara Takaran Gayung")
                         }
                     }
                 }
@@ -156,57 +181,89 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (isTimerRunning) "Hentikan Timer (Sisa: $secondsLeft detik)" else "Mulai Perendaman 180 Detik (Anti-Cheat Gyro Active)")
+                    Icon(AppIcons.Timer, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (isTimerRunning) "Hentikan Timer (Sisa: $secondsLeft detik)" else "Mulai Perendaman 180 Detik (Anti-Cheat Gyro)")
                 }
 
-                Text(
-                    "Jejak Giroskop: VALID (Variansi gerak 0.42 > 0.05, timer otentik, bebas bypass).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(AppIcons.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                    Text(
+                        "Jejak Giroskop: VALID (Variansi gerak 0.42 > 0.05, timer otentik, bebas bypass).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
         // --- Card 2: Uji Berat Jenis Benih (Hukum Archimedes) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "2. Seleksi Mutu Benih & Buah (Larutan Garam 1.08 g/cm³)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Komposisi: 50 gram garam dapur dilarutkan ke dalam 500 mL air.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Science, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "2. Seleksi Mutu Benih & Buah (Larutan Garam 1.08 g/cm³)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Komposisi: 50 gram garam dapur dilarutkan ke dalam 500 mL air.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Tenggelam: $sinkCount", style = MaterialTheme.typography.bodySmall)
-                        Row {
-                            Button(onClick = { if (sinkCount > 0) sinkCount-- }) { Text("-") }
-                            Spacer(Modifier.width(4.dp))
-                            Button(onClick = { sinkCount++ }) { Text("+") }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Tenggelam: $sinkCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(onClick = { if (sinkCount > 0) sinkCount-- }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Remove, contentDescription = "-", modifier = Modifier.size(16.dp))
+                            }
+                            Button(onClick = { sinkCount++ }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Add, contentDescription = "+", modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
-                    Column {
-                        Text("Melayang: $neutralCount", style = MaterialTheme.typography.bodySmall)
-                        Row {
-                            Button(onClick = { if (neutralCount > 0) neutralCount-- }) { Text("-") }
-                            Spacer(Modifier.width(4.dp))
-                            Button(onClick = { neutralCount++ }) { Text("+") }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Melayang: $neutralCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(onClick = { if (neutralCount > 0) neutralCount-- }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Remove, contentDescription = "-", modifier = Modifier.size(16.dp))
+                            }
+                            Button(onClick = { neutralCount++ }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Add, contentDescription = "+", modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
-                    Column {
-                        Text("Terapung: $floatCount", style = MaterialTheme.typography.bodySmall)
-                        Row {
-                            Button(onClick = { if (floatCount > 0) floatCount-- }) { Text("-") }
-                            Spacer(Modifier.width(4.dp))
-                            Button(onClick = { floatCount++ }) { Text("+") }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Terapung: $floatCount", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(onClick = { if (floatCount > 0) floatCount-- }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Remove, contentDescription = "-", modifier = Modifier.size(16.dp))
+                            }
+                            Button(onClick = { floatCount++ }, modifier = Modifier.size(38.dp), contentPadding = PaddingValues(0.dp)) {
+                                Icon(AppIcons.Add, contentDescription = "+", modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }
@@ -238,15 +295,27 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         // --- Card 2.5: Grading Morfologi Fisik Buah Cabai (FR-4.2) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(
-                        "2.5. Grading Morfologi Buah Cabai (FR-4.2)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.Chili, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Text(
+                            "2.5. Grading Morfologi Buah Cabai",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     AssistChip(
                         onClick = {},
                         label = { Text("Grade ${morphVerdict.finalGrade}") }
@@ -273,14 +342,36 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         // --- Card 3: Sertifikasi Kriptografis Ed25519 (Offline) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "3. Penerbitan Sertifikat Panen Terdesentralisasi (Ed25519)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "3. Sertifikat Panen Terdesentralisasi (Ed25519)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Tanda tangan digital kanonikal RFC 8785 tanpa perlu sinyal internet.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Button(
                     onClick = {
@@ -297,6 +388,8 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    Icon(AppIcons.Shield, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text("Tandatangani Kriptografis Secara Offline")
                 }
 
@@ -316,6 +409,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(
@@ -323,7 +417,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("QR Code Sertifikat Mutu Fisik (Kanonikal RFC 8785)", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            Text("QR Code Sertifikat Mutu Fisik (RFC 8785)", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                             androidx.compose.foundation.Canvas(
                                 modifier = Modifier.size(200.dp)
                             ) {
@@ -361,16 +455,21 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("🖨️ Cetak ke Printer Termal Bluetooth (ESC/POS)")
+                        Icon(AppIcons.Print, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Cetak ke Printer Termal Bluetooth (ESC/POS)")
                     }
 
                     if (printStatus.isNotEmpty()) {
-                        Text(
-                            printStatus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                printStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
                     HorizontalDivider()
@@ -389,16 +488,21 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Simpan Batch Panen ke Room SQLite")
                     }
 
                     if (saveStatus.isNotEmpty()) {
-                        Text(
-                            saveStatus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                saveStatus,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
