@@ -16,10 +16,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
+import id.peritanix.dape.android.core.hardware.PedestrianDeadReckoning
+import id.peritanix.dape.android.core.hardware.PermissionManager
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.android.ui.components.NotificationType
@@ -40,6 +47,56 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     var isClosed by remember { mutableStateOf(false) }
     var wktPolygon by remember { mutableStateOf("") }
     var gpsSaveStatus by remember { mutableStateOf("") }
+
+    // --- State: Pedestrian Dead Reckoning (PDR - Tahap 1.2) ---
+    val pdr = remember { PedestrianDeadReckoning(context) }
+    var isPdrActive by remember { mutableStateOf(false) }
+    var pdrPosition by remember {
+        mutableStateOf(
+            PedestrianDeadReckoning.PdrPosition(
+                latitude = -7.123456,
+                longitude = 110.456789,
+                stepCount = 0,
+                distanceMeters = 0.0,
+                estimatedBedIndex = 1,
+                estimatedHoleIndex = 1,
+                isFusedWithGps = false
+            )
+        )
+    }
+
+    DisposableEffect(pdr) {
+        pdr.onPositionUpdated = { pos ->
+            pdrPosition = pos
+        }
+        onDispose {
+            pdr.stop()
+        }
+    }
+
+    val activityRecognitionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pdr.start()
+            isPdrActive = true
+            PentasixNotificationHub.notify(
+                context = context,
+                title = "PDR Sensor Langkah Aktif",
+                message = "Pelacakan langkah antar-lubang mulsa (50 cm) aktif.",
+                type = NotificationType.SUCCESS,
+                postSystemNotification = false
+            )
+        } else {
+            PentasixNotificationHub.notify(
+                context = context,
+                title = "Izin Sensor Langkah Ditolak",
+                message = "Gunakan tombol simulasi langkah untuk uji dead-reckoning.",
+                type = NotificationType.WARNING,
+                postSystemNotification = false
+            )
+        }
+    }
 
     // --- State: Topografi & TWI ---
     var slopeDeg by remember { mutableStateOf(4.5) }
@@ -164,6 +221,8 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                             isClosed = polygonTracker.isPolygonClosed()
                             wktPolygon = polygonTracker.toWktPolygon()
 
+                            pdr.fuseGpsReading(baseLat, baseLon, 3.5f)
+
                             PentasixNotificationHub.notify(
                                 context = context,
                                 title = "Titik GPS Dicatat",
@@ -182,6 +241,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     OutlinedButton(
                         onClick = {
                             polygonTracker.clear()
+                            pdr.resetOrigin(-7.123456, 110.456789)
                             pointCount = 0
                             perimeterMeters = 0.0
                             areaHa = 0.0
@@ -224,6 +284,127 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                             )
                         }
                     )
+                }
+
+                // --- PDR Sub-Panel (Tahap 1.2: Pedestrian Dead Reckoning) ---
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(AppIcons.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Text(
+                                    "PDR Dead Reckoning (50 cm)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Surface(
+                                color = if (isPdrActive) Color(0xFF2E7D32).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    if (isPdrActive) "Aktif" else "Standby",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isPdrActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Langkah", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${pdrPosition.stepCount} lgh", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Column {
+                                Text("Jarak", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${pdrPosition.distanceMeters} m", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Column {
+                                Text("Bedeng #", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("B-${pdrPosition.estimatedBedIndex}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Column {
+                                Text("Lubang Mulsa", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("L-${pdrPosition.estimatedHoleIndex}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    if (!isPdrActive) {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                                            !PermissionManager.hasPermission(context, Manifest.permission.ACTIVITY_RECOGNITION)) {
+                                            activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                                        } else {
+                                            pdr.start()
+                                            isPdrActive = true
+                                            PentasixNotificationHub.notify(
+                                                context = context,
+                                                title = "PDR Mulsa Aktif",
+                                                message = "Melacak pergerakan antar-lubang tanam mulsa 50 cm.",
+                                                type = NotificationType.SUCCESS,
+                                                postSystemNotification = false
+                                            )
+                                        }
+                                    } else {
+                                        pdr.stop()
+                                        isPdrActive = false
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "PDR Dihentikan",
+                                            message = "Sensor langkah dinonaktifkan.",
+                                            type = NotificationType.INFO,
+                                            postSystemNotification = false
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.weight(1.1f)
+                            ) {
+                                Text(if (isPdrActive) "Stop PDR" else "Aktifkan PDR")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    pdr.processStep(pdr.currentHeadingDeg)
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Langkah Mulsa +1",
+                                        message = "Langkah ${pdrPosition.stepCount} (+50 cm) pada Bedeng ${pdrPosition.estimatedBedIndex}.",
+                                        type = NotificationType.INFO,
+                                        postSystemNotification = false
+                                    )
+                                },
+                                modifier = Modifier.weight(0.9f)
+                            ) {
+                                Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("+1 (50 cm)")
+                            }
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(4.dp))

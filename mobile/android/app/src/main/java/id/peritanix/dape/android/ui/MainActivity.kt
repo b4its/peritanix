@@ -16,6 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import id.peritanix.dape.android.core.hardware.LightSensorReader
+import id.peritanix.dape.android.core.hardware.PermissionManager
+import id.peritanix.dape.android.core.hardware.SunlightUiAdapter
 import id.peritanix.dape.android.core.mode.AppMode
 import id.peritanix.dape.android.core.mode.AppModeStore
 import id.peritanix.dape.android.core.physics.WeatherRepository
@@ -23,9 +28,12 @@ import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.ModeBanner
 import id.peritanix.dape.android.ui.components.ModeChip
+import id.peritanix.dape.android.ui.components.NotificationType
 import id.peritanix.dape.android.ui.components.PentasixNotificationBanner
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import id.peritanix.dape.android.ui.theme.PentasixTheme
+
 
 /**
  * Pentasix Android entry point.
@@ -51,6 +59,53 @@ fun PentasixApp(queue: SyncQueueStore) {
     val context = LocalContext.current
     val weatherRepo = remember { WeatherRepository(context.applicationContext) }
     var isDarkTheme by remember { mutableStateOf(false) }
+
+    // Runtime Sensor & Hardware Permission Manager
+    var missingPermissions by remember { mutableStateOf(PermissionManager.checkMissingPermissions(context)) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        missingPermissions = PermissionManager.checkMissingPermissions(context)
+        val grantedCount = results.values.count { it }
+        val total = results.size
+        if (grantedCount == total) {
+            PentasixNotificationHub.notify(
+                context = context,
+                title = "Semua Izin Sensor Diberikan",
+                message = "Kamera, GNSS, Audio & Bluetooth aktif untuk instrumen agro-fisika.",
+                type = NotificationType.SUCCESS,
+                postSystemNotification = true
+            )
+        } else {
+            val denied = results.filter { !it.value }.keys.map { it.substringAfterLast(".") }
+            PentasixNotificationHub.notify(
+                context = context,
+                title = "${denied.size} Izin Belum Diberikan",
+                message = "Fitur terkait ($denied) membutuhkan persetujuan saat digunakan.",
+                type = NotificationType.WARNING,
+                postSystemNotification = false
+            )
+        }
+    }
+
+    // Auto-prompt missing permissions on app launch
+    LaunchedEffect(Unit) {
+        val missing = PermissionManager.checkMissingPermissions(context)
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing.toTypedArray())
+        }
+    }
+
+    // Tahap 6: Auto-Sunlight High-Contrast Mode (Light Sensor Reader)
+    val lightReader = remember { LightSensorReader(context) }
+    DisposableEffect(lightReader) {
+        lightReader.start()
+        onDispose { lightReader.stop() }
+    }
+    val ambientLux = lightReader.latestLux ?: 500f
+    val isExtremeSunlight = remember(ambientLux) { ambientLux >= SunlightUiAdapter.SUNLIGHT_LUX_THRESHOLD }
+
 
     PentasixTheme(darkTheme = isDarkTheme) {
         var tab by remember { mutableStateOf(0) }
@@ -482,15 +537,67 @@ fun PentasixApp(queue: SyncQueueStore) {
                     .padding(padding)
                     .fillMaxSize()
             ) {
-                Box(
+                Column(
                     Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Column(Modifier.fillMaxSize()) {
                         ModeBanner(mode = mode, onToggle = toggleMode)
                         Spacer(Modifier.height(8.dp))
+
+                        if (missingPermissions.isNotEmpty()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB74D))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(AppIcons.Info, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(18.dp))
+                                        Column {
+                                            Text("Izin Akses Hardware Diperlukan", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                            Text("${missingPermissions.size} izin (Kamera, GNSS, Audio, Gerak) belum aktif.", fontSize = 10.sp, color = Color(0xFFE65100))
+                                        }
+                                    }
+                                    Button(
+                                        onClick = {
+                                            val missing = PermissionManager.checkMissingPermissions(context)
+                                            if (missing.isNotEmpty()) {
+                                                permissionLauncher.launch(missing.toTypedArray())
+                                            } else {
+                                                missingPermissions = emptyList()
+                                                PentasixNotificationHub.notify(
+                                                    context = context,
+                                                    title = "Semua Izin Telah Aktif",
+                                                    message = "Instrumen hardware siap 100%.",
+                                                    type = NotificationType.SUCCESS,
+                                                    postSystemNotification = false
+                                                )
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(30.dp)
+                                    ) {
+                                        Text("Ajukan Izin", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
                         Box(Modifier.weight(1f)) {
+
                             when (tab) {
                                 0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                                 1 -> LahanScreen(queue)
@@ -506,7 +613,6 @@ fun PentasixApp(queue: SyncQueueStore) {
                             }
                         }
                     }
-                }
 
                 // Global Interactive Action Notification Banner
                 PentasixNotificationBanner(

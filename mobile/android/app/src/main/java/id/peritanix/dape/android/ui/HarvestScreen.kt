@@ -17,8 +17,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.crypto.QrMatrixGenerator
 import id.peritanix.dape.android.core.hardware.BluetoothThermalPrinter
+import id.peritanix.dape.android.core.hardware.BoilingSoundVerifier
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
 import id.peritanix.dape.android.core.physics.PodMorphologyGrader
@@ -182,7 +184,68 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         ) {
                             Icon(if (isTtsPlaying) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(if (isTtsPlaying) "Hentikan Pemutaran Suara" else "Putar Panduan Suara Takaran Gayung")
+                        }
+                    }
+                }
+
+                // Fitur Baru: Acoustic Boiling Verification (Tahap 5.1)
+                val boilingVerifier = remember { BoilingSoundVerifier(context) }
+                var boilingVerificationResult by remember { mutableStateOf<BoilingSoundVerifier.BoilingAcousticVerification?>(null) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Verifikasi Akustik Mendidih (Mikrofon):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                            if (boilingVerificationResult != null) {
+                                Surface(
+                                    color = if (boilingVerificationResult!!.isBoilingVerified) Color(0xFF2E7D32).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        if (boilingVerificationResult!!.isBoilingVerified) "Mendidih Valid" else "Belum Mendidih",
+                                        color = if (boilingVerificationResult!!.isBoilingVerified) Color(0xFF2E7D32) else Color(0xFFD32F2F),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                        if (boilingVerificationResult != null) {
+                            Text(
+                                boilingVerificationResult!!.statusMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (boilingVerificationResult!!.isBoilingVerified) Color(0xFF1B5E20) else Color(0xFFB71C1C)
+                            )
+                        } else {
+                            Text(
+                                "Dekatkan ponsel ke panci sebelum mencampur untuk menganalisis spektrum frekuensi kavitasi uap air (400-1200 Hz).",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                val verif = boilingVerifier.verifyBoilingAcoustics(altitudeMeters = elevationM, durationMs = 1500)
+                                boilingVerificationResult = verif
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = if (verif.isBoilingVerified) "Air Mendidih Terverifikasi" else "Air Belum Mendidih",
+                                    message = verif.statusMessage,
+                                    type = if (verif.isBoilingVerified) NotificationType.SUCCESS else NotificationType.WARNING,
+                                    postSystemNotification = true
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD84315))
+                        ) {
+                            Icon(AppIcons.Mic, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Uji Akustik Air Mendidih (3 dtk)", fontSize = 12.sp)
                         }
                     }
                 }
@@ -190,6 +253,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                 Button(
                     onClick = {
                         isTimerRunning = !isTimerRunning
+
                         if (isTimerRunning) {
                             secondsLeft = 180
                             PentasixNotificationHub.notify(

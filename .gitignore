@@ -41,6 +41,8 @@ mobile/.idea/
 *.apk
 *.aab
 *.keystore
+*.stale/
+*.stale
 
 # --- IDE / OS ---
 .idea/

@@ -14,10 +14,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import id.peritanix.dape.android.core.sync.P2pFieldMeshSync
+import id.peritanix.dape.android.core.sync.SmartCloudSync
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.NotificationType
 import id.peritanix.dape.android.ui.components.PentasixNotificationHub
+import id.peritanix.dape.android.ui.theme.OrangePrimary
+import org.json.JSONObject
+
 
 @Composable
 fun SyncScreen(queue: SyncQueueStore) {
@@ -215,6 +221,119 @@ fun SyncScreen(queue: SyncQueueStore) {
                     Icon(AppIcons.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Refresh Data Lokal", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        // Tahap 7: Offline P2P Field Mesh Sync (Data Mule) & Smart Cloud Sync
+        val p2pMesh = remember { P2pFieldMeshSync("HP-MANDOR-01") }
+        val simulatedPeerQueue = remember { mutableStateListOf<JSONObject>() }
+        var meshStatus by remember { mutableStateOf("Jaringan P2P siap (BLE / Wi-Fi Direct).") }
+
+        val cloudSyncStatus = remember(pendingCount) {
+            SmartCloudSync.evaluateSyncStrategy(
+                pendingJsonRecords = pendingCount,
+                pendingMediaItems = if (pendingCount > 0) 3 else 0,
+                isOnline = false,
+                isWifi = false,
+                isCharging = false
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.size(32.dp).background(Color(0xFF3949AB), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Sync, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text("P2P Field Mesh Sync & Data Mule (Tahap 7)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text("Sinkronisasi antar-pekerja kebun tanpa kuota & multi-lane cloud", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Jalur Cepat (JSON & Kripto):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${cloudSyncStatus.fastLanePendingCount} rek (${cloudSyncStatus.fastLaneSizeKb} KB)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Jalur Berat (Citra Burst/Video):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${cloudSyncStatus.heavyLanePendingCount} item (${cloudSyncStatus.heavyLaneSizeMb} MB)", fontSize = 11.sp)
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Kualitas Jaringan:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(cloudSyncStatus.networkQuality.displayName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                        }
+                        Text(
+                            text = cloudSyncStatus.activeLaneAction,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Text(
+                    text = meshStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val dummyMutations = listOf(
+                                JSONObject().put("id", "DIAG-${System.currentTimeMillis()}").put("action", "DIAGNOSIS_SAVE").put("bed", 3).put("pathogen", "Anthracnose"),
+                                JSONObject().put("id", "SOIL-${System.currentTimeMillis()}").put("action", "SOIL_ASSESS").put("ph", 6.2)
+                            )
+                            val packet = p2pMesh.packLocalMutations(dummyMutations)
+                            val merge = p2pMesh.mergePeerPacket(packet, simulatedPeerQueue)
+                            meshStatus = merge.statusMessage
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Paket P2P Terkirim ke Data Mule",
+                                message = "${merge.mergedCount} mutasi dikemas & digabung via CRDT LWW.",
+                                type = NotificationType.SYNC,
+                                postSystemNotification = true
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3949AB))
+                    ) {
+                        Text("Kemas Data Mule P2P", fontSize = 11.sp, maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            meshStatus = "Sinkronisasi P2P diperiksa: ${simulatedPeerQueue.size} catatan siap kurir data."
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Status Mesh P2P",
+                                message = "${simulatedPeerQueue.size} catatan tersimpan di antrean kurir data.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cek Status Mesh", fontSize = 11.sp, maxLines = 1)
+                    }
                 }
             }
         }

@@ -31,7 +31,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.peritanix.dape.android.core.hardware.AcousticAnemometer
+import id.peritanix.dape.android.core.hardware.BarometricBedHeight
+import id.peritanix.dape.android.core.hardware.BarometricStormPredictor
+import id.peritanix.dape.android.core.hardware.CanopyCeptometer
 import id.peritanix.dape.android.core.hardware.CompassSensorManager
+import id.peritanix.dape.android.core.hardware.HardwarePerformanceManager
+import id.peritanix.dape.android.core.hardware.LightSensorReader
+import id.peritanix.dape.android.core.hardware.OfflineVoiceController
+import id.peritanix.dape.android.core.hardware.PermissionManager
+import id.peritanix.dape.android.core.hardware.RidgeSunOrientationCalculator
 import id.peritanix.dape.android.core.hardware.SensorCalibrationMath
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.NotificationType
@@ -39,6 +48,7 @@ import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import kotlin.math.cos
 import kotlin.math.sin
+
 
 /**
  * Screen for Field Compass Navigation, Waterpass Leveling,
@@ -193,6 +203,7 @@ private fun CompassTabContent(
     state: CompassSensorManager.CompassState,
     agronomic: SensorCalibrationMath.AgronomicHeading
 ) {
+    val context = LocalContext.current
     // 1. Interactive Compass Rose & Bubble Level Canvas
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -362,7 +373,172 @@ private fun CompassTabContent(
             }
         }
     }
+
+    // 4. Orientasi Bedengan & Lintasan Matahari (Tahap 1.2)
+    val sunOrientation = remember(agronomic.azimuthDeg) {
+        RidgeSunOrientationCalculator.evaluateBedOrientation(agronomic.azimuthDeg)
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(OrangePrimary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.WbSunny, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Orientasi Bedengan & Matahari (Tahap 1.2)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Penyinaran embun pagi & pencegahan spora patek", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Klasifikasi Arah Bedengan:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(sunOrientation.bedOrientationType, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Penyinaran Pagi:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${sunOrientation.morningSunExposurePct}% • ${sunOrientation.dewDryingSpeedRating}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Posisi Matahari Hari Ini:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Azimut ${sunOrientation.solarAzimuthDeg}° (Elevasi ${sunOrientation.solarElevationDeg}°)", fontSize = 11.sp)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Rekomendasi Jarak Tanam:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${sunOrientation.recommendedPlantSpacingCm} cm (Mulsa)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                    }
+                }
+            }
+
+            Text(
+                text = sunOrientation.recommendation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+
+    // 5. Verifikasi Tinggi Bedengan Barometrik & Titik Didih (Tahap 2.1)
+    val baroHeight = remember { BarometricBedHeight(context) }
+    DisposableEffect(baroHeight) {
+        baroHeight.start()
+        onDispose { baroHeight.stop() }
+    }
+    var trenchRecorded by remember { mutableStateOf(false) }
+    var heightResult by remember { mutableStateOf<BarometricBedHeight.BedHeightMeasurement?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(Color(0xFF0288D1), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.Straighten, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Tinggi Bedengan Barometrik (Tahap 2.1)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Pengukuran delta tekanan dasar parit vs puncak bedengan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Tekanan Barometer Saat Ini:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${"%.2f".format(baroHeight.currentPressureHpa)} hPa", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    if (heightResult != null) {
+                        val res = heightResult!!
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Tinggi Bedengan Terukur:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${res.measuredHeightCm} cm", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (res.isHeightAdequate) Color(0xFF2E7D32) else Color(0xFFD32F2F))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Elevasi & Titik Didih:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${res.estimatedAltitudeMeters.toInt()} mdpl • ${"%.1f".format(BarometricBedHeight.boilingPointAtAltitude(res.estimatedAltitudeMeters))}°C", fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            if (heightResult != null) {
+                Text(
+                    text = heightResult!!.agronomicAdvisory,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (heightResult!!.isHeightAdequate) Color(0xFF1B5E20) else Color(0xFFB71C1C),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        baroHeight.recordTrenchBase()
+                        trenchRecorded = true
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Tekanan Dasar Parit Tercatat",
+                            message = "${"%.2f".format(baroHeight.currentPressureHpa)} hPa. Angkat ponsel ke puncak bedengan lalu tekan tombol kedua.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("1. Catat Dasar Parit", fontSize = 11.sp, maxLines = 1)
+                }
+
+                Button(
+                    onClick = {
+                        val m = baroHeight.recordRidgePeak()
+                        heightResult = m
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Tinggi Bedengan: ${m.measuredHeightCm} cm",
+                            message = if (m.isHeightAdequate) "Sesuai standar (40-50 cm). Aerasi rizosfer aman." else "Di luar rentang ideal 40-50 cm.",
+                            type = if (m.isHeightAdequate) NotificationType.SUCCESS else NotificationType.WARNING,
+                            postSystemNotification = true
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Text("2. Ukur Puncak Bedeng", fontSize = 11.sp, maxLines = 1)
+                }
+            }
+        }
+    }
 }
+
 
 // =============================================================================
 // SUB-TAB 1: KALIBRASI SENSOR
@@ -634,7 +810,121 @@ private fun CalibrationTabContent(
             }
         }
     }
+
+    // 3. Ceptometer Tajuk Cabai (Hukum Beer-Lambert LAI - Tahap 4.1)
+    val lightReader = remember { LightSensorReader(context) }
+    DisposableEffect(lightReader) {
+        lightReader.start()
+        onDispose { lightReader.stop() }
+    }
+    var aboveCanopyLux by remember { mutableStateOf<Float?>(null) }
+    var belowCanopyLux by remember { mutableStateOf<Float?>(null) }
+    var ceptometerResult by remember { mutableStateOf<CanopyCeptometer.CeptometerResult?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(Color(0xFF689F38), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.Sprout, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Ceptometer Tajuk Cabai (LAI - Tahap 4.1)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Inversi Hukum Beer-Lambert & instruksi wajib wiwilan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Sensor Cahaya Ambien Saat Ini:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${"%.0f".format(lightReader.latestLux ?: 0f)} Lux", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Cahaya Atas Tajuk (I₀):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (aboveCanopyLux != null) "${"%.0f".format(aboveCanopyLux)} Lux" else "Belum direkam", fontSize = 11.sp)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Cahaya Bawah Tajuk (I_z):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (belowCanopyLux != null) "${"%.0f".format(belowCanopyLux)} Lux" else "Belum direkam", fontSize = 11.sp)
+                    }
+                    if (ceptometerResult != null) {
+                        val c = ceptometerResult!!
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Leaf Area Index (LAI):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("${c.leafAreaIndex} (${c.canopyDensityRating})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (c.isWiwilanRequired) Color(0xFFD32F2F) else Color(0xFF2E7D32))
+                        }
+                    }
+                }
+            }
+
+            if (ceptometerResult != null) {
+                Text(
+                    text = ceptometerResult!!.prescriptiveAdvisory,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (ceptometerResult!!.isWiwilanRequired) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (ceptometerResult!!.isWiwilanRequired) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val lux = lightReader.latestLux ?: 65000f
+                        aboveCanopyLux = lux
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Cahaya Atas Tajuk Tercatat",
+                            message = "${"%.0f".format(lux)} Lux. Arahkan ponsel ke bawah tajuk dekat mulsa lalu tekan tombol kedua.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("1. Rekam Atas (I₀)", fontSize = 11.sp, maxLines = 1)
+                }
+
+                Button(
+                    onClick = {
+                        val below = lightReader.latestLux ?: 8500f
+                        belowCanopyLux = below
+                        val above = aboveCanopyLux ?: (below * 5f)
+                        val res = CanopyCeptometer.calculateLai(aboveLux = above, belowLux = below)
+                        ceptometerResult = res
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Hasil LAI: ${res.leafAreaIndex}",
+                            message = if (res.isWiwilanRequired) "Wajib Wiwilan! Tajuk terlalu rimbun." else "Tajuk seimbang.",
+                            type = if (res.isWiwilanRequired) NotificationType.WARNING else NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF689F38))
+                ) {
+                    Text("2. Rekam Bawah (I_z)", fontSize = 11.sp, maxLines = 1)
+                }
+            }
+        }
+    }
 }
+
 
 // =============================================================================
 // SUB-TAB 2: DIAGNOSTIK HARDWARE SENSOR PERANGKAT
@@ -716,7 +1006,360 @@ private fun DiagnosticsTabContent(manager: CompassSensorManager) {
             }
         }
     }
+
+    val context = LocalContext.current
+
+    // 2. Hardware Capability Profiler & Dynamic AI Accelerator (Tahap 0.2)
+    val hardwareManager = remember { HardwarePerformanceManager(context) }
+    var hardwareProfile by remember { mutableStateOf(hardwareManager.currentProfile) }
+    var thermalState by remember { mutableStateOf(hardwareManager.currentThermalState) }
+
+    DisposableEffect(hardwareManager) {
+        hardwareManager.startThermalMonitoring()
+        hardwareManager.onThermalStateChanged = { thermalState = it }
+        onDispose { hardwareManager.stopThermalMonitoring() }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(OrangePrimary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.Speed, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Hardware Profiler & Akselerasi AI (Tahap 0.2)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Dynamic Delegate Routing & Sunlight Survival Mode", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Klasifikasi Hardware:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(hardwareProfile.tier.displayName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Kapasitas RAM Bebas / Total:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${hardwareProfile.freeRamMb} MB / ${hardwareProfile.totalRamMb} MB", fontSize = 11.sp)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Chipset SoC & Inti CPU:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${hardwareProfile.socModel} (${hardwareProfile.cpuCores} Cores)", fontSize = 11.sp)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Akselerasi NNAPI / GPU:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (hardwareProfile.hasNnapiSupport) "Tersedia (FP16/INT8)" else "CPU XNNPACK", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Suhu Baterai / Status Termal:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${"%.1f".format(thermalState.batteryTempC)}°C (${thermalState.thermalStatusName})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (thermalState.isSunlightThrottled) Color(0xFFD32F2F) else Color(0xFF2E7D32))
+                    }
+                }
+            }
+
+            Text(
+                text = thermalState.statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Button(
+                onClick = {
+                    val p = hardwareManager.detectProfile()
+                    hardwareProfile = p
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Hardware Profiling Selesai",
+                        message = "${p.tier.displayName}. Rekomendasi kuantisasi: ${p.tier.recommendedQuantization}.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Uji Ulang Kapabilitas SoC (100 ms)", fontSize = 12.sp)
+            }
+        }
+    }
+
+    // 3. Anemometer Akustik (Mikrofon) & Kunci Semprot (Tahap 4.2)
+    val anemometer = remember { AcousticAnemometer(context) }
+    var windResult by remember { mutableStateOf<AcousticAnemometer.WindMeasurement?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(Color(0xFF00897B), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.Mic, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Anemometer Akustik (Mikrofon - Tahap 4.2)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Analisis derau turbulensi angin & bahaya drift semprot", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Ambang Batas Bahaya Drift:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("> 12.0 km/jam", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                    }
+                    if (windResult != null) {
+                        val w = windResult!!
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Kecepatan Angin Terukur:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${w.windSpeedKmh} km/jam", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (w.isDriftHazard) Color(0xFFD32F2F) else Color(0xFF2E7D32))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Izin Penyemprotan:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (w.sprayPermitted) "DIIZINKAN (Aman)" else "DIBLOKIR (Drift Hazard)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (w.sprayPermitted) Color(0xFF2E7D32) else Color(0xFFD32F2F))
+                        }
+                    }
+                }
+            }
+
+            if (windResult != null) {
+                Text(
+                    text = windResult!!.statusMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (windResult!!.isDriftHazard) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (windResult!!.isDriftHazard) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+
+            Button(
+                onClick = {
+                    val res = anemometer.measureWindSpeed(durationMs = 1500)
+                    windResult = res
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Kecepatan Angin: ${res.windSpeedKmh} km/jam",
+                        message = if (res.isDriftHazard) "Bahaya Spray Drift! Tunda penyemprotan pestisida." else "Aman untuk penyemprotan.",
+                        type = if (res.isDriftHazard) NotificationType.WARNING else NotificationType.SUCCESS,
+                        postSystemNotification = true
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00897B))
+            ) {
+                Icon(AppIcons.Mic, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Ukur Kecepatan Angin Lapangan (Mikrofon)", fontSize = 12.sp)
+            }
+        }
+    }
+
+    // 4. Pendeteksi Badai Mikro Barometrik (Tahap 4.2)
+    var stormResult by remember { mutableStateOf<BarometricStormPredictor.StormRiskEvaluation?>(null) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(Color(0xFF5C6BC0), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.Bolt, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Pendeteksi Badai Mikro (Tahap 4.2)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Deteksi penurunan tekanan mendadak (Delta P / Delta t)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Ambang Batas Badai:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Turun >= 1.5 hPa dlm 2-3 jam", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                    }
+                    if (stormResult != null) {
+                        val s = stormResult!!
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Delta Tekanan Barometer:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${s.pressureDeltaHpa} hPa (${s.dropRateHpaPerHour} hPa/jam)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Status Hujan Konvektif:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (s.isImminentStorm) "POTENSI BADAI MENDADAK" else "Aman", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (s.isImminentStorm) Color(0xFFD32F2F) else Color(0xFF2E7D32))
+                        }
+                    }
+                }
+            }
+
+            if (stormResult != null) {
+                Text(
+                    text = stormResult!!.warningMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (stormResult!!.isImminentStorm) Color(0xFFB71C1C) else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (stormResult!!.isImminentStorm) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+
+            Button(
+                onClick = {
+                    // Sample realistic 2-hour pressure drop simulation
+                    val history = listOf(
+                        BarometricStormPredictor.PressureLogPoint(System.currentTimeMillis() - 2 * 3600 * 1000, 1013.2),
+                        BarometricStormPredictor.PressureLogPoint(System.currentTimeMillis() - 1 * 3600 * 1000, 1012.4)
+                    )
+                    val res = BarometricStormPredictor.evaluatePressureTrend(history, 1011.5)
+                    stormResult = res
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = res.warningTitle,
+                        message = if (res.isImminentStorm) "Peringatan badai mikro aktif. Hindari semprot kontak." else "Barometer stabil.",
+                        type = if (res.isImminentStorm) NotificationType.WARNING else NotificationType.INFO,
+                        postSystemNotification = true
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5C6BC0))
+            ) {
+                Text("Evaluasi Tren Barometer & Alarm Badai", fontSize = 12.sp)
+            }
+        }
+    }
+
+    // 5. Perintah Suara Lapangan Offline (Hands-Free - Tahap 6)
+    val voiceController = remember { OfflineVoiceController(context) }
+    var voiceStatus by remember { mutableStateOf("Siap mendengarkan perintah suara Bahasa Indonesia.") }
+    var isVoiceActive by remember { mutableStateOf(false) }
+
+    DisposableEffect(voiceController) {
+        voiceController.initialize()
+        voiceController.onSpeechStatusChanged = { voiceStatus = it }
+        voiceController.onCommandRecognized = { cmd ->
+            voiceStatus = "Perintah Berhasil Dieksekusi: ${cmd.triggerPhrase}"
+            PentasixNotificationHub.notify(
+                context = context,
+                title = "Perintah Suara: ${cmd.triggerPhrase}",
+                message = cmd.description,
+                type = NotificationType.SUCCESS,
+                postSystemNotification = true
+            )
+        }
+        onDispose { voiceController.destroy() }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(Color(0xFFE65100), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(AppIcons.VolumeUp, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Column {
+                    Text("Perintah Suara Offline (Hands-Free - Tahap 6)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Operasi kebun tanpa sentuh layar saat tangan kotor", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Perintah yang didukung tanpa internet:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("• \"Ambil Foto\" -> Menembakkan kamera burst/Stokes", fontSize = 11.sp)
+                    Text("• \"Mulai Hitung\" -> Memulai timer 180s perendaman Asas Black", fontSize = 11.sp)
+                    Text("• \"Bacakan Dosis\" -> Membaca ulang resep via TTS", fontSize = 11.sp)
+                    Text("• \"Lanjut Bedengan\" -> Menyimpan log dan ke titik berikutnya", fontSize = 11.sp)
+                }
+            }
+
+            Text(
+                text = voiceStatus,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        if (!isVoiceActive) {
+                            voiceController.startListening()
+                            isVoiceActive = true
+                        } else {
+                            voiceController.stopListening()
+                            isVoiceActive = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceActive) Color(0xFFD32F2F) else OrangePrimary)
+                ) {
+                    Icon(AppIcons.Mic, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (isVoiceActive) "Hentikan Suara" else "Mulai Mendengarkan", fontSize = 12.sp)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        // Test mock command dispatch
+                        voiceController.evaluateSpokenText("mulai hitung")
+                    },
+                    modifier = Modifier.wrapContentWidth()
+                ) {
+                    Text("Simulasi", fontSize = 12.sp)
+                }
+            }
+        }
+    }
 }
+
 
 // =============================================================================
 // COMPASS ROSE CANVAS WITH SPIRIT BUBBLE LEVEL

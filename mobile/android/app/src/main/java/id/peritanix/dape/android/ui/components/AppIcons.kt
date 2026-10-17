@@ -971,11 +971,70 @@ object AppIcons {
         lineTo(10.9f, 21.2f)
         lineTo(5.7f, 16f)
         lineTo(10.9f, 10.8f)
-        lineTo(12.3f, 12.2f)
         lineTo(9.5f, 15f)
         lineTo(18f, 15f)
         lineTo(18f, 17f)
         close()
     }
+
+    // 44. Mic (Mikrofon Anemometer & Suara)
+    val Mic: ImageVector = buildIcon("Mic") {
+        moveTo(12f, 14f)
+        curveTo(13.66f, 14f, 15f, 12.66f, 15f, 11f)
+        lineTo(15f, 5f)
+        curveTo(15f, 3.34f, 13.66f, 2f, 12f, 2f)
+        curveTo(10.34f, 2f, 9f, 3.34f, 9f, 5f)
+        lineTo(9f, 11f)
+        curveTo(9f, 12.66f, 10.34f, 14f, 12f, 14f)
+        close()
+        moveTo(17.3f, 11f)
+        curveTo(17.3f, 14f, 14.76f, 16.1f, 12f, 16.1f)
+        curveTo(9.24f, 16.1f, 6.7f, 14f, 6.7f, 11f)
+        lineTo(5f, 11f)
+        curveTo(5f, 14.41f, 7.72f, 17.23f, 11f, 17.72f)
+        lineTo(11f, 21f)
+        lineTo(13f, 21f)
+        lineTo(13f, 17.72f)
+        curveTo(16.28f, 17.23f, 19f, 14.41f, 19f, 11f)
+        lineTo(17.3f, 11f)
+        close()
+    }
+
+    // 45. Speed (Hardware Profiler & Akselerasi)
+    val Speed: ImageVector = buildIcon("Speed") {
+        moveTo(12f, 4f)
+        curveTo(6.48f, 4f, 2f, 8.48f, 2f, 14f)
+        curveTo(2f, 16.5f, 3f, 18.7f, 4.6f, 20.3f)
+        lineTo(6f, 18.9f)
+        curveTo(4.8f, 17.6f, 4f, 15.9f, 4f, 14f)
+        curveTo(4f, 9.6f, 7.6f, 6f, 12f, 6f)
+        curveTo(16.4f, 6f, 20f, 9.6f, 20f, 14f)
+        curveTo(20f, 15.9f, 19.2f, 17.6f, 18f, 18.9f)
+        lineTo(19.4f, 20.3f)
+        curveTo(21f, 18.7f, 22f, 16.5f, 22f, 14f)
+        curveTo(22f, 8.48f, 17.52f, 4f, 12f, 4f)
+        close()
+        moveTo(13.5f, 12.5f)
+        lineTo(16f, 8.5f)
+        lineTo(11.5f, 11f)
+        curveTo(10.6f, 11.4f, 10f, 12.3f, 10f, 13.5f)
+        curveTo(10f, 14.6f, 10.9f, 15.5f, 12f, 15.5f)
+        curveTo(13.1f, 15.5f, 14f, 14.6f, 14f, 13.5f)
+        curveTo(14f, 13.1f, 13.8f, 12.8f, 13.5f, 12.5f)
+        close()
+    }
+
+    // 46. Bolt (Badai Barometrik & Listrik)
+    val Bolt: ImageVector = buildIcon("Bolt") {
+        moveTo(11f, 21f)
+        lineTo(11f, 13f)
+        lineTo(7f, 13f)
+        lineTo(13f, 3f)
+        lineTo(13f, 11f)
+        lineTo(17f, 11f)
+        lineTo(11f, 21f)
+        close()
+    }
 }
+
 
