@@ -100,6 +100,9 @@ interface DapeDao {
     @Query("SELECT * FROM lands")
     suspend fun lands(): List<LandEntity>
 
+    @Query("SELECT * FROM lands")
+    fun allLandsSync(): List<LandEntity>
+
     @Query("SELECT COUNT(*) FROM lands")
     fun landCount(): Int
 
@@ -112,6 +115,9 @@ interface DapeDao {
 
     @Query("SELECT * FROM diagnoses ORDER BY rowid DESC")
     suspend fun allDiagnoses(): List<DiagnosisEntity>
+
+    @Query("SELECT * FROM diagnoses ORDER BY rowid DESC")
+    fun allDiagnosesSync(): List<DiagnosisEntity>
 
     @Query("SELECT COUNT(*) FROM diagnoses")
     fun diagnosisCount(): Int

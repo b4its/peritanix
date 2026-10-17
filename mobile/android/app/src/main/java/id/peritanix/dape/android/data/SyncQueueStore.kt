@@ -20,13 +20,16 @@ class SyncQueueStore(private val context: Context) {
 
     private val db: DapeDatabase = Room.databaseBuilder(
         context, DapeDatabase::class.java, "dape.db"
-    ).fallbackToDestructiveMigration().build()
+    ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
     fun pendingCount(): Int = db.dao().pendingCount()
     fun landCount(): Int = db.dao().landCount()
     fun diagnosisCount(): Int = db.dao().diagnosisCount()
     fun soilAssessmentCount(): Int = db.dao().soilAssessmentCount()
     fun harvestCount(): Int = db.dao().harvestCount()
+
+    fun getLands(): List<LandEntity> = db.dao().allLandsSync()
+    fun getDiagnoses(): List<DiagnosisEntity> = db.dao().allDiagnosesSync()
 
     /** Add a simulated mutation (for offline demo). */
     fun enqueueSimulatedSync() {
@@ -79,18 +82,20 @@ class SyncQueueStore(private val context: Context) {
         severityPct: Double,
         confidence: String,
         protocolCode: String,
-        localTwi: Double
+        localTwi: Double,
+        lon: Double = 110.456789,
+        lat: Double = -7.123456
     ) {
         val key = "android-diag-${UUID.randomUUID()}"
         val diagId = UUID.randomUUID().toString()
         val ts = System.currentTimeMillis()
-        val json = """{"land_id":"$landId","confirmed_disease":"$confirmedDisease","severity_pct":$severityPct,"confidence":"$confidence","protocol_code":"$protocolCode","local_twi":$localTwi}"""
+        val json = """{"land_id":"$landId","confirmed_disease":"$confirmedDisease","severity_pct":$severityPct,"confidence":"$confidence","protocol_code":"$protocolCode","local_twi":$localTwi,"lon":$lon,"lat":$lat}"""
 
         Thread {
             db.openHelper.writableDatabase.execSQL(
                 "INSERT OR REPLACE INTO diagnoses (id, landId, lon, lat, localTwi, confirmedDisease, severityPct, confidence, protocolCode, synced) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                arrayOf(diagId, landId, 110.0, -7.0, localTwi, confirmedDisease, severityPct, confidence, protocolCode, 0)
+                arrayOf(diagId, landId, lon, lat, localTwi, confirmedDisease, severityPct, confidence, protocolCode, 0)
             )
             db.openHelper.writableDatabase.execSQL(
                 "INSERT INTO sync_queue (entity, idempotencyKey, updatedTs, rev, payloadJson) " +
