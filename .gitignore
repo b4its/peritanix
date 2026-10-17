@@ -48,3 +48,4 @@ mobile/.idea/
 *.swp
 *.log
 backups/
+.playwright-mcp/
