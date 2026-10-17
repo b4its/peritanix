@@ -112,4 +112,57 @@ object MicroclimateEwsEvaluator {
             preventiveSprayAdvisory = advisory
         )
     }
+
+    /** Irrigation plan derived from the 72 h risk + a soil-moisture reading. */
+    data class IrrigationPlan(
+        val minutesPerBed: Double,
+        val intervalHours: Int,
+        val rationale: String
+    )
+
+    /**
+     * TAHAP 4.3 — Irrigation duration (menit/bedengan) that also hedges fungal
+     * risk: when sporulation risk is high we shorten and retreat watering
+     * (drier canopy), when the soil is already moist we cut it; when the canopy is
+     * dry-but-risky we water at dawn only to avoid a humid evening.
+     *
+     * @param riskScore 0..1 from [evaluate72hFungalRisk].
+     * @param soilMoisturePct 0..100 (volumetric), 60 is field capacity for loam.
+     * @param baseMinutes the nominal full-watering duration for one bed.
+     */
+    fun recommendIrrigation(
+        riskScore: Double,
+        soilMoisturePct: Double,
+        baseMinutes: Double = 20.0
+    ): IrrigationPlan {
+        // Moisture deficit scaling: drier soil → longer, wetter → shorter.
+        val moistureFactor = when {
+            soilMoisturePct >= 65.0 -> 0.4   // already near field capacity → light
+            soilMoisturePct >= 50.0 -> 1.0
+            soilMoisturePct >= 35.0 -> 1.3
+            else -> 1.6                       // quite dry
+        }
+        // Fungal-risk damping: high risk ⇒ shorter watering + more frequent checks.
+        val riskFactor = 1.0 - 0.35 * riskScore.coerceIn(0.0, 1.0)
+        val minutes = (baseMinutes * moistureFactor * riskFactor).coerceIn(5.0, 45.0)
+        val rounded = Math.round(minutes * 10.0) / 10.0
+
+        val interval = when {
+            riskScore >= 0.75 -> 24
+            riskScore >= 0.5 -> 36
+            soilMoisturePct < 35.0 -> 24
+            else -> 48
+        }
+        val rationale = when {
+            riskScore >= 0.75 ->
+                "Risiko jamur tinggi: siram singkat $rounded menit/bedengan sekali per hari (pagi) agar tajuk cepat kering — hindari kelembaban malam."
+            soilMoisturePct >= 65.0 ->
+                "Tanah sudah lembap (${"%.0f".format(soilMoisturePct)}%): siram ringan $rounded menit/bedengan untuk mencegah busuk akar/Phytophthora."
+            soilMoisturePct < 35.0 ->
+                "Tanah kering (${"%.0f".format(soilMoisturePct)}%): siram $rounded menit/bedengan tiap $interval jam untuk cegah rontok bunga."
+            else ->
+                "Kondisi normal: siram $rounded menit/bedengan tiap $interval jam sesuai jadwal pagi."
+        }
+        return IrrigationPlan(minutesPerBed = rounded, intervalHours = interval, rationale = rationale)
+    }
 }

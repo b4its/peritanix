@@ -772,6 +772,23 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Irrigation schedule (menit/bedengan) hedged against fungal risk.
+                val irrigation = id.peritanix.dape.android.core.physics.MicroclimateEwsEvaluator
+                    .recommendIrrigation(
+                        riskScore = ewsRisk.sporulationRiskScore,
+                        soilMoisturePct = ewsHumidity.coerceIn(20.0, 80.0) // proxy: RH→soil moisture
+                    )
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Jadwal Irigasi Presisi:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Text("${irrigation.minutesPerBed} mnt/bedengan · tiap ${irrigation.intervalHours} j", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+                Text(
+                    irrigation.rationale,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
