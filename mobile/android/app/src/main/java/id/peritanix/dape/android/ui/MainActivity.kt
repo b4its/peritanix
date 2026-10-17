@@ -67,6 +67,12 @@ fun DapeApp(queue: SyncQueueStore) {
                     NavigationBarItem(
                         selected = tab == 3,
                         onClick = { tab = 3 },
+                        icon = { Text("🗺️") },
+                        label = { Text("Peta GIS") }
+                    )
+                    NavigationBarItem(
+                        selected = tab == 4,
+                        onClick = { tab = 4 },
                         icon = { Text("🔄") },
                         label = { Text("Sinkron") }
                     )
@@ -83,6 +89,7 @@ fun DapeApp(queue: SyncQueueStore) {
                     0 -> LahanScreen(queue)
                     1 -> DiagnosticsScreen(queue)
                     2 -> HarvestScreen(queue)
+                    3 -> FarmMapScreen(queue)
                     else -> SyncScreen(queue)
                 }
             }

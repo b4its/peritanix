@@ -17,6 +17,7 @@ import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.physics.Physics
 import java.io.File
 
@@ -150,6 +151,21 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         }
                     )
                 }
+
+                // Visual Interactive GIS Farm Map
+                InteractiveFarmMap(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                    polygonPoints = polygonTracker.getPoints(),
+                    twiCells = localGrid,
+                    currentGps = if (pointCount > 0) polygonTracker.getPoints().last() else null,
+                    flowBearingDeg = 140f,
+                    windBearingDeg = 65f,
+                    isInteractive = true,
+                    showControls = true,
+                    showLayerToggles = true
+                )
 
                 if (wktPolygon.isNotEmpty()) {
                     Text(

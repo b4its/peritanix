@@ -11,7 +11,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
+import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.PericarpFortificationManager
+import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.ui.components.FarmMapMarker
+import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.pathology.PathologyClassifier
 import java.io.File
 
@@ -29,6 +33,47 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
     var isWilting by remember { mutableStateOf(true) }
     var soilMoisturePct by remember { mutableStateOf(68.0) }
     var saveStatus by remember { mutableStateOf("") }
+
+    // --- State: Spatial Pathology GIS Mapping ---
+    val diagMarkers = remember {
+        mutableStateListOf(
+            FarmMapMarker(
+                id = "d1",
+                lat = -7.123220,
+                lon = 110.457020,
+                title = "Antraknosa (Colletotrichum)",
+                diseaseType = "ANTHRACNOSE",
+                severityPct = 30.0,
+                localTwi = 7.2,
+                protocolCode = "P-CU-01",
+                actionNote = "Semprot fungisida tembaga Cu(OH)2 2g/L dan pangkas tajuk lembab."
+            ),
+            FarmMapMarker(
+                id = "d2",
+                lat = -7.123380,
+                lon = 110.457220,
+                title = "Layu Bakteri (Ralstonia)",
+                diseaseType = "RALSTONIA",
+                severityPct = 65.0,
+                localTwi = 8.1,
+                protocolCode = "P-BA-01",
+                actionNote = "Karantina zona genangan tinggi & naikkan bedengan 50cm."
+            )
+        )
+    }
+    val demoPolygon = remember {
+        val baseLat = -7.123456
+        val baseLon = 110.456789
+        listOf(
+            GpsPolygonTracker.GpsPoint(baseLat, baseLon, 850.0, 3.5f),
+            GpsPolygonTracker.GpsPoint(baseLat + 0.00045, baseLon, 852.0, 4.0f),
+            GpsPolygonTracker.GpsPoint(baseLat + 0.00045, baseLon + 0.00055, 851.0, 3.8f),
+            GpsPolygonTracker.GpsPoint(baseLat, baseLon + 0.00055, 849.0, 4.2f)
+        )
+    }
+    val diagTwiGrid = remember {
+        TwiLocalCompute.computeLocalGrid(160.0, 4.0, rows = 3, cols = 4)
+    }
 
     // --- State: Active Leaf Trans-Illumination (FR-2.2) ---
     val edgeRunner = remember { EdgeInferenceRunner(File("/tmp/models")) }
@@ -218,19 +263,43 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
 
                 Button(
                     onClick = {
+                        val markLat = -7.123280 + ((-15..15).random() * 0.000015)
+                        val markLon = 110.457000 + ((-15..15).random() * 0.000015)
+                        val dType = when {
+                            diag.condition.contains("Antraknosa", ignoreCase = true) -> "ANTHRACNOSE"
+                            diag.condition.contains("Gemini", ignoreCase = true) -> "BEGOMOVIRUS"
+                            diag.condition.contains("Bakteri", ignoreCase = true) || diag.condition.contains("Ralstonia", ignoreCase = true) -> "RALSTONIA"
+                            diag.condition.contains("Phytophthora", ignoreCase = true) -> "PHYTOPHTHORA"
+                            else -> "HEALTHY"
+                        }
                         queue?.enqueueDiagnosis(
                             landId = "land-demo-001",
                             confirmedDisease = diag.condition,
                             severityPct = unetResult.calculatedSeverityPct.toDouble(),
                             confidence = "HIGH",
                             protocolCode = diag.condition,
-                            localTwi = 6.5
+                            localTwi = 6.5,
+                            lon = markLon,
+                            lat = markLat
                         )
-                        saveStatus = "Diagnosis & protokol tersimpan ke Room SQLite (Offline-First)."
+                        diagMarkers.add(
+                            FarmMapMarker(
+                                id = "d-${System.currentTimeMillis().toString().takeLast(4)}",
+                                lat = markLat,
+                                lon = markLon,
+                                title = diag.condition,
+                                diseaseType = dType,
+                                severityPct = unetResult.calculatedSeverityPct.toDouble(),
+                                localTwi = 6.5,
+                                protocolCode = diag.condition,
+                                actionNote = "${diag.activeIngredient} (${diag.dosagePerLiter})"
+                            )
+                        )
+                        saveStatus = "Diagnosis tersimpan ke Room SQLite & ditambahkan ke Peta Spasial Lahan."
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Simpan Diagnosis & Resep ke Room SQLite")
+                    Text("Simpan Diagnosis & Petakan ke Peta GIS")
                 }
 
                 if (saveStatus.isNotEmpty()) {
@@ -504,6 +573,39 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     ewsRisk.preventiveSprayAdvisory,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // --- Card 7: Peta Sebaran Spasial Infeksi Penyakit & Korelasi TWI ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "7. Peta Sebaran Spasial Infeksi & Korelasi TWI",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Peta interaktif offline: korelasi titik infeksi patologi dengan zona genangan air (TWI tinggi) dan arah angin penyebaran spora.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                InteractiveFarmMap(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp),
+                    polygonPoints = demoPolygon,
+                    twiCells = diagTwiGrid,
+                    diseaseMarkers = diagMarkers,
+                    flowBearingDeg = 140f,
+                    windBearingDeg = 65f,
+                    isInteractive = true,
+                    showControls = true,
+                    showLayerToggles = true
                 )
             }
         }
