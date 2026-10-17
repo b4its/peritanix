@@ -606,6 +606,27 @@ fun DashboardScreen(
             }
         }
 
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { onNavigateToTab(6) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.Compass, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Kompas Lahan", fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = { onNavigateToTab(6) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.RotateRight, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Kalibrasi Sensor", fontSize = 12.sp)
+            }
+        }
+
         // =====================================================================
         // 6. Offline-First Sync & Cryptography Audit Status
         // =====================================================================

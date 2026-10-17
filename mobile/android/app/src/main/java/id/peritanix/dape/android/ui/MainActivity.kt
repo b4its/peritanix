@@ -124,6 +124,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     3 -> AppIcons.Chili
                     4 -> AppIcons.Map
                     5 -> AppIcons.Sync
+                    6 -> AppIcons.Compass
                     else -> AppIcons.MoreVert
                 }
                 val otherTabLabel = when (tab) {
@@ -131,6 +132,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                     3 -> "Panen ▾"
                     4 -> "Peta ▾"
                     5 -> "Sinkron ▾"
+                    6 -> "Kompas ▾"
                     else -> "Lainnya ▾"
                 }
 
@@ -315,6 +317,33 @@ fun PentasixApp(queue: SyncQueueStore) {
                                             menuExpanded = false
                                         }
                                     )
+
+                                    HorizontalDivider()
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Kompas & Sensor",
+                                                fontWeight = if (tab == 6) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 6) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Compass,
+                                                contentDescription = null,
+                                                tint = if (tab == 6) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 6) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 6
+                                            menuExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         },
@@ -348,7 +377,9 @@ fun PentasixApp(queue: SyncQueueStore) {
                     2 -> DiagnosticsScreen(queue)
                     3 -> HarvestScreen(queue)
                     4 -> FarmMapScreen(queue)
-                    else -> SyncScreen(queue)
+                    5 -> SyncScreen(queue)
+                    6 -> CompassCalibrationScreen()
+                    else -> DashboardScreen(queue, onNavigateToTab = { tab = it })
                 }
             }
         }
