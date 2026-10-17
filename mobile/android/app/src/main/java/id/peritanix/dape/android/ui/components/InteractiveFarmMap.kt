@@ -23,8 +23,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
@@ -201,6 +204,15 @@ fun InteractiveFarmMap(
     var showFlowVectors by remember { mutableStateOf(true) }
     var showGpsDot by remember { mutableStateOf(true) }
 
+    // --- Basemap Tile States ---
+    var currentBasemapStyle by remember { mutableStateOf(BasemapStyle.OPEN_STREET_MAP) }
+    var tileRefreshTrigger by remember { mutableStateOf(0) }
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        TileCacheManager.init(context)
+    }
+
     // --- Interactive Viewport States (Pan & Zoom) ---
     var zoomFactor by remember { mutableStateOf(1.0f) }
     var panOffsetX by remember { mutableStateOf(0f) }
@@ -334,6 +346,56 @@ fun InteractiveFarmMap(
                 .fillMaxSize()
                 .then(gestureModifier)
         ) {
+            // 0. Render Realistic Geographic Basemap Tiles (Slippy Map Tile System)
+            val (nLat, wLon) = projection.toGeo(0f, 0f)
+            val (sLat, eLon) = projection.toGeo(screenWidthPx, screenHeightPx)
+            val spanLat = abs(nLat - sLat)
+            val spanLon = abs(eLon - wLon)
+            val tileZoom = SlippyTileMath.calculateOptimalZoom(spanLat, spanLon)
+
+            val minTileX = SlippyTileMath.lonToTileX(min(wLon, eLon), tileZoom)
+            val maxTileX = SlippyTileMath.lonToTileX(max(wLon, eLon), tileZoom)
+            val minTileY = SlippyTileMath.latToTileY(max(nLat, sLat), tileZoom)
+            val maxTileY = SlippyTileMath.latToTileY(min(nLat, sLat), tileZoom)
+
+            val maxTilesPerAxis = 1 shl tileZoom
+            val startX = minTileX.coerceIn(0, maxTilesPerAxis - 1)
+            val endX = maxTileX.coerceIn(startX, min(startX + 5, maxTilesPerAxis - 1))
+            val startY = minTileY.coerceIn(0, maxTilesPerAxis - 1)
+            val endY = maxTileY.coerceIn(startY, min(startY + 5, maxTilesPerAxis - 1))
+
+            for (tx in startX..endX) {
+                for (ty in startY..endY) {
+                    val tile = SlippyTile(tx, ty, tileZoom)
+                    val tBounds = SlippyTileMath.getTileBounds(tx, ty, tileZoom)
+                    val tl = projection.toScreen(tBounds.maxLat, tBounds.minLon)
+                    val br = projection.toScreen(tBounds.minLat, tBounds.maxLon)
+                    val tWidth = br.x - tl.x
+                    val tHeight = br.y - tl.y
+
+                    if (tWidth > 0 && tHeight > 0) {
+                        val cachedBitmap = TileCacheManager.getTile(tile, currentBasemapStyle)
+                        if (cachedBitmap != null) {
+                            drawImage(
+                                image = cachedBitmap,
+                                dstOffset = IntOffset(tl.x.toInt(), tl.y.toInt()),
+                                dstSize = IntSize(tWidth.toInt(), tHeight.toInt())
+                            )
+                        } else {
+                            TileCacheManager.requestTile(tile, currentBasemapStyle) {
+                                tileRefreshTrigger++
+                            }
+                            drawRealisticBasemapTile(
+                                tile = tile,
+                                style = currentBasemapStyle,
+                                topLeft = tl,
+                                size = Size(tWidth, tHeight)
+                            )
+                        }
+                    }
+                }
+            }
+
             // 1. Draw subtle background terrain grid lines (every 20 meters)
             drawGeoGrid(projection, screenWidthPx, screenHeightPx)
 
@@ -422,6 +484,53 @@ fun InteractiveFarmMap(
                         selectedContainerColor = Color(0xFF1565C0),
                         selectedLabelColor = Color.White
                     )
+                )
+            }
+        }
+
+        // --- Basemap Style Switcher Row (Under layer toggles) ---
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 46.dp, start = 8.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            BasemapStyle.values().forEach { style ->
+                FilterChip(
+                    selected = currentBasemapStyle == style,
+                    onClick = { currentBasemapStyle = style },
+                    label = { Text("${style.icon} ${style.displayName.take(8)}", fontSize = 10.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF2E7D32),
+                        selectedLabelColor = Color.White,
+                        containerColor = Color(0xBB1E241E),
+                        labelColor = Color.White
+                    ),
+                    modifier = Modifier.height(28.dp)
+                )
+            }
+        }
+
+        // --- Offline Status / Basemap Attribution Badge ---
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 12.dp, bottom = if (selectedElement != null) 140.dp else 26.dp),
+            color = Color(0xD9141E14),
+            shape = RoundedCornerShape(12.dp),
+            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0x44FFFFFF))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    "🌐 ${currentBasemapStyle.displayName} (Offline Cache)",
+                    fontSize = 10.sp,
+                    color = Color(0xFFE0E0E0),
+                    fontFamily = FontFamily.Monospace
                 )
             }
         }
@@ -729,21 +838,22 @@ private fun DrawScope.drawFarmPolygon(
         }
     }
 
-    // Interior fill
+    // Interior fill (soft vibrant emerald)
     if (screenPoints.size >= 3) {
-        drawPath(path = path, color = Color(0x384CAF50), style = Fill)
+        drawPath(path = path, color = Color(0x3800E676), style = Fill)
     }
 
-    // Boundary stroke
-    drawPath(path = path, color = Color(0xFF66BB6A), style = Stroke(width = 3.5f, cap = StrokeCap.Round))
+    // Boundary stroke: White casing + Emerald line for crystal clear visibility on any basemap
+    drawPath(path = path, color = Color.White, style = Stroke(width = 6f, cap = StrokeCap.Round))
+    drawPath(path = path, color = Color(0xFF00C853), style = Stroke(width = 3.5f, cap = StrokeCap.Round))
 
     // Vertex markers
     screenPoints.forEachIndexed { idx, pt ->
         // Outer halo
-        drawCircle(color = Color.White, radius = 6.5f, center = pt)
+        drawCircle(color = Color.White, radius = 7f, center = pt)
         // Inner dot
         drawCircle(
-            color = if (idx == 0) Color(0xFF2E7D32) else Color(0xFF388E3C),
+            color = if (idx == 0) Color(0xFF1B5E20) else Color(0xFF00C853),
             radius = 4.5f,
             center = pt
         )

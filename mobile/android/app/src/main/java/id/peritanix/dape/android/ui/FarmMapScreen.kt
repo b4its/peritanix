@@ -162,7 +162,7 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Peta interaktif offline: batas pematang GPS, kontur hidrologi TWI, titik infeksi tanaman, dan vektor aliran genangan.",
+                    "Peta GIS realistis berbasis tile OpenStreetMap, topografi desa, & citra satelit (100% offline-ready dengan disk cache). Memvisualisasikan batas GPS, kontur drainase TWI, dan sebaran penyakit.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
