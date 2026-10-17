@@ -1035,6 +1035,43 @@ object AppIcons {
         lineTo(11f, 21f)
         close()
     }
+
+    // 47. Calendar (Kalender Aktivitas 30 Tahun)
+    val Calendar: ImageVector = buildIcon("Calendar") {
+        // Body
+        moveTo(4f, 5f)
+        lineTo(20f, 5f)
+        lineTo(20f, 21f)
+        lineTo(4f, 21f)
+        close()
+        // Top header bar (separate block to read as a calendar)
+        moveTo(4f, 3f)
+        lineTo(6f, 3f)
+        lineTo(6f, 5f)
+        lineTo(4f, 5f)
+        close()
+        moveTo(18f, 3f)
+        lineTo(20f, 3f)
+        lineTo(20f, 5f)
+        lineTo(18f, 5f)
+        close()
+        // A highlighted "day" cell
+        moveTo(8f, 9f)
+        lineTo(11f, 9f)
+        lineTo(11f, 12f)
+        lineTo(8f, 12f)
+        close()
+        moveTo(13f, 9f)
+        lineTo(16f, 9f)
+        lineTo(16f, 12f)
+        lineTo(13f, 12f)
+        close()
+        moveTo(8f, 14f)
+        lineTo(11f, 14f)
+        lineTo(11f, 17f)
+        lineTo(8f, 17f)
+        close()
+    }
 }
 
 
