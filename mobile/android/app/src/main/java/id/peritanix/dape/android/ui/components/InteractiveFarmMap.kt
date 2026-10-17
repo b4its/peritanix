@@ -16,12 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -236,7 +239,8 @@ fun InteractiveFarmMap(
 
     BoxWithConstraints(
         modifier = modifier
-            .background(Color(0xFF141914), RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF141914))
             .border(1.dp, Color(0xFF2C392C), RoundedCornerShape(12.dp))
     ) {
         val screenWidthPx = constraints.maxWidth.toFloat().coerceAtLeast(200f)
@@ -344,257 +348,390 @@ fun InteractiveFarmMap(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                .clipToBounds()
                 .then(gestureModifier)
         ) {
-            // 0. Render Realistic Geographic Basemap Tiles (Slippy Map Tile System)
-            val (nLat, wLon) = projection.toGeo(0f, 0f)
-            val (sLat, eLon) = projection.toGeo(screenWidthPx, screenHeightPx)
-            val spanLat = abs(nLat - sLat)
-            val spanLon = abs(eLon - wLon)
-            val tileZoom = SlippyTileMath.calculateOptimalZoom(spanLat, spanLon)
+            clipRect {
+                // 0. Render Realistic Geographic Basemap Tiles (Slippy Map Tile System)
+                val (nLat, wLon) = projection.toGeo(0f, 0f)
+                val (sLat, eLon) = projection.toGeo(screenWidthPx, screenHeightPx)
+                val spanLat = abs(nLat - sLat)
+                val spanLon = abs(eLon - wLon)
+                val tileZoom = SlippyTileMath.calculateOptimalZoom(spanLat, spanLon)
 
-            val minTileX = SlippyTileMath.lonToTileX(min(wLon, eLon), tileZoom)
-            val maxTileX = SlippyTileMath.lonToTileX(max(wLon, eLon), tileZoom)
-            val minTileY = SlippyTileMath.latToTileY(max(nLat, sLat), tileZoom)
-            val maxTileY = SlippyTileMath.latToTileY(min(nLat, sLat), tileZoom)
+                val minTileX = SlippyTileMath.lonToTileX(min(wLon, eLon), tileZoom)
+                val maxTileX = SlippyTileMath.lonToTileX(max(wLon, eLon), tileZoom)
+                val minTileY = SlippyTileMath.latToTileY(max(nLat, sLat), tileZoom)
+                val maxTileY = SlippyTileMath.latToTileY(min(nLat, sLat), tileZoom)
 
-            val maxTilesPerAxis = 1 shl tileZoom
-            val startX = minTileX.coerceIn(0, maxTilesPerAxis - 1)
-            val endX = maxTileX.coerceIn(startX, min(startX + 5, maxTilesPerAxis - 1))
-            val startY = minTileY.coerceIn(0, maxTilesPerAxis - 1)
-            val endY = maxTileY.coerceIn(startY, min(startY + 5, maxTilesPerAxis - 1))
+                val maxTilesPerAxis = 1 shl tileZoom
+                val startX = minTileX.coerceIn(0, maxTilesPerAxis - 1)
+                val endX = maxTileX.coerceIn(startX, min(startX + 5, maxTilesPerAxis - 1))
+                val startY = minTileY.coerceIn(0, maxTilesPerAxis - 1)
+                val endY = maxTileY.coerceIn(startY, min(startY + 5, maxTilesPerAxis - 1))
 
-            for (tx in startX..endX) {
-                for (ty in startY..endY) {
-                    val tile = SlippyTile(tx, ty, tileZoom)
-                    val tBounds = SlippyTileMath.getTileBounds(tx, ty, tileZoom)
-                    val tl = projection.toScreen(tBounds.maxLat, tBounds.minLon)
-                    val br = projection.toScreen(tBounds.minLat, tBounds.maxLon)
-                    val tWidth = br.x - tl.x
-                    val tHeight = br.y - tl.y
+                for (tx in startX..endX) {
+                    for (ty in startY..endY) {
+                        val tile = SlippyTile(tx, ty, tileZoom)
+                        val tBounds = SlippyTileMath.getTileBounds(tx, ty, tileZoom)
+                        val tl = projection.toScreen(tBounds.maxLat, tBounds.minLon)
+                        val br = projection.toScreen(tBounds.minLat, tBounds.maxLon)
+                        val tWidth = br.x - tl.x
+                        val tHeight = br.y - tl.y
 
-                    if (tWidth > 0 && tHeight > 0) {
-                        val cachedBitmap = TileCacheManager.getTile(tile, currentBasemapStyle)
-                        if (cachedBitmap != null) {
-                            drawImage(
-                                image = cachedBitmap,
-                                dstOffset = IntOffset(tl.x.toInt(), tl.y.toInt()),
-                                dstSize = IntSize(tWidth.toInt(), tHeight.toInt())
-                            )
-                        } else {
-                            TileCacheManager.requestTile(tile, currentBasemapStyle) {
-                                tileRefreshTrigger++
+                        if (tWidth > 0 && tHeight > 0) {
+                            val cachedBitmap = TileCacheManager.getTile(tile, currentBasemapStyle)
+                            if (cachedBitmap != null) {
+                                drawImage(
+                                    image = cachedBitmap,
+                                    dstOffset = IntOffset(tl.x.toInt(), tl.y.toInt()),
+                                    dstSize = IntSize(tWidth.toInt(), tHeight.toInt())
+                                )
+                            } else {
+                                TileCacheManager.requestTile(tile, currentBasemapStyle) {
+                                    tileRefreshTrigger++
+                                }
+                                drawRealisticBasemapTile(
+                                    tile = tile,
+                                    style = currentBasemapStyle,
+                                    topLeft = tl,
+                                    size = Size(tWidth, tHeight)
+                                )
                             }
-                            drawRealisticBasemapTile(
-                                tile = tile,
-                                style = currentBasemapStyle,
-                                topLeft = tl,
-                                size = Size(tWidth, tHeight)
-                            )
                         }
                     }
                 }
-            }
 
-            // 1. Draw subtle background terrain grid lines (every 20 meters)
-            drawGeoGrid(projection, screenWidthPx, screenHeightPx)
+                // 1. Draw subtle background terrain grid lines (every 20 meters)
+                drawGeoGrid(projection, screenWidthPx, screenHeightPx)
 
-            // 2. Draw TWI Hydrological Risk Grid Overlay
-            if (showTwiGrid && twiCells.isNotEmpty()) {
-                drawTwiRasterGrid(twiCells, geoBounds, projection)
-            }
+                // 2. Draw TWI Hydrological Risk Grid Overlay
+                if (showTwiGrid && twiCells.isNotEmpty()) {
+                    drawTwiRasterGrid(twiCells, geoBounds, projection)
+                }
 
-            // 3. Draw Water Runoff Flow & Wind Vector Arrows
-            if (showFlowVectors) {
-                drawHydrologyAndWindVectors(geoBounds, projection, flowBearingDeg, windBearingDeg)
-            }
+                // 3. Draw Water Runoff Flow & Wind Vector Arrows
+                if (showFlowVectors) {
+                    drawHydrologyAndWindVectors(geoBounds, projection, flowBearingDeg, windBearingDeg)
+                }
 
-            // 4. Draw Farm Polygon Boundary & Vertices
-            if (showPolygon && polygonPoints.isNotEmpty()) {
-                drawFarmPolygon(polygonPoints, projection)
-            }
+                // 4. Draw Farm Polygon Boundary & Vertices
+                if (showPolygon && polygonPoints.isNotEmpty()) {
+                    drawFarmPolygon(polygonPoints, projection)
+                }
 
-            // 5. Draw Disease Pathology Waypoints
-            if (showDiseaseMarkers && diseaseMarkers.isNotEmpty()) {
-                drawDiseaseMarkers(diseaseMarkers, projection)
-            }
+                // 5. Draw Disease Pathology Waypoints
+                if (showDiseaseMarkers && diseaseMarkers.isNotEmpty()) {
+                    drawDiseaseMarkers(diseaseMarkers, projection)
+                }
 
-            // 6. Draw Farmer Live GPS Dot & Accuracy Aura
-            if (showGpsDot && currentGps != null) {
-                drawLiveGpsIndicator(currentGps, projection)
-            }
-
-            // 7. Draw Map Scale Bar
-            drawScaleBar(projection, screenWidthPx, screenHeightPx)
-
-            // 8. Draw Compass North Arrow
-            drawNorthCompass(screenWidthPx)
-        }
-
-        // --- Layer Filter Chips (Top-Left Horizontal Scroll) ---
-        if (showLayerToggles) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                FilterChip(
-                    selected = showPolygon,
-                    onClick = { showPolygon = !showPolygon },
-                    leadingIcon = {
-                        Icon(AppIcons.Sprout, contentDescription = null, modifier = Modifier.size(13.dp))
-                    },
-                    label = { Text("Lahan", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF2E7D32),
-                        selectedLabelColor = Color.White
-                    )
-                )
-                FilterChip(
-                    selected = showTwiGrid,
-                    onClick = { showTwiGrid = !showTwiGrid },
-                    leadingIcon = {
-                        Icon(AppIcons.WaterDrop, contentDescription = null, modifier = Modifier.size(13.dp))
-                    },
-                    label = { Text("TWI", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF0277BD),
-                        selectedLabelColor = Color.White
-                    )
-                )
-                FilterChip(
-                    selected = showDiseaseMarkers,
-                    onClick = { showDiseaseMarkers = !showDiseaseMarkers },
-                    leadingIcon = {
-                        Icon(AppIcons.BugReport, contentDescription = null, modifier = Modifier.size(13.dp))
-                    },
-                    label = { Text("Penyakit", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFFC62828),
-                        selectedLabelColor = Color.White
-                    )
-                )
-                FilterChip(
-                    selected = showFlowVectors,
-                    onClick = { showFlowVectors = !showFlowVectors },
-                    leadingIcon = {
-                        Icon(AppIcons.Wind, contentDescription = null, modifier = Modifier.size(13.dp))
-                    },
-                    label = { Text("Vektor", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFFEF6C00),
-                        selectedLabelColor = Color.White
-                    )
-                )
-                FilterChip(
-                    selected = showGpsDot,
-                    onClick = { showGpsDot = !showGpsDot },
-                    leadingIcon = {
-                        Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(13.dp))
-                    },
-                    label = { Text("GPS", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF1565C0),
-                        selectedLabelColor = Color.White
-                    )
-                )
+                // 6. Draw Farmer Live GPS Dot & Accuracy Aura
+                if (showGpsDot && currentGps != null) {
+                    drawLiveGpsIndicator(currentGps, projection)
+                }
             }
         }
 
-        // --- Basemap Style Switcher Row (Under layer toggles) ---
+        // --- North Compass Badge (Top-Right) ---
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 8.dp)
+                .size(32.dp),
+            shape = CircleShape,
+            color = Color(0xDD182218),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x55FFFFFF)),
+            shadowElevation = 3.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(20.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val nPath = Path().apply {
+                        moveTo(cx, 1f)
+                        lineTo(cx - 3.5f, cy)
+                        lineTo(cx + 3.5f, cy)
+                        close()
+                    }
+                    drawPath(nPath, Color(0xFFFF5252))
+                    val sPath = Path().apply {
+                        moveTo(cx, size.height - 1f)
+                        lineTo(cx - 3.5f, cy)
+                        lineTo(cx + 3.5f, cy)
+                        close()
+                    }
+                    drawPath(sPath, Color(0xFFE0E0E0))
+                }
+            }
+        }
+
+        // --- Top Controls: Basemap Style Selector + Layer Toggles (Single Horizontal Scroll Row) ---
+        var basemapMenuExpanded by remember { mutableStateOf(false) }
+
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 46.dp, start = 8.dp)
+                .padding(start = 8.dp, top = 8.dp, end = 44.dp)
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            BasemapStyle.values().forEach { style ->
-                val styleIcon = when (style) {
+            // Basemap Dropdown Chip
+            Box {
+                val currentIcon = when (currentBasemapStyle) {
                     BasemapStyle.OPEN_STREET_MAP -> AppIcons.Map
                     BasemapStyle.CARTO_VOYAGER -> AppIcons.HomeVillage
                     BasemapStyle.SATELLITE_AERIAL -> AppIcons.Satellite
                     BasemapStyle.TOPOGRAPHIC -> AppIcons.Terrain
                 }
+                val currentLabel = when (currentBasemapStyle) {
+                    BasemapStyle.OPEN_STREET_MAP -> "Peta: OSM"
+                    BasemapStyle.CARTO_VOYAGER -> "Peta: Desa"
+                    BasemapStyle.SATELLITE_AERIAL -> "Peta: Satelit"
+                    BasemapStyle.TOPOGRAPHIC -> "Peta: Topo"
+                }
+
                 FilterChip(
-                    selected = currentBasemapStyle == style,
-                    onClick = { currentBasemapStyle = style },
+                    selected = true,
+                    onClick = { basemapMenuExpanded = true },
                     leadingIcon = {
-                        Icon(styleIcon, contentDescription = null, modifier = Modifier.size(12.dp))
+                        Icon(currentIcon, contentDescription = null, modifier = Modifier.size(13.dp))
                     },
-                    label = { Text(style.displayName.take(8), fontSize = 10.sp) },
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(currentLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.width(2.dp))
+                            Icon(AppIcons.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp))
+                        }
+                    },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF2E7D32),
+                        selectedContainerColor = Color(0xEE2E7D32),
                         selectedLabelColor = Color.White,
-                        containerColor = Color(0xBB1E241E),
-                        labelColor = Color.White
+                        selectedLeadingIconColor = Color.White
                     ),
-                    modifier = Modifier.height(28.dp)
+                    modifier = Modifier.height(30.dp)
                 )
-            }
-        }
 
-        // --- Offline Status / Basemap Attribution Badge ---
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 12.dp, bottom = if (selectedElement != null) 140.dp else 26.dp),
-            color = Color(0xD9141E14),
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0x44FFFFFF))
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(AppIcons.Shield, contentDescription = null, tint = Color(0xFF81C784), modifier = Modifier.size(12.dp))
-                Text(
-                    "${currentBasemapStyle.displayName} (Offline Cache)",
-                    fontSize = 10.sp,
-                    color = Color(0xFFE0E0E0),
-                    fontFamily = FontFamily.Monospace
+                DropdownMenu(
+                    expanded = basemapMenuExpanded,
+                    onDismissRequest = { basemapMenuExpanded = false },
+                    modifier = Modifier.background(Color(0xFF1E281E))
+                ) {
+                    BasemapStyle.values().forEach { style ->
+                        val sIcon = when (style) {
+                            BasemapStyle.OPEN_STREET_MAP -> AppIcons.Map
+                            BasemapStyle.CARTO_VOYAGER -> AppIcons.HomeVillage
+                            BasemapStyle.SATELLITE_AERIAL -> AppIcons.Satellite
+                            BasemapStyle.TOPOGRAPHIC -> AppIcons.Terrain
+                        }
+                        DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    sIcon,
+                                    contentDescription = null,
+                                    tint = if (currentBasemapStyle == style) Color(0xFF81C784) else Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            text = {
+                                Text(
+                                    style.displayName,
+                                    fontSize = 12.sp,
+                                    color = if (currentBasemapStyle == style) Color(0xFF81C784) else Color.White,
+                                    fontWeight = if (currentBasemapStyle == style) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                currentBasemapStyle = style
+                                basemapMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Layer Filter Toggles (in the same row!)
+            if (showLayerToggles) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(18.dp)
+                        .background(Color(0x55FFFFFF))
                 )
-            }
-        }
 
-        // --- Zoom & Navigation Controls (Floating Bottom-Right) ---
-        if (showControls) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = if (selectedElement != null) 140.dp else 12.dp, end = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                SmallFloatingActionButton(
-                    onClick = { zoomFactor = (zoomFactor * 1.35f).coerceAtMost(8.0f) },
-                    containerColor = Color(0xFF233023),
-                    contentColor = Color.White,
-                    shape = CircleShape
-                ) {
-                    Icon(AppIcons.Add, contentDescription = "Zoom In", modifier = Modifier.size(18.dp))
-                }
-                SmallFloatingActionButton(
-                    onClick = { zoomFactor = (zoomFactor / 1.35f).coerceAtLeast(0.25f) },
-                    containerColor = Color(0xFF233023),
-                    contentColor = Color.White,
-                    shape = CircleShape
-                ) {
-                    Icon(AppIcons.Remove, contentDescription = "Zoom Out", modifier = Modifier.size(18.dp))
-                }
-                SmallFloatingActionButton(
-                    onClick = {
-                        zoomFactor = 1.0f
-                        panOffsetX = 0f
-                        panOffsetY = 0f
+                FilterChip(
+                    selected = showPolygon,
+                    onClick = { showPolygon = !showPolygon },
+                    leadingIcon = {
+                        Icon(AppIcons.Sprout, contentDescription = null, modifier = Modifier.size(12.dp))
                     },
-                    containerColor = Color(0xFF233023),
-                    contentColor = Color.White,
-                    shape = CircleShape
+                    label = { Text("Lahan", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xEE2E7D32),
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = Color(0xBB1A221A),
+                        labelColor = Color.LightGray
+                    ),
+                    modifier = Modifier.height(30.dp)
+                )
+
+                FilterChip(
+                    selected = showTwiGrid,
+                    onClick = { showTwiGrid = !showTwiGrid },
+                    leadingIcon = {
+                        Icon(AppIcons.WaterDrop, contentDescription = null, modifier = Modifier.size(12.dp))
+                    },
+                    label = { Text("TWI", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xEE0277BD),
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = Color(0xBB1A221A),
+                        labelColor = Color.LightGray
+                    ),
+                    modifier = Modifier.height(30.dp)
+                )
+
+                FilterChip(
+                    selected = showDiseaseMarkers,
+                    onClick = { showDiseaseMarkers = !showDiseaseMarkers },
+                    leadingIcon = {
+                        Icon(AppIcons.BugReport, contentDescription = null, modifier = Modifier.size(12.dp))
+                    },
+                    label = { Text("Penyakit", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xEEC62828),
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = Color(0xBB1A221A),
+                        labelColor = Color.LightGray
+                    ),
+                    modifier = Modifier.height(30.dp)
+                )
+
+                FilterChip(
+                    selected = showFlowVectors,
+                    onClick = { showFlowVectors = !showFlowVectors },
+                    leadingIcon = {
+                        Icon(AppIcons.Wind, contentDescription = null, modifier = Modifier.size(12.dp))
+                    },
+                    label = { Text("Vektor", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xEEEF6C00),
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = Color(0xBB1A221A),
+                        labelColor = Color.LightGray
+                    ),
+                    modifier = Modifier.height(30.dp)
+                )
+
+                FilterChip(
+                    selected = showGpsDot,
+                    onClick = { showGpsDot = !showGpsDot },
+                    leadingIcon = {
+                        Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(12.dp))
+                    },
+                    label = { Text("GPS", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xEE1565C0),
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = Color(0xBB1A221A),
+                        labelColor = Color.LightGray
+                    ),
+                    modifier = Modifier.height(30.dp)
+                )
+            }
+        }
+
+        val scaleMeters = remember(effectiveScale) {
+            val metersRaw = projection.metersFromPixels(60f)
+            when {
+                metersRaw < 7.5 -> 5
+                metersRaw < 15.0 -> 10
+                metersRaw < 35.0 -> 20
+                metersRaw < 75.0 -> 50
+                metersRaw < 150.0 -> 100
+                else -> 200
+            }
+        }
+
+        // Only show bottom overlays when inspector card is not active
+        if (selectedElement == null) {
+            // --- Offline Status / Basemap Attribution Badge ---
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 8.dp, bottom = 8.dp),
+                color = Color(0xDD121812),
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0x44FFFFFF))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Icon(AppIcons.GpsFixed, contentDescription = "Reset View", modifier = Modifier.size(16.dp))
+                    Icon(AppIcons.Shield, contentDescription = null, tint = Color(0xFF81C784), modifier = Modifier.size(11.dp))
+                    Text(
+                        currentBasemapStyle.displayName,
+                        fontSize = 9.sp,
+                        color = Color(0xFFE0E0E0),
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text("|", fontSize = 9.sp, color = Color(0x44FFFFFF))
+                    Text(
+                        "~${scaleMeters}m",
+                        fontSize = 9.sp,
+                        color = Color(0xFFA5D6A7),
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // --- Sleek Vertical Zoom Pill Toolbar (Floating Bottom-Right) ---
+            if (showControls) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 8.dp, bottom = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xDD1A241A),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0x55FFFFFF)),
+                    shadowElevation = 3.dp
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(32.dp)
+                    ) {
+                        IconButton(
+                            onClick = { zoomFactor = (zoomFactor * 1.35f).coerceAtMost(8.0f) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(AppIcons.Add, contentDescription = "Zoom In", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        HorizontalDivider(color = Color(0x33FFFFFF), thickness = 0.5.dp)
+                        IconButton(
+                            onClick = { zoomFactor = (zoomFactor / 1.35f).coerceAtLeast(0.25f) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(AppIcons.Remove, contentDescription = "Zoom Out", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        HorizontalDivider(color = Color(0x33FFFFFF), thickness = 0.5.dp)
+                        IconButton(
+                            onClick = {
+                                zoomFactor = 1.0f
+                                panOffsetX = 0f
+                                panOffsetY = 0f
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(AppIcons.GpsFixed, contentDescription = "Pusatkan", tint = Color(0xFF81C784), modifier = Modifier.size(15.dp))
+                        }
+                    }
                 }
             }
         }
@@ -610,7 +747,7 @@ fun InteractiveFarmMap(
                 shape = RoundedCornerShape(10.dp),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -669,9 +806,9 @@ fun InteractiveFarmMap(
 
                         IconButton(
                             onClick = { selectedElement = null },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(AppIcons.Remove, contentDescription = "Close", tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                            Icon(AppIcons.Close, contentDescription = "Tutup", tint = Color.LightGray, modifier = Modifier.size(16.dp))
                         }
                     }
 
@@ -948,72 +1085,4 @@ private fun DrawScope.drawLiveGpsIndicator(
     // Center Blue Live Dot
     drawCircle(color = Color.White, radius = 8f, center = center)
     drawCircle(color = Color(0xFF1976D2), radius = 5.5f, center = center)
-}
-
-private fun DrawScope.drawScaleBar(
-    projection: MapGeoProjection,
-    widthPx: Float,
-    heightPx: Float
-) {
-    // Pick standard metric length
-    val targetPx = 80f
-    val metersRaw = projection.metersFromPixels(targetPx)
-    val standardMeters = when {
-        metersRaw < 7.5 -> 5
-        metersRaw < 15.0 -> 10
-        metersRaw < 35.0 -> 20
-        metersRaw < 75.0 -> 50
-        metersRaw < 150.0 -> 100
-        else -> 200
-    }
-    val barPx = projection.pixelsFromMeters(standardMeters.toDouble())
-
-    val startX = 16f
-    val baseY = heightPx - 16f
-
-    // Line with edge ticks
-    drawLine(
-        color = Color.White,
-        start = Offset(startX, baseY),
-        end = Offset(startX + barPx, baseY),
-        strokeWidth = 2.5f
-    )
-    drawLine(
-        color = Color.White,
-        start = Offset(startX, baseY - 5f),
-        end = Offset(startX, baseY + 5f),
-        strokeWidth = 2.5f
-    )
-    drawLine(
-        color = Color.White,
-        start = Offset(startX + barPx, baseY - 5f),
-        end = Offset(startX + barPx, baseY + 5f),
-        strokeWidth = 2.5f
-    )
-}
-
-private fun DrawScope.drawNorthCompass(widthPx: Float) {
-    val cx = widthPx - 26f
-    val cy = 26f
-
-    drawCircle(color = Color(0xAA1C241C), radius = 16f, center = Offset(cx, cy))
-    drawCircle(color = Color(0x66FFFFFF), radius = 16f, center = Offset(cx, cy), style = Stroke(1.5f))
-
-    // North Needle (Red pointing Up)
-    val needlePath = Path().apply {
-        moveTo(cx, cy - 12f)
-        lineTo(cx - 4f, cy + 2f)
-        lineTo(cx + 4f, cy + 2f)
-        close()
-    }
-    drawPath(needlePath, color = Color(0xFFFF5252))
-
-    // South Needle (White pointing Down)
-    val southPath = Path().apply {
-        moveTo(cx, cy + 12f)
-        lineTo(cx - 4f, cy + 2f)
-        lineTo(cx + 4f, cy + 2f)
-        close()
-    }
-    drawPath(southPath, color = Color.White)
 }

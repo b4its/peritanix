@@ -181,7 +181,7 @@ preview: ## Tampilkan live preview/emulator layar device fisik ke laptop (scrcpy
 	if [ -x "$(SCRCPY)" ] || command -v scrcpy >/dev/null 2>&1; then \
 		pkill -x scrcpy 2>/dev/null || true; \
 		nohup scrcpy -s "$$dev" \
-			--window-title="Pentasix — Device Preview ($$model)" \
+			--window-title="Pentasix - Device Preview ($$model)" \
 			--stay-awake \
 			--show-touches \
 			--max-size=1280 \

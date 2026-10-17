@@ -206,6 +206,8 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     )
                 }
 
+                Spacer(Modifier.height(4.dp))
+
                 // Visual Interactive GIS Farm Map
                 InteractiveFarmMap(
                     modifier = Modifier
@@ -220,6 +222,8 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     showControls = true,
                     showLayerToggles = true
                 )
+
+                Spacer(Modifier.height(4.dp))
 
                 if (wktPolygon.isNotEmpty()) {
                     Text(

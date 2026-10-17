@@ -648,4 +648,29 @@ object AppIcons {
         lineTo(21f, 8f)
         close()
     }
+
+    // 29. ArrowDropDown
+    val ArrowDropDown: ImageVector = buildIcon("ArrowDropDown") {
+        moveTo(7f, 10f)
+        lineTo(12f, 15f)
+        lineTo(17f, 10f)
+        close()
+    }
+
+    // 30. Close (X)
+    val Close: ImageVector = buildIcon("Close") {
+        moveTo(19f, 6.41f)
+        lineTo(17.59f, 5f)
+        lineTo(12f, 10.59f)
+        lineTo(6.41f, 5f)
+        lineTo(5f, 6.41f)
+        lineTo(10.59f, 12f)
+        lineTo(5f, 17.59f)
+        lineTo(6.41f, 19f)
+        lineTo(12f, 13.41f)
+        lineTo(17.59f, 19f)
+        lineTo(19f, 17.59f)
+        lineTo(13.41f, 12f)
+        close()
+    }
 }
