@@ -2,9 +2,12 @@ package id.peritanix.dape.android
 
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
+import id.peritanix.dape.android.ui.components.BasemapStyle
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.GeoBounds
 import id.peritanix.dape.android.ui.components.MapGeoProjection
+import id.peritanix.dape.android.ui.components.SlippyTile
+import id.peritanix.dape.android.ui.components.SlippyTileMath
 import org.junit.Assert.*
 import org.junit.Test
 import kotlin.math.abs
@@ -222,5 +225,82 @@ class AndroidInteractiveMapTest {
 
         val criticalCells = grid.flatten().filter { it.riskClass == "CRITICAL" || it.riskClass == "HIGH" }
         assertTrue("High upslope and gentle slope should produce elevated TWI risk cells", criticalCells.isNotEmpty())
+    }
+
+    @Test
+    fun testSlippyTileCoordinatesEquatorAndMeridian() {
+        val zoom = 16
+        val n = 1 shl zoom
+        val x = SlippyTileMath.lonToTileX(0.0, zoom)
+        val y = SlippyTileMath.latToTileY(0.0, zoom)
+
+        assertEquals("Equator & Prime Meridian at zoom 16 must map to center tile", n / 2, x)
+        assertEquals("Equator & Prime Meridian at zoom 16 must map to center tile", n / 2, y)
+    }
+
+    @Test
+    fun testSlippyTileCoordinatesChiliFarm() {
+        val lat = -7.123456
+        val lon = 110.456789
+        val zoom = 17
+        val n = 1 shl zoom
+
+        val tileX = SlippyTileMath.lonToTileX(lon, zoom)
+        val tileY = SlippyTileMath.latToTileY(lat, zoom)
+
+        assertTrue("TileX must be within 0 until $n", tileX in 0 until n)
+        assertTrue("TileY must be within 0 until $n", tileY in 0 until n)
+
+        val bounds = SlippyTileMath.getTileBounds(tileX, tileY, zoom)
+        assertTrue("Tile bounds must contain latitude", lat in bounds.minLat..bounds.maxLat)
+        assertTrue("Tile bounds must contain longitude", lon in bounds.minLon..bounds.maxLon)
+    }
+
+    @Test
+    fun testSlippyTileToLonLatRoundtrip() {
+        val zoom = 16
+        for (tx in listOf(1000, 32768, 52875)) {
+            for (ty in listOf(1000, 32768, 34068)) {
+                val bounds = SlippyTileMath.getTileBounds(tx, ty, zoom)
+                val centerLat = (bounds.minLat + bounds.maxLat) / 2.0
+                val centerLon = (bounds.minLon + bounds.maxLon) / 2.0
+
+                val recoveredX = SlippyTileMath.lonToTileX(centerLon, zoom)
+                val recoveredY = SlippyTileMath.latToTileY(centerLat, zoom)
+
+                assertEquals(tx, recoveredX)
+                assertEquals(ty, recoveredY)
+            }
+        }
+    }
+
+    @Test
+    fun testCalculateOptimalZoomForFarmAndRegion() {
+        // Micro-plot scale (~50-100m, span ~ 0.0008 deg)
+        val microZoom = SlippyTileMath.calculateOptimalZoom(spanLat = 0.0008, spanLon = 0.0008)
+        assertEquals("Micro plot must pick zoom 18 for high detail", 18, microZoom)
+
+        // Cluster farm scale (~300m, span ~ 0.003 deg)
+        val clusterZoom = SlippyTileMath.calculateOptimalZoom(spanLat = 0.003, spanLon = 0.003)
+        assertEquals("Cluster farm must pick zoom 17", 17, clusterZoom)
+
+        // Regional scale (~2km, span ~ 0.02 deg)
+        val regionalZoom = SlippyTileMath.calculateOptimalZoom(spanLat = 0.02, spanLon = 0.02)
+        assertEquals("Regional plot must pick zoom 15", 15, regionalZoom)
+    }
+
+    @Test
+    fun testBasemapStylesConfiguration() {
+        val styles = BasemapStyle.values()
+        assertEquals(4, styles.size)
+
+        for (s in styles) {
+            assertTrue("Style ID must not be blank", s.id.isNotBlank())
+            assertTrue("Display name must not be blank", s.displayName.isNotBlank())
+            assertTrue("Icon must not be blank", s.icon.isNotBlank())
+            assertTrue("URL template must contain {z}", s.urlTemplate.contains("{z}"))
+            assertTrue("URL template must contain {x}", s.urlTemplate.contains("{x}"))
+            assertTrue("URL template must contain {y}", s.urlTemplate.contains("{y}"))
+        }
     }
 }
