@@ -157,6 +157,19 @@ class DailyMissionsTest {
     }
 
     @Test
+    fun testEveryMissionHasCompleteSopGuidance() {
+        listOf(-10, -5, 10, 20, 35, 45, 55, 65, 75, 95, 105, 115).forEach { hst ->
+            DailyMissions.planFor(today, hst, riskBoost = 0.8).missions.forEach { m ->
+                assertTrue("mission ${m.id} missing toolsAndMaterials", m.toolsAndMaterials.isNotEmpty())
+                assertTrue("mission ${m.id} missing executionSteps", m.executionSteps.isNotEmpty())
+                assertTrue("mission ${m.id} missing optimalTiming", m.optimalTiming.isNotBlank())
+                assertTrue("mission ${m.id} missing commonMistakesToAvoid", m.commonMistakesToAvoid.isNotEmpty())
+                assertTrue("mission ${m.id} missing successVerification", m.successVerification.isNotBlank())
+            }
+        }
+    }
+
+    @Test
     fun testQualityTargetsAndPillarsCovered() {
         assertEquals(6, DailyMissions.QualityTarget.values().size)
         DailyMissions.QualityTarget.values().forEach { target ->
@@ -295,11 +308,16 @@ class DailyMissionsTest {
             title = "Aplikasi Kalsium Nitrat",
             qualityTarget = "Pericarp Tebal & Keras",
             howToExecute = "Kocorkan 200 ml per lubang tanam",
-            targetMetric = "Tebal dinding sel > 1.8 mm"
+            targetMetric = "Tebal dinding sel > 1.8 mm",
+            optimalTiming = "Pagi hari pukul 06:30 - 08:30 WIB",
+            executionSteps = listOf("Takar 3 gram pupuk", "Kocorkan 200 ml ke lubang tanam"),
+            commonMistakesToAvoid = listOf("Mencampur kalsium nitrat dengan pupuk fosfat")
         )
         assertTrue(sopScript.contains("Aplikasi Kalsium Nitrat"))
         assertTrue(sopScript.contains("Pericarp Tebal & Keras"))
-        assertTrue(sopScript.contains("200 ml"))
+        assertTrue(sopScript.contains("06:30 - 08:30 WIB"))
+        assertTrue(sopScript.contains("Langkah 1, Takar 3 gram pupuk"))
+        assertTrue(sopScript.contains("Pantangan penting: Mencampur kalsium nitrat"))
         assertTrue(sopScript.contains("1.8 mm"))
     }
 }

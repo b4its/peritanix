@@ -117,9 +117,22 @@ object IndonesianTtsVoiceAdvisor {
         title: String,
         qualityTarget: String,
         howToExecute: String,
-        targetMetric: String
+        targetMetric: String,
+        optimalTiming: String = "",
+        executionSteps: List<String> = emptyList(),
+        commonMistakesToAvoid: List<String> = emptyList()
     ): String {
+        val timingDesc = if (optimalTiming.isNotBlank()) "Waktu pelaksanaan optimal: $optimalTiming. " else ""
+        val stepsDesc = if (executionSteps.isNotEmpty()) {
+            "Langkah pengerjaan: " + executionSteps.mapIndexed { idx, s -> "Langkah ${idx + 1}, $s" }.joinToString(". ") + ". "
+        } else {
+            "Langkah pelaksanaan di kebun: $howToExecute. "
+        }
+        val mistakesDesc = if (commonMistakesToAvoid.isNotEmpty()) {
+            "Pantangan penting: ${commonMistakesToAvoid.first()}. "
+        } else ""
+
         return "Panduan Standar Operasional: $title. Sasaran pilar mutu: $qualityTarget. " +
-            "Langkah pelaksanaan di kebun: $howToExecute. Target parameter terukur: $targetMetric."
+            timingDesc + stepsDesc + mistakesDesc + "Target parameter terukur: $targetMetric."
     }
 }

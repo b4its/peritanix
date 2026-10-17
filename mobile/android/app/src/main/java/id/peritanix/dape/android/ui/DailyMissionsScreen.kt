@@ -66,6 +66,7 @@ fun DailyMissionsScreen(
     var selectedTargetFilter by remember { mutableStateOf<DailyMissions.QualityTarget?>(null) }
     var expandedMissionId by remember { mutableStateOf<String?>(null) }
     var showQualityStandardDialog by remember { mutableStateOf(false) }
+    var selectedMissionForDetailDialog by remember { mutableStateOf<DailyMissions.Mission?>(null) }
 
     // Text to Speech Engine for farmer voice guidance in the field
     var ttsInstance by remember { mutableStateOf<TextToSpeech?>(null) }
@@ -639,31 +640,44 @@ fun DailyMissionsScreen(
                         }
                     }
 
-                    // Action buttons: Expand SOP & cross navigation
+                    // Action buttons: Expand SOP, Cross navigation & Full Modal Dialog
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
-                            onClick = {
-                                expandedMissionId = if (isExpanded) null else mission.id
-                            },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Icon(
-                                if (isExpanded) AppIcons.Close else AppIcons.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                if (isExpanded) "Tutup SOP" else "Panduan SOP & Ilmiah",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(
+                                onClick = {
+                                    expandedMissionId = if (isExpanded) null else mission.id
+                                },
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Icon(
+                                    if (isExpanded) AppIcons.Close else AppIcons.Info,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    if (isExpanded) "Tutup SOP" else "Panduan SOP",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            FilledTonalButton(
+                                onClick = { selectedMissionForDetailDialog = mission },
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.height(26.dp)
+                            ) {
+                                Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
+                                Spacer(Modifier.width(3.dp))
+                                Text("Detail SOP", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
 
                         // Context-aware shortcuts for mobile sensors & agro-physics tools
@@ -696,29 +710,40 @@ fun DailyMissionsScreen(
                         }
                     }
 
-                    // Expandable SOP Details
+                    // Expandable SOP Details with Rich Structured Guidance
                     AnimatedVisibility(visible = isExpanded) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
                                 modifier = Modifier.padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Spoken SOP audio playback
+                                // Spoken SOP audio playback row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Text(
+                                        "PANDUAN OPERASIONAL LAPANGAN",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
                                     FilledTonalButton(
                                         onClick = {
                                             val sopScript = IndonesianTtsVoiceAdvisor.composeMissionSopScript(
                                                 title = mission.title,
                                                 qualityTarget = mission.qualityTarget.title,
                                                 howToExecute = mission.howToExecute,
-                                                targetMetric = mission.targetMetric
+                                                targetMetric = mission.targetMetric,
+                                                optimalTiming = mission.optimalTiming,
+                                                executionSteps = mission.executionSteps,
+                                                commonMistakesToAvoid = mission.commonMistakesToAvoid
                                             )
                                             speak(sopScript, "SOP_${mission.id}")
                                         },
@@ -731,41 +756,180 @@ fun DailyMissionsScreen(
                                         Text("Dengarkan SOP Suara", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
-                                if (mission.howToExecute.isNotBlank()) {
-                                    Text(
-                                        "Langkah Eksekusi SOP:",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        mission.howToExecute,
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+
+                                // 1. Waktu Pelaksanaan Optimal
+                                if (mission.optimalTiming.isNotBlank()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(AppIcons.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text("Waktu Pelaksanaan Optimal:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                                Text(mission.optimalTiming, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                            }
+                                        }
+                                    }
                                 }
 
+                                // 2. Peralatan & Bahan yang Diperlukan
+                                if (mission.toolsAndMaterials.isNotEmpty()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(AppIcons.Layers, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(14.dp))
+                                                Text("Peralatan & Bahan yang Diperlukan:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                            }
+                                            mission.toolsAndMaterials.forEach { item ->
+                                                Row(
+                                                    modifier = Modifier.padding(start = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Box(Modifier.size(4.dp).background(OrangePrimary, CircleShape))
+                                                    Text(item, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 3. Langkah Pengerjaan Terstruktur
+                                if (mission.executionSteps.isNotEmpty()) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(AppIcons.TrendingUp, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(14.dp))
+                                                Text("Langkah Pengerjaan Terstruktur:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                            }
+                                            mission.executionSteps.forEachIndexed { idx, step ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                                    verticalAlignment = Alignment.Top,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Surface(
+                                                        color = OrangePrimary,
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        modifier = Modifier.size(18.dp)
+                                                    ) {
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Text("${idx + 1}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                        }
+                                                    }
+                                                    Text(step, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (mission.howToExecute.isNotBlank()) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text("Langkah Eksekusi SOP:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Text(mission.howToExecute, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
+
+                                // 4. Pantangan & Kesalahan Fatal
+                                if (mission.commonMistakesToAvoid.isNotEmpty()) {
+                                    Surface(
+                                        color = Color(0xFFC2185B).copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(AppIcons.Warning, contentDescription = null, tint = Color(0xFFC2185B), modifier = Modifier.size(15.dp))
+                                                Text("Pantangan & Kesalahan yang Harus Dihindari:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2185B))
+                                            }
+                                            mission.commonMistakesToAvoid.forEach { mistake ->
+                                                Row(
+                                                    modifier = Modifier.padding(start = 4.dp),
+                                                    verticalAlignment = Alignment.Top,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Text("•", fontSize = 11.sp, color = Color(0xFFC2185B), fontWeight = FontWeight.Bold)
+                                                    Text(mistake, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 5. Verifikasi Keberhasilan Fisik & Metrik
+                                if (mission.successVerification.isNotBlank() || mission.targetMetric.isNotBlank()) {
+                                    Surface(
+                                        color = GreenSuccess.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(AppIcons.CheckCircle, contentDescription = null, tint = GreenSuccess, modifier = Modifier.size(15.dp))
+                                                Text("Verifikasi Keberhasilan Fisik Lapangan:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GreenSuccess)
+                                            }
+                                            if (mission.successVerification.isNotBlank()) {
+                                                Text(mission.successVerification, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                            }
+                                            if (mission.targetMetric.isNotBlank()) {
+                                                Text("Target Parameter: ${mission.targetMetric}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = GreenSuccess)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 6. Landasan Ilmiah Agro-Fisika
                                 if (mission.scientificBasis.isNotBlank()) {
-                                    Text(
-                                        "Landasan Ilmiah Agro-Fisika:",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = OrangePrimary
-                                    )
-                                    Text(
-                                        mission.scientificBasis,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(AppIcons.Science, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(13.dp))
+                                                Text("Landasan Ilmiah Agro-Fisika:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                            }
+                                            Text(mission.scientificBasis, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
                                 }
 
-                                if (mission.targetMetric.isNotBlank()) {
-                                    Text(
-                                        "Target Fisik Terukur: ${mission.targetMetric}",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = GreenSuccess
-                                    )
+                                // Open Full Modal Dialog Button
+                                OutlinedButton(
+                                    onClick = { selectedMissionForDetailDialog = mission },
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth().height(30.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Buka Dialog Detail SOP Penuh", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
                                 }
                             }
                         }
@@ -829,6 +993,270 @@ fun DailyMissionsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
                 ) {
                     Text("Tutup", color = Color.White)
+                }
+            }
+        )
+    }
+
+    // Modal Dialog: Detail Panduan Lengkap SOP Misi
+    if (selectedMissionForDetailDialog != null) {
+        val detailMission = selectedMissionForDetailDialog!!
+        val isMissionDone = detailMission.id in completed
+
+        AlertDialog(
+            onDismissRequest = { selectedMissionForDetailDialog = null },
+            title = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                detailMission.qualityTarget.title,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                "Bobot Mutu: ${detailMission.weight}x",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(detailMission.title, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                    Text(detailMission.detail, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Audio TTS in dialog
+                    FilledTonalButton(
+                        onClick = {
+                            val sopScript = IndonesianTtsVoiceAdvisor.composeMissionSopScript(
+                                title = detailMission.title,
+                                qualityTarget = detailMission.qualityTarget.title,
+                                howToExecute = detailMission.howToExecute,
+                                targetMetric = detailMission.targetMetric,
+                                optimalTiming = detailMission.optimalTiming,
+                                executionSteps = detailMission.executionSteps,
+                                commonMistakesToAvoid = detailMission.commonMistakesToAvoid
+                            )
+                            speak(sopScript, "SOP_DIALOG_${detailMission.id}")
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth().height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (isTtsSpeaking) "Hentikan Narasi Suara" else "Dengarkan SOP Suara Lengkap", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    // Waktu Pelaksanaan Optimal
+                    if (detailMission.optimalTiming.isNotBlank()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(AppIcons.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Column {
+                                    Text("Waktu & Kondisi Optimal:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(detailMission.optimalTiming, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                }
+                            }
+                        }
+                    }
+
+                    // Peralatan & Bahan
+                    if (detailMission.toolsAndMaterials.isNotEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Layers, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(14.dp))
+                                    Text("Peralatan & Bahan yang Diperlukan:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                detailMission.toolsAndMaterials.forEach { item ->
+                                    Row(
+                                        modifier = Modifier.padding(start = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Box(Modifier.size(5.dp).background(OrangePrimary, CircleShape))
+                                        Text(item, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Langkah Pengerjaan Terstruktur
+                    if (detailMission.executionSteps.isNotEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.TrendingUp, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(14.dp))
+                                    Text("Langkah Pengerjaan Mandiri:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                detailMission.executionSteps.forEachIndexed { idx, step ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        verticalAlignment = Alignment.Top,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            color = OrangePrimary,
+                                            shape = RoundedCornerShape(4.dp),
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text("${idx + 1}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+                                        }
+                                        Text(step, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Pantangan & Kesalahan Fatal
+                    if (detailMission.commonMistakesToAvoid.isNotEmpty()) {
+                        Surface(
+                            color = Color(0xFFC2185B).copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Warning, contentDescription = null, tint = Color(0xFFC2185B), modifier = Modifier.size(16.dp))
+                                    Text("Pantangan & Kesalahan Fatal:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2185B))
+                                }
+                                detailMission.commonMistakesToAvoid.forEach { mistake ->
+                                    Row(
+                                        modifier = Modifier.padding(start = 4.dp),
+                                        verticalAlignment = Alignment.Top,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text("•", fontSize = 11.sp, color = Color(0xFFC2185B), fontWeight = FontWeight.Bold)
+                                        Text(mistake, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Verifikasi Keberhasilan Fisik & Metrik
+                    if (detailMission.successVerification.isNotBlank() || detailMission.targetMetric.isNotBlank()) {
+                        Surface(
+                            color = GreenSuccess.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.CheckCircle, contentDescription = null, tint = GreenSuccess, modifier = Modifier.size(16.dp))
+                                    Text("Kriteria Verifikasi Keberhasilan:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GreenSuccess)
+                                }
+                                if (detailMission.successVerification.isNotBlank()) {
+                                    Text(detailMission.successVerification, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                if (detailMission.targetMetric.isNotBlank()) {
+                                    Text("Target Parameter: ${detailMission.targetMetric}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = GreenSuccess)
+                                }
+                            }
+                        }
+                    }
+
+                    // Landasan Ilmiah Agro-Fisika
+                    if (detailMission.scientificBasis.isNotBlank()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Science, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(14.dp))
+                                    Text("Landasan Ilmiah Agro-Fisika:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                }
+                                Text(detailMission.scientificBasis, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val checked = !isMissionDone
+                            if (checked) {
+                                queue?.markMissionDone(epochDay, detailMission.id)
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Misi Mutu Selesai",
+                                    message = "${detailMission.title} — skor mutu cabai meningkat.",
+                                    type = NotificationType.SUCCESS,
+                                    postSystemNotification = false
+                                )
+                            } else {
+                                queue?.unmarkMissionDone(epochDay, detailMission.id)
+                            }
+                            completed = if (checked) completed + detailMission.id else completed - detailMission.id
+                            scope.launch {
+                                kotlinx.coroutines.delay(120)
+                                reload()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isMissionDone) MaterialTheme.colorScheme.surfaceVariant else OrangePrimary,
+                            contentColor = if (isMissionDone) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
+                        )
+                    ) {
+                        Icon(if (isMissionDone) AppIcons.Close else AppIcons.CheckCircle, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(if (isMissionDone) "Batal Selesai" else "Tandai Selesai")
+                    }
+
+                    Button(
+                        onClick = { selectedMissionForDetailDialog = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                    ) {
+                        Text("Tutup")
+                    }
                 }
             }
         )
