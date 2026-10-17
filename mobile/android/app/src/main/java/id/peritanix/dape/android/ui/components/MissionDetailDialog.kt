@@ -14,18 +14,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.missions.DailyMissions
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 
 private val OrangePrimary = Color(0xFFE65100)
 private val GreenSuccess = Color(0xFF2E7D32)
 private val CrimsonWarning = Color(0xFFC2185B)
 private val AmberSafety = Color(0xFFF57F17)
 private val BlueTroubleshoot = Color(0xFF0277BD)
+private val PurpleGate = Color(0xFF512DA8)
 
 /**
  * Dialog Komprehensif Panduan SOP Misi Harian Kualitas Cabai Terbaik.
@@ -33,6 +38,12 @@ private val BlueTroubleshoot = Color(0xFF0277BD)
  * Menyediakan panduan operasional mandiri:
  *  - 2 Mode Tampilan: Mode Tinjauan SOP Lengkap & Mode Panduan Lapangan Bertahap (Step-by-Step Wizard)
  *  - Checklist Kesiapan Kerja Mandiri (Pre-Flight Agronomi: APD, Cuaca, Alat, Air)
+ *  - Matriks Ambang Batas Cuaca & Jam Kerja Kritis (Ideal, Batas Kritis Tunda, Kontingensi)
+ *  - Kiat Ahli Agronomi Lapangan (Agronomist Pro-Tips)
+ *  - Titik Kendali Mutu Akhir (Quality Gate Inspection Checkpoints)
+ *  - Diagram Skematis Teknis Lapangan (ASCII Schematic Field Diagrams)
+ *  - Kamus Istilah Agronomi Praktis (10 Terminologi Baku Budidaya Cabai)
+ *  - Fitur Salin Laporan Kerja Standar GAP ke Clipboard
  *  - Checklist langkah kerja interaktif langkah-demi-langkah dengan audio per langkah & persistensi memori
  *  - Standar APD & Keselamatan Kerja (K3 Agronomi)
  *  - Kalkulator Takaran Tangki Sprayer Presisi & Luas Lahan (Preset Chips + Stepper +/- 1L & +/- 100m²)
@@ -44,7 +55,7 @@ private val BlueTroubleshoot = Color(0xFF0277BD)
  *  - Pencatatan Catatan Lapangan & Observasi Kepatuhan GAP (Good Agricultural Practices)
  *  - Landasan ilmiah agro-fisika & biokimia tanaman
  *  - Pintasan instrumen hardware (Kamera, Barometer, Klinometer, Sensor Lab)
- *  - Narasi suara TTS Bahasa Indonesia offline-first
+ *  - Narasi suara TTS Bahasa Indonesia offline-first & Tur Panduan Berkelanjutan
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +77,19 @@ fun MissionDetailDialog(
     // Pre-Flight Readiness Checklist
     val preFlightItems = remember(mission.id) { DailyMissions.getPreFlightChecklist(mission) }
     var checkedPreFlight by remember(mission.id) { mutableStateOf(setOf<Int>()) }
+
+    // Rich agronomic decision data
+    val weatherDecision = remember(mission.id) { DailyMissions.getWeatherDecision(mission) }
+    val agronomistProTips = remember(mission.id) { DailyMissions.getAgronomistProTips(mission) }
+    val qualityGateCheckpoints = remember(mission.id) { DailyMissions.getQualityGateCheckpoints(mission) }
+    val fieldDiagram = remember(mission.id) { DailyMissions.getFieldDiagram(mission) }
+
+    // Quality gate checked state
+    var checkedQualityGate by remember(mission.id) { mutableStateOf(setOf<Int>()) }
+    var showFieldDiagram by remember(mission.id) { mutableStateOf(false) }
+    var showGlossaryDialog by remember(mission.id) { mutableStateOf(false) }
+    var showLogCopiedToast by remember(mission.id) { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
 
     // Interactive Step Progress (persisted in DailyMissions cache)
     var checkedSteps by remember(mission.id) {
@@ -137,8 +161,39 @@ fun MissionDetailDialog(
         }
         DailyMissions.setAllStepsChecked(mission.id, mission.executionSteps.size, true)
         checkedSteps = mission.executionSteps.indices.toSet()
+        checkedQualityGate = qualityGateCheckpoints.indices.toSet()
         onToggleCompleted(true)
         onSpeak("Luar biasa! Seluruh langkah operasional misi ${mission.title} telah selesai. Skor mutu tercatat.")
+    }
+
+    fun copyGapLogToClipboard() {
+        val totalDosePerTank = (selectedTankSize * mission.standardDosagePerLiter)
+        val formattedDose = if (mission.standardDosagePerLiter > 0.0) {
+            if (totalDosePerTank % 1.0 == 0.0) totalDosePerTank.toInt().toString() else String.format("%.1f", totalDosePerTank)
+        } else "0"
+
+        val note = buildString {
+            if (selectedNoteTags.isNotEmpty()) append(selectedNoteTags.joinToString(", "))
+            if (observationNoteText.isNotBlank()) {
+                if (isNotEmpty()) append(". ")
+                append(observationNoteText.trim())
+            }
+        }
+
+        val log = DailyMissions.formatGapWorkLog(
+            mission = mission,
+            date = LocalDate.now(),
+            tankLiters = selectedTankSize,
+            dosePerTank = formattedDose,
+            landAreaM2 = selectedLandAreaM2,
+            checkedStepsCount = checkedSteps.size,
+            totalStepsCount = mission.executionSteps.size,
+            checkedQualityGateCount = checkedQualityGate.size,
+            totalQualityGateCount = qualityGateCheckpoints.size,
+            observationNote = note
+        )
+        clipboardManager.setText(AnnotatedString(log))
+        showLogCopiedToast = true
     }
 
     AlertDialog(
@@ -468,6 +523,147 @@ fun MissionDetailDialog(
                         }
                     }
 
+                    // Feedback Banner when GAP Log is copied
+                    AnimatedVisibility(visible = showLogCopiedToast) {
+                        Surface(
+                            color = GreenSuccess,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                Text("Laporan GAP berhasil disalin ke clipboard!", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Agronomist Pro-Tip for this Step / Mission
+                    if (agronomistProTips.isNotEmpty()) {
+                        Surface(
+                            color = AmberSafety.copy(alpha = 0.10f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(AppIcons.Science, contentDescription = null, tint = AmberSafety, modifier = Modifier.size(13.dp))
+                                    Text("Kiat Ahli Agronomi (Pro-Tip):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AmberSafety)
+                                }
+                                val tipForStep = agronomistProTips.getOrNull(safeStepIndex % agronomistProTips.size) ?: agronomistProTips.first()
+                                Text(tipForStep, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+
+                    // Quality Gate Checkpoints (Titik Kendali Mutu) in Wizard mode
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(AppIcons.Shield, contentDescription = null, tint = PurpleGate, modifier = Modifier.size(13.dp))
+                                    Text("Uji Mutu Fisik (Quality Gate):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PurpleGate)
+                                }
+                                Text("${checkedQualityGate.size}/${qualityGateCheckpoints.size} Lolos", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = PurpleGate)
+                            }
+                            qualityGateCheckpoints.forEachIndexed { qIdx, qCheck ->
+                                val qPassed = qIdx in checkedQualityGate
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            checkedQualityGate = if (qPassed) checkedQualityGate - qIdx else checkedQualityGate + qIdx
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clip(RoundedCornerShape(3.dp))
+                                            .background(if (qPassed) PurpleGate else MaterialTheme.colorScheme.surface),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (qPassed) {
+                                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
+                                        }
+                                    }
+                                    Text(qCheck, fontSize = 9.sp, color = if (qPassed) PurpleGate else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick Action Bar: Skema Teknis, Kamus, Salin GAP
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showFieldDiagram = !showFieldDiagram },
+                            modifier = Modifier.weight(1f).height(28.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.Layers, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(3.dp))
+                            Text(if (showFieldDiagram) "Tutup Skema" else "Skema Teknis", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showGlossaryDialog = true },
+                            modifier = Modifier.weight(1f).height(28.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(3.dp))
+                            Text("Kamus", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = { copyGapLogToClipboard() },
+                            modifier = Modifier.weight(1f).height(28.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.ContentCopy, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(3.dp))
+                            Text("Salin GAP", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    // Expandable Field Diagram in Wizard mode
+                    AnimatedVisibility(visible = showFieldDiagram) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Diagram Skematis Lapangan:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                Text(
+                                    text = fieldDiagram,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    lineHeight = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
                     // Final Step / All Steps Completed Celebration Box
                     if (checkedSteps.size == totalSteps) {
                         Surface(
@@ -507,15 +703,32 @@ fun MissionDetailDialog(
                                     maxLines = 2
                                 )
 
-                                Button(
-                                    onClick = { completeMissionWithNotes() },
-                                    modifier = Modifier.fillMaxWidth().height(34.dp),
-                                    shape = RoundedCornerShape(6.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = GreenSuccess, contentColor = Color.White)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Icon(AppIcons.CheckCircle, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Selesaikan Misi & Catat ke Jurnal (100%)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    OutlinedButton(
+                                        onClick = { copyGapLogToClipboard() },
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(AppIcons.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Salin GAP", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    Button(
+                                        onClick = { completeMissionWithNotes() },
+                                        modifier = Modifier.weight(1.5f).height(34.dp),
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = GreenSuccess, contentColor = Color.White),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(AppIcons.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Selesaikan Misi (100%)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
@@ -526,35 +739,61 @@ fun MissionDetailDialog(
                     // MODE TINJAUAN SOP LENGKAP
                     // =========================================================================
 
-                    // Audio TTS in dialog
-                    FilledTonalButton(
-                        onClick = {
-                            val sopScript = IndonesianTtsVoiceAdvisor.composeMissionSopScript(
-                                title = mission.title,
-                                qualityTarget = mission.qualityTarget.title,
-                                howToExecute = mission.howToExecute,
-                                targetMetric = mission.targetMetric,
-                                optimalTiming = mission.optimalTiming,
-                                executionSteps = mission.executionSteps,
-                                commonMistakesToAvoid = mission.commonMistakesToAvoid,
-                                safetyGear = mission.safetyGear,
-                                durationMinutes = mission.durationMinutes,
-                                troubleshootingTip = mission.troubleshootingTip,
-                                qualitySigns = mission.qualitySigns
-                            )
-                            onSpeak(sopScript)
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth().height(34.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (isTtsSpeaking) OrangePrimary else MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = if (isTtsSpeaking) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                    // Dual Audio TTS in dialog: SOP Lengkap & Tur Panduan Penuh
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (isTtsSpeaking) "Hentikan Narasi Suara" else "Dengarkan SOP Suara Lengkap", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        FilledTonalButton(
+                            onClick = {
+                                val sopScript = IndonesianTtsVoiceAdvisor.composeMissionSopScript(
+                                    title = mission.title,
+                                    qualityTarget = mission.qualityTarget.title,
+                                    howToExecute = mission.howToExecute,
+                                    targetMetric = mission.targetMetric,
+                                    optimalTiming = mission.optimalTiming,
+                                    executionSteps = mission.executionSteps,
+                                    commonMistakesToAvoid = mission.commonMistakesToAvoid,
+                                    safetyGear = mission.safetyGear,
+                                    durationMinutes = mission.durationMinutes,
+                                    troubleshootingTip = mission.troubleshootingTip,
+                                    qualitySigns = mission.qualitySigns
+                                )
+                                onSpeak(sopScript)
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isTtsSpeaking) OrangePrimary else MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = if (isTtsSpeaking) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Icon(if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (isTtsSpeaking) "Hentikan" else "Audio SOP", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val tourScript = IndonesianTtsVoiceAdvisor.composeContinuousFieldTourScript(
+                                    title = mission.title,
+                                    qualityTarget = mission.qualityTarget.title,
+                                    idealWeather = weatherDecision.idealWindow,
+                                    proTip = agronomistProTips.firstOrNull() ?: "",
+                                    steps = mission.executionSteps,
+                                    checkpoints = qualityGateCheckpoints
+                                )
+                                onSpeak(tourScript)
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Icon(AppIcons.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Tur Penuh", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
 
                     // 1. Checklist Kesiapan Kerja (Pre-Flight Agronomi)
@@ -611,6 +850,71 @@ fun MissionDetailDialog(
                                         color = if (isChecked) GreenSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = if (isChecked) FontWeight.SemiBold else FontWeight.Normal
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Matriks Ambang Batas Cuaca & Jam Operasional Kritis
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.WbSunny, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+                                    Text("Matriks Cuaca & Ambang Batas Kritis:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(
+                                    onClick = { onSpeak("Kondisi ideal: ${weatherDecision.idealWindow}. Ambang batas tunda: ${weatherDecision.criticalPostponeThreshold}") },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            Text("• Jam & Kondisi Ideal: ${weatherDecision.idealWindow}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                            Text("• Batas Kritis Tunda: ${weatherDecision.criticalPostponeThreshold}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = CrimsonWarning)
+                            Text("• Tindakan Kontingensi: ${weatherDecision.contingencyAction}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    // 3. Kiat Ahli Agronomi Lapangan (Pro-Tips)
+                    Surface(
+                        color = AmberSafety.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Science, contentDescription = null, tint = AmberSafety, modifier = Modifier.size(16.dp))
+                                    Text("Kiat Ahli Agronomi (Pro-Tips):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AmberSafety)
+                                }
+                                IconButton(
+                                    onClick = { onSpeak("Kiat ahli agronomi: " + agronomistProTips.joinToString(". ")) },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(13.dp), tint = AmberSafety)
+                                }
+                            }
+                            agronomistProTips.forEach { tip ->
+                                Row(
+                                    modifier = Modifier.padding(start = 4.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text("•", fontSize = 10.sp, color = AmberSafety, fontWeight = FontWeight.Bold)
+                                    Text(tip, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
@@ -1167,7 +1471,167 @@ fun MissionDetailDialog(
                         }
                     }
 
-                    // 8. Pantangan & Kesalahan Fatal yang Harus Dihindari
+                    // 8. Titik Kendali Mutu Akhir (Quality Gate Inspection Checkpoints)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Shield, contentDescription = null, tint = PurpleGate, modifier = Modifier.size(16.dp))
+                                    Text("Titik Kendali Mutu Akhir (Quality Gate):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PurpleGate)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        "${checkedQualityGate.size}/${qualityGateCheckpoints.size} Lolos",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (checkedQualityGate.size == qualityGateCheckpoints.size) GreenSuccess else PurpleGate
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            val script = IndonesianTtsVoiceAdvisor.composeQualityGateScript(mission.title, qualityGateCheckpoints)
+                                            onSpeak(script)
+                                        },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(13.dp), tint = PurpleGate)
+                                    }
+                                }
+                            }
+                            qualityGateCheckpoints.forEachIndexed { qIdx, checkpoint ->
+                                val isPassed = qIdx in checkedQualityGate
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            checkedQualityGate = if (isPassed) checkedQualityGate - qIdx else checkedQualityGate + qIdx
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(if (isPassed) PurpleGate else MaterialTheme.colorScheme.surface),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isPassed) {
+                                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                        }
+                                    }
+                                    Text(
+                                        checkpoint,
+                                        fontSize = 10.sp,
+                                        color = if (isPassed) PurpleGate else MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = if (isPassed) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 9. Diagram Skematis Teknis Lapangan
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(AppIcons.Layers, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(16.dp))
+                                    Text("Diagram Skematis Teknis Lapangan:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                }
+                                TextButton(
+                                    onClick = { showFieldDiagram = !showFieldDiagram },
+                                    modifier = Modifier.height(24.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                ) {
+                                    Text(if (showFieldDiagram) "Tutup" else "Tampilkan", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                }
+                            }
+                            AnimatedVisibility(visible = showFieldDiagram) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = fieldDiagram,
+                                        fontSize = 9.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        lineHeight = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 10. Tombol Akses Cepat Kamus & Salin GAP
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showGlossaryDialog = true },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Kamus Istilah GAP", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = OrangePrimary)
+                        }
+
+                        Button(
+                            onClick = { copyGapLogToClipboard() },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).height(32.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Salin Lembar GAP", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Feedback Banner when GAP Log is copied
+                    AnimatedVisibility(visible = showLogCopiedToast) {
+                        Surface(
+                            color = GreenSuccess,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                Text("Laporan GAP berhasil disalin ke clipboard!", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // 11. Pantangan & Kesalahan Fatal yang Harus Dihindari
                     if (mission.commonMistakesToAvoid.isNotEmpty()) {
                         Surface(
                             color = CrimsonWarning.copy(alpha = 0.08f),
@@ -1317,4 +1781,57 @@ fun MissionDetailDialog(
             }
         }
     )
+
+    if (showGlossaryDialog) {
+        AlertDialog(
+            onDismissRequest = { showGlossaryDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(AppIcons.Book, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(20.dp))
+                    Text("Kamus Istilah GAP Cabai", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "10 Istilah Standar Operasional GAP Budidaya Cabai Grade A+ Ekspor:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    DailyMissions.AgronomyGlossary.entries.forEach { entry ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(entry.term, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                Text(entry.definition, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    "Manfaat Mutu: ${entry.practicalSignificance}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showGlossaryDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White)
+                ) {
+                    Text("Tutup Kamus")
+                }
+            }
+        )
+    }
 }

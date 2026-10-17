@@ -421,5 +421,146 @@ class DailyMissionsTest {
         assertTrue(mixingScript.contains("48 gram"))
         assertTrue(mixingScript.contains("Urutan baku"))
     }
+
+    @Test
+    fun testWeatherDecisionForAllCategories() {
+        listOf(-10, 20, 45, 75, 100).forEach { hst ->
+            val plan = DailyMissions.planFor(today, hst)
+            plan.missions.forEach { m ->
+                val decision = DailyMissions.getWeatherDecision(m)
+                assertTrue("idealWindow non-blank for ${m.id}", decision.idealWindow.isNotBlank())
+                assertTrue("idealTempRange non-blank for ${m.id}", decision.idealTempRange.isNotBlank())
+                assertTrue("idealHumidity non-blank for ${m.id}", decision.idealHumidity.isNotBlank())
+                assertTrue("delayCondition non-blank for ${m.id}", decision.delayCondition.isNotBlank())
+                assertTrue("contingencyAction non-blank for ${m.id}", decision.contingencyAction.isNotBlank())
+            }
+        }
+    }
+
+    @Test
+    fun testQualityGateCheckpoints() {
+        listOf(-10, 20, 45, 75, 100).forEach { hst ->
+            val plan = DailyMissions.planFor(today, hst)
+            plan.missions.forEach { m ->
+                val checkpoints = DailyMissions.getQualityGateCheckpoints(m)
+                assertTrue("Checkpoints should have >= 2 items for ${m.id}", checkpoints.size >= 2)
+                checkpoints.forEach { cp ->
+                    assertTrue("Checkpoint item should be non-blank", cp.isNotBlank())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testAgronomistProTips() {
+        listOf(-10, 20, 45, 75, 100).forEach { hst ->
+            val plan = DailyMissions.planFor(today, hst)
+            plan.missions.forEach { m ->
+                val tips = DailyMissions.getAgronomistProTips(m)
+                assertTrue("Agronomist tips non-empty for ${m.id}", tips.isNotEmpty())
+                tips.forEach { tip ->
+                    assertTrue("Tip non-blank", tip.isNotBlank())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testFieldDiagramASCII() {
+        // Spraying / foliar mission should have abaxial stomata diagram
+        val floweringPlan = DailyMissions.planFor(today, 45)
+        val foliarMission = floweringPlan.missions.first { it.title.contains("Kalsium", ignoreCase = true) || it.title.contains("Foliar", ignoreCase = true) }
+        val sprayDiag = DailyMissions.getFieldDiagram(foliarMission)
+        assertTrue(sprayDiag.contains("Stomata Abaxial", ignoreCase = true))
+        assertTrue(sprayDiag.contains("45°"))
+
+        // Wiwil mission should have Y-branch diagram
+        val vegPlan = DailyMissions.planFor(today, 20)
+        val wiwilMission = vegPlan.missions.first { it.title.contains("Wiwil", ignoreCase = true) }
+        val wiwilDiag = DailyMissions.getFieldDiagram(wiwilMission)
+        assertTrue(wiwilDiag.contains("CABANG UTAMA", ignoreCase = true))
+        assertTrue(wiwilDiag.contains("Wiwil", ignoreCase = true))
+
+        // Harvest mission should have anatomy or physical diagram
+        val harvestPlan = DailyMissions.planFor(today, 100)
+        val petikMission = harvestPlan.missions.first { it.category == Category.PANEN }
+        val petikDiag = DailyMissions.getFieldDiagram(petikMission)
+        assertTrue(petikDiag.isNotBlank())
+        assertTrue(petikDiag.contains("PANEN", ignoreCase = true) || petikDiag.contains("CABAI", ignoreCase = true) || petikDiag.contains("PEDICEL", ignoreCase = true) || petikDiag.contains("ARCHIMEDES", ignoreCase = true))
+    }
+
+    @Test
+    fun testAgronomyGlossary() {
+        val entries = DailyMissions.AgronomyGlossary.entries
+        assertEquals(10, entries.size)
+        entries.forEach { entry ->
+            assertTrue("Term non-blank", entry.term.isNotBlank())
+            assertTrue("Definition non-blank", entry.definition.isNotBlank())
+            assertTrue("Practical significance non-blank", entry.practicalSignificance.isNotBlank())
+        }
+        val terms = entries.map { it.term }
+        assertTrue(terms.any { it.contains("Pericarp", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Turgor", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Kalsium Pektat", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Wiwil", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Stomata Abaxial", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("W-A-L-E-S", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Jar", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Trichoderma", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Archimedes", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Termoterapi", ignoreCase = true) })
+    }
+
+    @Test
+    fun testFormatGapWorkLog() {
+        val mission = DailyMissions.planFor(today, 45).missions.first()
+        val logCompleted = DailyMissions.formatGapWorkLog(
+            mission = mission,
+            date = today,
+            checkedStepsCount = mission.executionSteps.size,
+            totalStepsCount = mission.executionSteps.size,
+            checkedQualityGateCount = 3,
+            totalQualityGateCount = 3,
+            observationNote = "Kondisi tanaman prima"
+        )
+        assertTrue(logCompleted.contains("LAPORAN OPERASIONAL LAPANGAN GAP"))
+        assertTrue(logCompleted.contains("100% TUNTAS"))
+        assertTrue(logCompleted.contains(mission.title))
+        assertTrue(logCompleted.contains("Uji Titik Mutu"))
+        assertTrue(logCompleted.contains("Kondisi tanaman prima"))
+
+        val logPartial = DailyMissions.formatGapWorkLog(
+            mission = mission,
+            date = today,
+            checkedStepsCount = 1,
+            totalStepsCount = mission.executionSteps.size
+        )
+        assertTrue(logPartial.contains("Sebagian"))
+    }
+
+    @Test
+    fun testContinuousFieldTourScriptAndQualityGateScript() {
+        val tourScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeContinuousFieldTourScript(
+            title = "Aplikasi Kalsium Boron",
+            qualityTarget = "Ketebalan Dinding Buah (Pericarp)",
+            idealWeather = "06:00 - 09:00 WIB, Suhu 24-28 derajat Celsius",
+            proTip = "Semprot sudut 45 derajat ke atas menuju stomata abaxial",
+            steps = listOf("Larutkan 3 gram pupuk", "Semprot merata di bawah daun"),
+            checkpoints = listOf("0 persen run-off", "Daun terlapisi embun kabut")
+        )
+        assertTrue(tourScript.contains("Tur panduan lapangan untuk misi"))
+        assertTrue(tourScript.contains("Aplikasi Kalsium Boron"))
+        assertTrue(tourScript.contains("Ketebalan Dinding Buah"))
+        assertTrue(tourScript.contains("Langkah 1"))
+        assertTrue(tourScript.contains("Langkah 2"))
+        assertTrue(tourScript.contains("Titik kendali mutu"))
+
+        val qgScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeQualityGateScript(
+            missionTitle = "Petik Selektif",
+            checkpoints = listOf("Tangkai utuh 2 cm", "0 persen goresan kuku")
+        )
+        assertTrue(qgScript.contains("kendali mutu akhir"))
+        assertTrue(qgScript.contains("Tangkai utuh 2 cm"))
+    }
 }
 

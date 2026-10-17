@@ -185,4 +185,40 @@ object IndonesianTtsVoiceAdvisor {
             "Ketiga, tuang cairan pekat atau pupuk. Keempat, tuang cairan emulsi. " +
             "Kelima, tambahkan perekat di akhir dan penuhi air hingga $tankLiters Liter. Aduk homogen."
     }
+
+    /**
+     * Menyusun narasi audio tur lapangan berkelanjutan (continuous walkthrough) yang merangkum
+     * kesiapan, panduan cuaca, kiat ahli, dan langkah operasional.
+     */
+    fun composeContinuousFieldTourScript(
+        title: String,
+        qualityTarget: String,
+        idealWeather: String,
+        proTip: String,
+        steps: List<String>,
+        checkpoints: List<String>
+    ): String {
+        val weatherPart = if (idealWeather.isNotBlank()) "Kondisi cuaca ideal: $idealWeather. " else ""
+        val proTipPart = if (proTip.isNotBlank()) "Kiat ahli agronomi: $proTip. " else ""
+        val stepsPart = if (steps.isNotEmpty()) {
+            "Langkah pengerjaan: " + steps.mapIndexed { idx, s -> "Langkah ${idx + 1}, $s" }.joinToString(". ") + ". "
+        } else ""
+        val checkPart = if (checkpoints.isNotEmpty()) {
+            "Titik kendali mutu akhir: " + checkpoints.joinToString(", ") + ". "
+        } else ""
+        return "Tur panduan lapangan untuk misi: $title. Sasaran mutu: $qualityTarget. " +
+            weatherPart + proTipPart + stepsPart + checkPart + "Laksanakan dengan teliti untuk kualitas cabai terbaik."
+    }
+
+    /**
+     * Menyusun narasi audio untuk verifikasi titik kendali mutu akhir (Quality Gate).
+     */
+    fun composeQualityGateScript(
+        missionTitle: String,
+        checkpoints: List<String>
+    ): String {
+        return "Verifikasi titik kendali mutu akhir untuk misi $missionTitle. Pastikan: " +
+            checkpoints.mapIndexed { idx, cp -> "Poin ${idx + 1}, $cp" }.joinToString(". ") +
+            ". Bila seluruh poin terpenuhi, hasil kerja Anda memenuhi standar Grade A."
+    }
 }

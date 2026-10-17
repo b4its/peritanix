@@ -313,6 +313,346 @@ object DailyMissions {
         return base
     }
 
+    /** Matriks Ambang Batas Cuaca & Jam Operasional Kritis */
+    data class WeatherDecision(
+        val idealWindow: String,
+        val criticalPostponeThreshold: String,
+        val contingencyAction: String,
+        val idealTempRange: String = "24 - 28°C",
+        val idealHumidity: String = "65 - 75%",
+        val delayCondition: String = criticalPostponeThreshold
+    )
+
+    fun getWeatherDecision(mission: Mission): WeatherDecision {
+        return when (mission.category) {
+            Category.AIR -> WeatherDecision(
+                idealWindow = "Pagi hari 06:00 - 08:30 WIB atau sore 16:00 - 17:30 WIB. Suhu tanah rizosfer < 28°C.",
+                criticalPostponeThreshold = "Tunda penyiraman bila media tanah masih jenuh air/becek (>80% kapasitas lapang) atau hujan lebat baru saja turun.",
+                contingencyAction = "Bila parit bedengan tergenang, segera buka sodetan drainase agar genangan surut tuntas dalam 15 menit."
+            )
+            Category.NUTRISI -> WeatherDecision(
+                idealWindow = "Pagi hari 06:30 - 08:30 WIB saat stomata daun terbuka penuh, suhu 24-28°C, kelembaban 65-75%.",
+                criticalPostponeThreshold = "Wajib tunda penyemprotan bila kecepatan angin > 12 km/jam (resiko spray drift), suhu > 32°C (stomata menutup), atau mendung gelap berpotensi hujan < 2 jam.",
+                contingencyAction = "Bila pagi hujan atau angin kencang, alihkan penyemprotan ke sore hari (15:30 - 17:30 WIB) atau ubah aplikasi menjadi kocor akar."
+            )
+            Category.SANITASI -> WeatherDecision(
+                idealWindow = "Pagi menjelang siang 08:30 - 10:30 WIB setelah seluruh embun pada daun kering terpapar sinar matahari.",
+                criticalPostponeThreshold = "Dilarang keras memangkas atau wiwil tunas air saat daun masih basah oleh embun atau hujan (patogen Colletotrichum & Ralstonia menyebar lewat air luka).",
+                contingencyAction = "Tunggu hingga kanopi daun benar-benar kering atau tunda pengerjaan hingga siang hari yang cerah."
+            )
+            Category.INSPEKSI -> WeatherDecision(
+                idealWindow = "Pagi hari 07:30 - 09:30 WIB dengan pencahayaan sinar matahari alami merata tanpa silau tajam.",
+                criticalPostponeThreshold = "Hindari pengambilan foto sampel kamera saat hujan lebat, kabut tebal, atau malam hari tanpa lampu kalibrasi.",
+                contingencyAction = "Gunakan pelindung tudung payung/kamera dan manfaatkan lampu kilat LED kalibrasi bila kondisi cuaca redup."
+            )
+            Category.PANEN -> WeatherDecision(
+                idealWindow = "Pagi hari pukul 07:00 - 10:00 WIB saat turgor sel buah cabai berada pada tekanan osmotik tertinggi.",
+                criticalPostponeThreshold = "Tunda pemetikan bila buah masih basah kuyup oleh hujan (memicu pembusukan cepat dalam krat) atau terik siang > 33°C (buah layu berkerut).",
+                contingencyAction = "Bila terpaksa dipetik lembab, angin-anginkan cabai di tempat teduh berventilasi dengan alas terpal bersih sebelum ditumpuk ke krat."
+            )
+            Category.UMUM -> WeatherDecision(
+                idealWindow = "Pagi hari 06:30 - 09:00 WIB atau sore 15:30 - 17:00 WIB.",
+                criticalPostponeThreshold = "Tunda operasional fisik di lahan saat hujan lebat disertai petir atau hembusan angin kencang.",
+                contingencyAction = "Fokuskan pemantauan pada kelancaran parit drainase dan kekokohan ajir bambu penopang tanaman."
+            )
+        }
+    }
+
+    /** Titik Kendali Mutu Akhir (Quality Gate Inspection Checkpoints) */
+    fun getQualityGateCheckpoints(mission: Mission): List<String> {
+        return when (mission.category) {
+            Category.AIR -> listOf(
+                "Kelembaban tanah rizosfer teruji 65-75% kapasitas lapang (uji remas: menggumpal tanpa tetesan air bebas).",
+                "Saluran parit antar bedengan tuntas mengalir tanpa ada genangan air diam lebih dari 15 menit.",
+                "Tajuk pucuk tanaman cabai tampak segar tegak tanpa gejala layu fisiologis sementara."
+            )
+            Category.NUTRISI -> listOf(
+                "Lapisan kabut embun menutupi merata permukaan bawah daun (abaxial) tanpa ada tetesan air jatuh berlebihan (zero run-off).",
+                "Kelarutan bahan 100% sempurna tanpa residu butiran kasar yang mengendap di dasar saringan tangki semprot.",
+                "Dosis dan volume larutan tepat habis terbagi merata di seluruh bidang bedengan yang ditargetkan."
+            )
+            Category.SANITASI -> listOf(
+                "Tunas air/daun terinfeksi terpotong mulus tanpa serabut kulit batang utama yang terkelupas.",
+                "Seluruh serpihan pangkasan langsung terkumpul dalam kantong isolasi dan dibuang jauh dari lahan.",
+                "Mata gunting/pisau telah disterilisasi ulang dengan alkohol 70% sebelum disimpan."
+            )
+            Category.INSPEKSI -> listOf(
+                "Foto sampel kamera fokus tajam pada daun/buah cabai tanpa buram atau goyangan gerakan tangan.",
+                "Pemeriksaan mencakup minimal 5 titik tanaman sampel representatif dengan pola acak diagonal/Z.",
+                "Hasil observasi visual atau anomali bercak telah tercatat ke dalam sistem log kebun."
+            )
+            Category.PANEN -> listOf(
+                "Buah cabai terpetik utuh bersama tangkai buah sepanjang 2 - 3 cm dan kelopak bunga hijau utuh.",
+                "Kondisi fisik buah mulus: 0% goresan kuku, bebas lubang lalat buah, dan tanpa memar mekanis.",
+                "Buah tertata rapi di krat berventilasi dengan kedalaman tumpukan maksimal 3 lapis di tempat sejuk."
+            )
+            Category.UMUM -> listOf(
+                "Ikatan tali ajir membentuk angka 8 yang longgar tanpa mencekik pembesaran diameter batang.",
+                "Lembaran mulsa plastik terpasang kencang dan patok pasak menancap kuat menahan terpaan angin.",
+                "Zona perakaran dalam radius 20 cm bersih dari gulma kompetitor hara dan air."
+            )
+        }
+    }
+
+    /** Kiat Ahli Agronomi (Agronomist Pro-Tips) */
+    fun getAgronomistProTips(mission: Mission): List<String> {
+        val titleLower = mission.title.lowercase()
+        return when {
+            titleLower.contains("kalsium") || titleLower.contains("calcium") || titleLower.contains("boron") -> listOf(
+                "Arahkan nozel semprot menyudut 45 derajat ke arah atas karena 85% stomata cabai terletak di permukaan bawah daun.",
+                "Gunakan nozel tipe kerucut berongga (hollow cone) bertekanan 2-3 bar untuk membentuk kabut berukuran 150-250 mikron.",
+                "Jangan pernah mencampur kalsium nitrat dengan pupuk fosfat pekat dalam satu tangki untuk mencegah endapan kalsium fosfat yang menyumbat nozel."
+            )
+            titleLower.contains("wiwil") || titleLower.contains("perompesan") || titleLower.contains("pangkas") -> listOf(
+                "Patahkan tunas air (wiwil) dengan dorongan menyamping saat ukuran tunas masih di bawah 5 cm agar luka pada batang utama sangat kecil dan cepat sembuh.",
+                "Lakukan pewiwilan saat matahari pagi sudah bersinar terik agar luka pangkasan cepat membentuk lapisan gabus (suberisasi) penangkal bakteri.",
+                "Hindari menyentuh luka pangkas dengan tangan basah atau sarung tangan yang kotor untuk mencegah penularan penyakit layu bakteri."
+            )
+            titleLower.contains("panen") || titleLower.contains("petik") || titleLower.contains("sortir") -> listOf(
+                "Patahkan tangkai buah cabai pada nodus persendian alami dengan gerakan mengangkat ke arah atas, jangan ditarik paksa ke bawah.",
+                "Gunakan sarung tangan katun bersih saat memetik agar lapisan lilin alami (kutikula) buah cabai tidak terkikis oleh keringat tangan.",
+                "Lakukan pendinginan awal (pre-cooling) di ruang teduh beraliran udara sejuk selama 30-45 menit untuk membuang panas lapangan sebelum dikemas."
+            )
+            titleLower.contains("archimedes") || titleLower.contains("apung") -> listOf(
+                "Gunakan air bersih bersuhu normal (25°C) pada ember transparan saat melakukan uji apung Archimedes.",
+                "Cabai Grade A+ ekspor berdinding tebal (>1.8 mm) akan langsung tenggelam ke dasar karena massa jenis pericarp lebih tinggi dari air.",
+                "Pisahkan buah yang mengapung atau melayang karena mengindikasikan dinding buah tipis, berongga udara besar, atau terdapat larva hama di dalam."
+            )
+            titleLower.contains("likat") || titleLower.contains("perangkap") || titleLower.contains("hama") -> listOf(
+                "Gantungkan perangkap likat kuning setinggi 15 - 20 cm tepat di atas pucuk kanopi cabai dan naikkan secara berkala seiring pertambahan tinggi tanaman.",
+                "Oleskan lem serangga tipis merata pada kedua sisi lembaran kuning agar kapasitas tangkapan kutu kebul dan thrips maksimal.",
+                "Pasang perangkap likat kuning dengan jarak 10 meter antar perangkap pola zig-zag di sepanjang bedengan."
+            )
+            else -> when (mission.category) {
+                Category.AIR -> listOf(
+                    "Lakukan uji lengas tanah mandiri dengan menggali tanah sedalam 15 cm di samping perakaran; tanah ideal terasa dingin lembab dan mudah dibentuk kepalan longgar.",
+                    "Pada musim kemarau terik, siram lebih awal di jam 06:00 agar air sempat meresap ke zona rizosfer sebelum suhu permukaan tanah meningkat tajam.",
+                    "Pastikan air siraman memiliki pH netral (6.0 - 7.0); air yang terlalu asam (<5.5) akan mengunci serapan kalsium dan fosfat."
+                )
+                Category.NUTRISI -> listOf(
+                    "Larutkan pupuk secara bertahap menggunakan ember kecil terlebih dahulu sebelum dituangkan ke dalam tangki semprot besar.",
+                    "Tambahkan zat perata/perekat (adjuvant) non-ionik pada urutan paling akhir untuk membantu butiran kabut menempel kuat pada daun berlilin.",
+                    "Semprotkan larutan nutrisi dengan kecepatan jalan kaki konstan (sekitar 1 meter per detik) agar sebaran dosis seragam."
+                )
+                Category.SANITASI -> listOf(
+                    "Sterilkan gunting pangkas dengan mencelupkannya ke dalam larutan alkohol 70% setiap kali berpindah dari satu baris bedengan ke baris lainnya.",
+                    "Cabut gulma di lubang tanam sampai ke pangkal akarnya secara perlahan agar akar utama cabai tidak ikut putus.",
+                    "Bungkus buah atau daun yang bergejala patek/antraknosa ke dalam kantong plastik sebelum dipetik agar sporanya tidak beterbangan."
+                )
+                Category.INSPEKSI -> listOf(
+                    "Ambil foto sampel dengan membelakangi sinar matahari pagi agar lensa kamera tidak mengalami silau (backlight) yang mengaburkan deteksi warna.",
+                    "Pilih tanaman sampel pada bedengan tengah dan bedengan tepi untuk mewakili variasi mikroklimat kebun secara akurat.",
+                    "Periksa secara teliti bagian pucuk daun muda untuk mendeteksi serangan thrips atau tungau sedini mungkin sebelum daun menggulung."
+                )
+                Category.PANEN -> listOf(
+                    "Gunakan krat panen plastik dengan lubang ventilasi di semua sisi agar cabai tidak mengalami panas lembab (sweating) yang memicu busuk.",
+                    "Jangan menumpuk cabai lebih dari 3 lapis di dalam wadah penampungan saat berada di lahan.",
+                    "Simpan cabai hasil panen pada suhu ruang sejuk 15-18°C dengan kelembaban 85-90% untuk mempertahankan kesegaran tangkai."
+                )
+                Category.UMUM -> listOf(
+                    "Periksa elastisitas dan ketegangan tali ajir setiap 7 hari sekali; kendurkan ikatan bila batang cabai mulai tertekan.",
+                    "Jaga kebersihan parit antar bedengan agar air hujan dapat tuntas mengalir dalam tempo kurang dari 15 menit.",
+                    "Lakukan pergiliran bahan aktif perlakuan hama dan penyakit untuk mencegah resistensi patogen di kebun."
+                )
+            }
+        }
+    }
+
+    /** Diagram Skematis Teknis Lapangan (ASCII Schematic) */
+    fun getFieldDiagram(mission: Mission): String {
+        val titleLower = mission.title.lowercase()
+        return when {
+            titleLower.contains("wiwil") || titleLower.contains("pangkas") -> """
+            [ Skema Pewiwilan Tunas Air Batang 'Y' ]
+                      \     /
+                       \   /   <-- Cabang Utama 'Y' (PERTAHANKAN)
+                        \ /
+                         |
+           Tunas Air [x] | [x] Tunas Air (WIWIL pangkas saat < 5 cm)
+             (PATAHKAN   |     (Gerakan mematahkan ke samping)
+              KE SAMPING)|
+                         |     <-- Batang Bawah Bebas Tunas (<30 cm)
+                     --------- <-- Permukaan Mulsa Plastik
+            """.trimIndent()
+
+            titleLower.contains("panen") || titleLower.contains("petik") || mission.category == Category.PANEN -> """
+            [ Anatomi Pemetikan Cabai Grade A+ Ekspor ]
+                     | Batang Tanaman Cabai
+                    (o) Nodus Buku Persendian (Patahkan Ke Arah Atas)
+                     |
+                     | Tangkai Buah Utuh (Panjang Baku: 2 - 3 cm)
+                    --- Kelopak Bunga (Harus Utuh Berwarna Hijau)
+                   /   \
+                  |     | <-- Buah Padat Berdinding Tebal (> 1.8 mm)
+                  | CAB |     Mengkilap Bebas Goresan Kuku & Bebas Patek
+                   \   /
+                    \_/  Ujung Buah Bebas BER (Blossom End Rot)
+            """.trimIndent()
+
+            titleLower.contains("archimedes") || titleLower.contains("apung") -> """
+            [ Uji Apung Archimedes Kepadatan Pericarp ]
+               +-----------------------------+
+               |  Air Bersih Baku Suhu 25°C  |
+               |                             |
+               |  [cabai] <-- MENGAPUNG: Dinding tipis/berongga (Grade B)
+               |                             |
+               |         [cabai] <-- MELAYANG: Mutu sedang (Grade A)
+               |                             |
+               |  ~~~~~[cabai]~~~~~ <-- TENGGELAM: Dinding padat pejal >1.8mm
+               +-----------------------------+  (Grade A+ Standar Ekspor)
+            """.trimIndent()
+
+            mission.category == Category.NUTRISI || titleLower.contains("semprot") || titleLower.contains("spray") -> """
+            [ Arah Semprot Nutrisi & Stomata Abaxial ]
+                     ___  <-- Pucuk Kanopi Cabai
+                   /     \
+                  /  45°  \  <-- Arahkan nozel menyudut 45° ke atas
+                 /  ^   ^  \     menuju permukaan bawah daun (abaxial)
+                |  /     \  |
+                +-----------+
+                 \         /   <-- Jarak aman nozel: 30 - 40 cm
+                  \_______/
+                     ||
+              Nozel Kabut Halus Hollow Cone (Tekanan Pompa 2 - 3 Bar)
+            """.trimIndent()
+
+            mission.category == Category.AIR -> """
+            [ Penetrasi Air Irigasi & Daerah Perakaran ]
+                      | Batang Tanaman Cabai
+                     --- Permukaan Mulsa Plastik Bedengan
+                    / | \
+           Zona    /  |  \   Kedalaman Lembab: 15 - 20 cm
+           Basah  (   o   )  Kapasitas Lapang Terukur: 65% - 75%
+                   \_____/
+           ----------------- Lapisan Tanah Bawah (Subsoil)
+           [ Parit Drainase ] Kedalaman 50 cm: Air mengalir lancar
+            """.trimIndent()
+
+            mission.category == Category.INSPEKSI -> """
+            [ Pola Sampling Inspeksi Kamera Lapangan (Pola Z) ]
+           Titik 1 [x] -----------------> [x] Titik 2 (Bedengan Sisi Kanan)
+                     \
+                      \  Diagonal Menyilang
+                       \
+           Titik 3 [x] <----------------- [x] Titik 4 (Bedengan Tengah)
+           |
+           +----------------------------> [x] Titik 5 (Bedengan Sisi Kiri)
+            (Total 5 Tanaman Sampel Representatif Per Blok Lahan)
+            """.trimIndent()
+
+            else -> """
+            [ Profil Standar Bedengan & Tanaman Cabai ]
+                +===============================+  <-- Lebar Bedengan: 100-110 cm
+               /       Mulsa Plastik PHP         \     Tinggi Bedengan: 40-50 cm
+              /         o       o       o         \    Jarak Tanam: 50 x 60 cm
+           --+                                     +--
+           Parit Drainase Bebas Genangan       Parit Drainase Lebar 50-60 cm
+           (Kedalaman: 50 cm, Aliran Lancar)   (Bebas Endapan Lumpur)
+            """.trimIndent()
+        }
+    }
+
+    /** Entri Kamus Istilah Agronomi Praktis */
+    data class GlossaryEntry(
+        val term: String,
+        val definition: String,
+        val practicalSignificance: String
+    )
+
+    object AgronomyGlossary {
+        val entries = listOf(
+            GlossaryEntry(
+                term = "Pericarp",
+                definition = "Dinding buah cabai yang tersusun atas lapisan eksokarp, mesokarp, dan endokarp.",
+                practicalSignificance = "Semakin tebal pericarp (>1.8 mm), buah semakin renyah, tahan benturan logistik, dan tahan simpan >14 hari tanpa keriput."
+            ),
+            GlossaryEntry(
+                term = "Turgor",
+                definition = "Tekanan hidrostatik cairan di dalam vakuola sel yang menekan dinding sel tumbuhan.",
+                practicalSignificance = "Turgor sel mencapai puncaknya pada pagi hari (07:00-10:00 WIB), menjadikan buah cabai segar, padat, dan berbobot maksimal."
+            ),
+            GlossaryEntry(
+                term = "Kalsium Pektat",
+                definition = "Garam pektat yang terbentuk dari ikatan ion Kalsium (Ca2+) dengan asam pektat pada lamela tengah dinding sel.",
+                practicalSignificance = "Berfungsi sebagai semen perekat antar sel tanaman; mencegah busuk ujung buah (Blossom End Rot) dan mencegah kulit buah pecah (cracking)."
+            ),
+            GlossaryEntry(
+                term = "Wiwil (Pewiwilan)",
+                definition = "Praktik agronomi memangkas tunas air liar (wiwil) yang tumbuh di ketiak daun di bawah cabang utama 'Y'.",
+                practicalSignificance = "Mencegah pemborosan energi dan asimilat tanaman sehingga translokasi hara terfokus 100% ke pembungaan dan pembuahan utama."
+            ),
+            GlossaryEntry(
+                term = "Stomata Abaxial",
+                definition = "Pori-pori daun mikroskopis tempat pertukaran gas dan penyerapan hara yang terletak di permukaan bawah helai daun.",
+                practicalSignificance = "Sekitar 80-85% stomata cabai berada di sisi bawah daun; penyemprotan pupuk daun wajib diarahkan dari bawah tajuk ke atas."
+            ),
+            GlossaryEntry(
+                term = "Metode W-A-L-E-S",
+                definition = "Urutan baku pencampuran tangki semprot internasional: Water -> Agitation/WP -> Liquid -> Emulsion -> Surfactant.",
+                practicalSignificance = "Menjamin kestabilan larutan kimia, mencegah pengendapan kasar, dan mencegah fitotoksisitas (daun terbakar) pada cabai."
+            ),
+            GlossaryEntry(
+                term = "Jar Compatibility Test",
+                definition = "Uji kompatibilitas skala mini dalam toples/botol 500 ml selama 5 menit sebelum mencampur pupuk dan pestisida ke tangki semprot.",
+                practicalSignificance = "Mendeteksi penggumpalan atau pemisahan emulsi sedini mungkin sehingga nozel sprayer tidak tersumbat di kebun."
+            ),
+            GlossaryEntry(
+                term = "Trichoderma",
+                definition = "Spesies jamur mikroorganisme antagonis tanah yang hidup berkoloni di zona rizosfer perakaran cabai.",
+                practicalSignificance = "Secara agresif memparasitisasi dan membasmi jamur patogen jahat penyebab layu fusarium dan busuk batang (Phytophthora capsici)."
+            ),
+            GlossaryEntry(
+                term = "Uji Apung Archimedes",
+                definition = "Metode sortir fisik berbasis hukum Archimedes dengan mencelupkan sampel cabai ke wadah berisi air bersih.",
+                practicalSignificance = "Cabai Grade A+ ekspor berdinding tebal dan padat akan tenggelam, sedangkan cabai berdinding tipis atau berulat akan mengapung."
+            ),
+            GlossaryEntry(
+                term = "Termoterapi Asas Black",
+                definition = "Perlakuan pemanasan air bersuhu presisi 50-52°C selama 15 menit menggunakan bejana berinsulasi panas.",
+                practicalSignificance = "Menginaktivasi spora jamur Colletotrichum (Antraknosa/Patek) yang menempel pada kulit benih tanpa merusak embrio benih."
+            )
+        )
+    }
+
+    /**
+     * Memformat catatan kerja lapangan standar GAP (Good Agricultural Practices)
+     * yang siap disalin ke clipboard atau dibagikan ke catatan kebun petani.
+     */
+    fun formatGapWorkLog(
+        mission: Mission,
+        date: LocalDate = LocalDate.now(),
+        tankLiters: Int = 16,
+        dosePerTank: String = if (mission.standardDosagePerLiter > 0) "%.1f".format(mission.standardDosagePerLiter * 16) else "-",
+        landAreaM2: Int = 1000,
+        checkedStepsCount: Int = mission.executionSteps.size,
+        totalStepsCount: Int = mission.executionSteps.size,
+        checkedQualityGateCount: Int = getQualityGateCheckpoints(mission).size,
+        totalQualityGateCount: Int = getQualityGateCheckpoints(mission).size,
+        observationNote: String = ""
+    ): String {
+        return buildString {
+            appendLine("=== LAPORAN OPERASIONAL LAPANGAN GAP (PERITANIX) ===")
+            appendLine("Tanggal Pengerjaan : $date")
+            appendLine("Misi Operasional   : ${mission.title}")
+            appendLine("Kategori Misi      : ${mission.category.label}")
+            appendLine("Pilar Sasaran Mutu : ${mission.qualityTarget.title}")
+            appendLine("Metrik Keberhasilan: ${mission.targetMetric}")
+            appendLine("----------------------------------------------------")
+            if (mission.standardDosagePerLiter > 0.0) {
+                appendLine("Ukuran Tangki     : $tankLiters Liter")
+                appendLine("Dosis Per Tangki  : $dosePerTank ${mission.dosageUnit}")
+                appendLine("Luas Bidang Lahan : $landAreaM2 m²")
+            }
+            appendLine("Langkah Selesai   : $checkedStepsCount dari $totalStepsCount langkah SOP (${if (checkedStepsCount == totalStepsCount) "100% TUNTAS" else "Sebagian"})")
+            appendLine("Uji Titik Mutu    : $checkedQualityGateCount dari $totalQualityGateCount checkpoint lolos uji")
+            if (observationNote.isNotBlank()) {
+                appendLine("Catatan Lapangan  : $observationNote")
+            }
+            appendLine("Standar Kepatuhan : GAP Indonesia - Peritanix Chili Quality Engine")
+            append("====================================================")
+        }
+    }
+
 // --- Individual mission templates with Complete SOP Guidance ---
 
     private fun hydrationMission(stageIdx: Int, day: Long) = Mission(
