@@ -70,4 +70,16 @@ object IndonesianTtsVoiceAdvisor {
     fun evaluateCueForSecond(secondsRemaining: Int): VoiceCue? {
         return getImmersionCheckpoints().firstOrNull { it.checkpointSecondsRemaining == secondsRemaining }
     }
+
+    /**
+     * Menyusun skrip suara TTS bahasa Indonesia untuk hasil inspeksi kamera perawatan.
+     */
+    fun composeTreatmentInspectionScript(
+        stageTitle: String,
+        score: Double,
+        statusLabel: String,
+        actionAdvice: String
+    ): String {
+        return "Hasil inspeksi kamera pada $stageTitle: status $statusLabel, skor kesehatan ${score.toInt()} persen. Rekomendasi tindakan: $actionAdvice"
+    }
 }

@@ -1,0 +1,155 @@
+package id.peritanix.dape.android
+
+import id.peritanix.dape.android.core.guide.ChiliGrowingGuide
+import id.peritanix.dape.android.core.guide.TreatmentCameraVerifier
+import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
+import org.junit.Assert.*
+import org.junit.Test
+
+class TreatmentCameraVerifierTest {
+
+    @Test
+    fun testGrowingGuideStagesCompleteness() {
+        assertEquals(5, ChiliGrowingGuide.stages.size)
+
+        for (stage in ChiliGrowingGuide.stages) {
+            assertTrue(stage.index in 1..5)
+            assertTrue(stage.title.isNotBlank())
+            assertTrue(stage.phaseName.isNotBlank())
+            assertTrue(stage.hstRange.isNotBlank())
+            assertTrue(stage.bestYieldGoal.isNotBlank())
+            assertTrue("Planting guide must not be empty", stage.plantingGuide.isNotEmpty())
+            assertTrue("Maintenance guide must not be empty", stage.maintenanceGuide.isNotEmpty())
+            assertTrue("Harvest guide must not be empty", stage.harvestGuide.isNotEmpty())
+            assertTrue("Checklist must not be empty", stage.checklist.isNotEmpty())
+            assertTrue("Risk must not be blank", stage.risk.isNotBlank())
+
+            // Camera Protocol Verification
+            val protocol = stage.cameraProtocol
+            assertTrue(protocol.targetSubject.isNotBlank())
+            assertTrue(protocol.photoInstructions.isNotBlank())
+            assertTrue(protocol.successCriteria.isNotBlank())
+            assertTrue(protocol.inspectionKeyPoints.isNotEmpty())
+            assertTrue(protocol.failAction.isNotBlank())
+        }
+    }
+
+    @Test
+    fun testRealtimeAdvisoryCalculations() {
+        // -10 HST (Persemaian)
+        val advSemai = ChiliGrowingGuide.generateRealtimeAdvisory(-10, isRaining = false, tempC = 27.0, rhPct = 70.0)
+        assertEquals(1, advSemai.currentStage.index)
+        assertTrue(advSemai.daysToHarvest > 90)
+        assertTrue(advSemai.progressPct in 0.0f..0.2f)
+        assertFalse(advSemai.weatherAlert.contains("Hujan"))
+
+        // 20 HST (Vegetatif)
+        val advVeg = ChiliGrowingGuide.generateRealtimeAdvisory(20, isRaining = true, tempC = 24.0, rhPct = 90.0)
+        assertEquals(2, advVeg.currentStage.index)
+        assertEquals(70, advVeg.daysToHarvest)
+        assertTrue(advVeg.weatherAlert.contains("Hujan"))
+
+        // 45 HST (Pembungaan)
+        val advBunga = ChiliGrowingGuide.generateRealtimeAdvisory(45, isRaining = false, tempC = 33.5, rhPct = 60.0)
+        assertEquals(3, advBunga.currentStage.index)
+        assertEquals(45, advBunga.daysToHarvest)
+        assertTrue(advBunga.weatherAlert.contains("Terik"))
+
+        // 75 HST (Pembuahan)
+        val advBuah = ChiliGrowingGuide.generateRealtimeAdvisory(75, isRaining = false, tempC = 26.0, rhPct = 88.0)
+        assertEquals(4, advBuah.currentStage.index)
+        assertEquals(15, advBuah.daysToHarvest)
+        assertTrue(advBuah.weatherAlert.contains("Kelembaban Tinggi"))
+
+        // 100 HST (Panen)
+        val advPanen = ChiliGrowingGuide.generateRealtimeAdvisory(100, isRaining = false, tempC = 25.0, rhPct = 65.0)
+        assertEquals(5, advPanen.currentStage.index)
+        assertEquals(0, advPanen.daysToHarvest)
+    }
+
+    @Test
+    fun testCameraInspectionOptimalCondition() {
+        val stageVeg = ChiliGrowingGuide.stageForHst(25)
+        val optimalSample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageVeg,
+            hst = 25,
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL
+        )
+
+        assertEquals(stageVeg.index, optimalSample.stageIndex)
+        assertEquals(25, optimalSample.hst)
+        assertTrue("Health score should be high for optimal sample", optimalSample.healthScore >= 80.0)
+        assertTrue("Green percentage should be dominant", optimalSample.greenPct >= 60.0)
+        assertTrue("Defect percentage should be low", optimalSample.defectPct <= 4.0)
+        assertEquals(TreatmentCameraVerifier.VerificationStatus.VERIFIED_OPTIMAL, optimalSample.status)
+        assertTrue(optimalSample.diagnosisText.isNotBlank())
+        assertTrue(optimalSample.prescriptiveAction.isNotBlank())
+    }
+
+    @Test
+    fun testCameraInspectionHarvestRipeness() {
+        val stagePanen = ChiliGrowingGuide.stageForHst(105)
+        val harvestSample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stagePanen,
+            hst = 105,
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL
+        )
+
+        assertEquals(5, harvestSample.stageIndex)
+        assertTrue("Red coverage should be high at harvest", harvestSample.redPct >= 75.0)
+        assertTrue("Health score should be high", harvestSample.healthScore >= 80.0)
+        assertTrue(harvestSample.diagnosisText.contains("Grade A+") || harvestSample.diagnosisText.contains("merah"))
+    }
+
+    @Test
+    fun testCameraInspectionDefectDetection() {
+        val stageBuah = ChiliGrowingGuide.stageForHst(70)
+        val defectSample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageBuah,
+            hst = 70,
+            condition = TreatmentCameraVerifier.SampleCondition.SEVERE_DISEASE
+        )
+
+        assertTrue("Defect percentage should be elevated", defectSample.defectPct >= 10.0)
+        assertTrue("Health score should be penalized", defectSample.healthScore < 60.0)
+        assertEquals(TreatmentCameraVerifier.VerificationStatus.CRITICAL_RISK, defectSample.status)
+        assertTrue(defectSample.prescriptiveAction.contains("fungisida") || defectSample.prescriptiveAction.contains("Antraknosa") || defectSample.prescriptiveAction.contains("musnahkan"))
+    }
+
+    @Test
+    fun testCameraInspectionMildDefectCondition() {
+        val stageVeg = ChiliGrowingGuide.stageForHst(20)
+        val mildSample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageVeg,
+            hst = 20,
+            condition = TreatmentCameraVerifier.SampleCondition.MILD_DEFECT
+        )
+
+        assertTrue(mildSample.yellowPct >= 15.0 || mildSample.defectPct >= 6.0)
+        assertTrue(
+            mildSample.status == TreatmentCameraVerifier.VerificationStatus.ATTENTION_NEEDED ||
+            mildSample.status == TreatmentCameraVerifier.VerificationStatus.CRITICAL_RISK
+        )
+    }
+
+    @Test
+    fun testTtsNarrationScriptComposition() {
+        val script = IndonesianTtsVoiceAdvisor.composeTreatmentInspectionScript(
+            stageTitle = "Pembungaan & Transisi Generatif",
+            score = 92.5,
+            statusLabel = "SOP Optimal & Sangat Sehat",
+            actionAdvice = "Semprot Kalsium Nitrat + Boron dan hentikan Urea."
+        )
+
+        assertTrue(script.contains("Pembungaan"))
+        assertTrue(script.contains("92 persen"))
+        assertTrue(script.contains("SOP Optimal"))
+        assertTrue(script.contains("Kalsium Nitrat"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testAnalyzePixelsZeroDimensions() {
+        val stage = ChiliGrowingGuide.stages[0]
+        TreatmentCameraVerifier.analyzePixels(stage, IntArray(10), 0, 10, 0)
+    }
+}

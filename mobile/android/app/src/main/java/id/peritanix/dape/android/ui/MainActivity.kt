@@ -668,7 +668,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                                 6 -> CompassCalibrationScreen()
                                 7 -> WeatherScreen(weatherRepo)
                                 8 -> ChiliQualityScreen()
-                                9 -> GrowingGuideScreen()
+                                9 -> GrowingGuideScreen(queue = queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
                                 10 -> SensorLabScreen()
                                 11 -> CalendarScreen(queue)
                                 else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
