@@ -124,6 +124,20 @@ func (d *Deps) applyOp(ctx context.Context, op syncOp) error {
 			SignerPublicKey:     getStr(op.Data, "signer_public_key"),
 			UpdatedTS:           op.UpdatedTS,
 		})
+	case "user_key":
+		// Offline-registered Ed25519 public key + white reference matrix.
+		userID := getStr(op.Data, "user_id")
+		pubkey := getStr(op.Data, "ed25519_public_key")
+		if userID == "" || pubkey == "" {
+			return fmt.Errorf("user_key requires user_id and ed25519_public_key")
+		}
+		whiteJSON := ""
+		if wr, ok := op.Data["white_reference"]; ok {
+			if b, err := json.Marshal(wr); err == nil {
+				whiteJSON = string(b)
+			}
+		}
+		return d.Users.SetPublicKey(ctx, userID, pubkey, whiteJSON)
 	default:
 		return fmt.Errorf("unknown entity %q", op.Entity)
 	}

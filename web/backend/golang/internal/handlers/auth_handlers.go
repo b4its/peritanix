@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -94,4 +95,47 @@ func (d *Deps) me(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "user not found")
 	}
 	return c.JSON(u)
+}
+
+// registerKey stores the farmer's Ed25519 public key and optional white
+// reference matrix. Called by the mobile app once the device key pair is
+// generated, and again after spectral calibration so the buyer QR verifier and
+// the CIELAB calibrator can use them. Requires JWT auth.
+type registerKeyReq struct {
+	Ed25519PublicKey string    `json:"ed25519_public_key"`
+	WhiteReference   []float64 `json:"white_reference"`
+}
+
+func (d *Deps) registerKey(c *fiber.Ctx) error {
+	claims, ok := auth.ClaimsFrom(c)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnauthorized, "no claims")
+	}
+	var req registerKeyReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid JSON body")
+	}
+	key := strings.TrimSpace(req.Ed25519PublicKey)
+	if key == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "ed25519_public_key is required")
+	}
+	// Basic sanity: an Ed25519 public key is 32 bytes -> base64 (44 chars) or hex (64).
+	if !validEd25519PublicKey(key) {
+		return fiber.NewError(fiber.StatusBadRequest, "ed25519_public_key has unexpected length")
+	}
+	whiteJSON := ""
+	if len(req.WhiteReference) == 3 {
+		b, _ := json.Marshal(req.WhiteReference)
+		whiteJSON = string(b)
+	}
+	if err := d.Users.SetPublicKey(c.Context(), claims.UserID, key, whiteJSON); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "failed to store public key")
+	}
+	return c.JSON(fiber.Map{"status": "ok", "ed25519_public_key": key})
+}
+
+// validEd25519PublicKey accepts a base64 (44 char) or hex (64 char) encoding
+// of a 32-byte Ed25519 public key.
+func validEd25519PublicKey(k string) bool {
+	return len(k) == 44 || len(k) == 64
 }

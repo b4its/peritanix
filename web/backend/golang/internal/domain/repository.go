@@ -20,6 +20,9 @@ type UserRepo interface {
 	Register(ctx context.Context, name, phone, role, passwordHash string) (*User, error)
 	// GetCredential returns the password hash for a phone (login).
 	GetCredential(ctx context.Context, phone string) (userID, passwordHash, role string, err error)
+	// SetPublicKey stores the farmer's Ed25519 public key (and optional white
+	// reference matrix JSON) so the buyer QR verifier can validate offline certs.
+	SetPublicKey(ctx context.Context, userID, publicKey string, whiteReferenceJSON string) error
 }
 
 // SoilRepo is the persistence port for soil assessments.

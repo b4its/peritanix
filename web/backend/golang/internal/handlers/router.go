@@ -60,6 +60,8 @@ func Register(app *fiber.App, d *Deps) {
 	api.Post("/auth/register", authLimiter.Middleware(), d.register)
 	api.Post("/auth/login", authLimiter.Middleware(), d.login)
 	api.Get("/auth/me", d.Auth.Middleware(), d.me)
+	// Register the farmer's Ed25519 public key + white reference matrix.
+	api.Post("/users/register-key", d.Auth.Middleware(), d.registerKey)
 
 	// --- Public reads -------------------------------------------------------
 	api.Get("/lands", d.landList)

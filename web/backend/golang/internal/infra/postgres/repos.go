@@ -3,12 +3,16 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/peritanix/dape-backend/internal/domain"
 )
 
 func nowUnix() int64 { return time.Now().Unix() }
+
+// errNoRows is returned when a targeted UPDATE matched no row.
+var errNoRows = errors.New("no rows affected")
 
 // --- UserRepo ---------------------------------------------------------------
 
@@ -74,6 +78,26 @@ func (r *UserRepo) GetCredential(ctx context.Context, phone string) (string, str
 	var id, hash, role string
 	err := r.s.Pool.QueryRow(ctx, q, phone).Scan(&id, &hash, &role)
 	return id, hash, role, err
+}
+
+// SetPublicKey stores the farmer's Ed25519 public key and optional white
+// reference matrix (JSON) for offline certificate verification + CIELAB
+// calibration. Only updates the row if the user exists.
+func (r *UserRepo) SetPublicKey(ctx context.Context, userID, publicKey, whiteReferenceJSON string) error {
+	const q = `
+		UPDATE users
+		SET ed25519_public_key = $2,
+		    white_reference    = CASE WHEN $3 = '' THEN white_reference ELSE $3::jsonb END,
+		    updated_at         = now()
+		WHERE id = $1`
+	tag, err := r.s.Pool.Exec(ctx, q, userID, publicKey, whiteReferenceJSON)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errNoRows
+	}
+	return nil
 }
 
 // --- SoilRepo ---------------------------------------------------------------
