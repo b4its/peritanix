@@ -57,7 +57,52 @@ fun SensorLabScreen() {
         GnssBiomassCard(context)
         ProximityTriggerCard(context)
         CompassFigure8Card(context)
+        FertilizerOptimizerCard()
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 4. Cheapest equivalent-nutrient fertilizer mix (Tahap 2.3)
+// -----------------------------------------------------------------------------
+
+@Composable
+private fun FertilizerOptimizerCard() {
+    // Sample local price list (in the real app this is downloaded when online).
+    val products = remember {
+        listOf(
+            id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.Product("Urea 46%", 46.0, 0.0, 0.0, 12000.0),
+            id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.Product("TSP 46%", 0.0, 46.0, 0.0, 14000.0),
+            id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.Product("KCl 60%", 0.0, 0.0, 60.0, 11000.0),
+            id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.Product("NPK 16-16-16", 16.0, 16.0, 16.0, 15000.0)
+        )
+    }
+    var nG by remember { mutableStateOf(160.0) }
+    var pG by remember { mutableStateOf(160.0) }
+    var kG by remember { mutableStateOf(160.0) }
+    val mix = remember(nG, pG, kG) {
+        id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.optimize(
+            id.peritanix.dape.android.core.physics.FertilizerCostOptimizer.Requirement(nG, pG, kG),
+            products
+        )
+    }
+
+    SensorSectionCard(
+        icon = AppIcons.Science,
+        title = "Optimasi Biaya Pupuk (Termurah)",
+        subtitle = "Pilih kombinasi hara setara dengan biaya terendah"
+    ) {
+        Text("Kebutuhan hara aktual (gram): N=${nG.toInt()} · P=${pG.toInt()} · K=${kG.toInt()}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        mix.allocations.forEach { a ->
+            InfoRow("${a.product.name}", "${"%.2f".format(a.kg)} kg · Rp ${"%,.0f".format(a.costIdr)}")
+        }
+        HorizontalDivider()
+        InfoRow("Total biaya", "Rp ${"%,.0f".format(mix.totalCostIdr)}")
+        InfoRow("Total bobot", "${mix.totalKg} kg")
+        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(10.dp)) {
+            Text(mix.note, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(10.dp))
+        }
     }
 }
 
