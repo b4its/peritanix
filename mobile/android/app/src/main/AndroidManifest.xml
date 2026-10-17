@@ -18,7 +18,7 @@
 
     <application
         android:allowBackup="false"
-        android:label="DAPE"
+        android:label="Pentasix"
         android:supportsRtl="true"
         android:theme="@style/Theme.Dape">
 

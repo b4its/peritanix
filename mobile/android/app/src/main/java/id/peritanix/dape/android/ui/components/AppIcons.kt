@@ -1,0 +1,651 @@
+package id.peritanix.dape.android.ui.components
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.unit.dp
+
+/**
+ * Pixel-perfect Material Vector Icons for Pentasix.
+ * Replaces all emojis with crisp, scalable, high-contrast vector icons.
+ */
+object AppIcons {
+
+    private fun buildIcon(name: String, block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit): ImageVector {
+        return ImageVector.Builder(
+            name = name,
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = null,
+                strokeLineWidth = 0f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+                pathBuilder = block
+            )
+        }.build()
+    }
+
+    // 1. Sprout / Seedling (Tab Lahan)
+    val Sprout: ImageVector = buildIcon("Sprout") {
+        moveTo(12f, 22f)
+        lineTo(12f, 13f)
+        curveTo(12f, 8.5f, 7f, 7.5f, 4f, 8f)
+        curveTo(4.5f, 13f, 8f, 14f, 11f, 13.9f)
+        lineTo(11f, 22f)
+        close()
+        moveTo(13f, 13f)
+        curveTo(15.5f, 13.5f, 19.5f, 12f, 20f, 7f)
+        curveTo(16.5f, 6.5f, 13.5f, 8.5f, 13f, 13f)
+        close()
+    }
+
+    // 2. Microscope (Tab Diagnosis)
+    val Microscope: ImageVector = buildIcon("Microscope") {
+        moveTo(9f, 3f)
+        lineTo(13f, 3f)
+        lineTo(13f, 5f)
+        lineTo(9f, 5f)
+        close()
+        moveTo(10f, 6f)
+        lineTo(12f, 6f)
+        lineTo(12f, 11f)
+        lineTo(10f, 11f)
+        close()
+        moveTo(14f, 7.5f)
+        curveTo(16.5f, 8.5f, 18f, 11f, 18f, 14f)
+        curveTo(18f, 17f, 16f, 19f, 13f, 19f)
+        lineTo(13f, 17f)
+        curveTo(15f, 17f, 16f, 15.5f, 16f, 14f)
+        curveTo(16f, 12.2f, 15f, 10.5f, 13.5f, 9.7f)
+        close()
+        moveTo(7f, 12f)
+        lineTo(13f, 12f)
+        lineTo(13f, 14f)
+        lineTo(7f, 14f)
+        close()
+        moveTo(5f, 20f)
+        lineTo(19f, 20f)
+        lineTo(19f, 22f)
+        lineTo(5f, 22f)
+        close()
+    }
+
+    // 3. Chili / Harvest Pepper (Tab Panen)
+    val Chili: ImageVector = buildIcon("Chili") {
+        moveTo(12f, 2f)
+        curveTo(11.5f, 3f, 10.5f, 3.5f, 10f, 4f)
+        curveTo(11.5f, 4.5f, 13f, 5f, 14f, 6f)
+        curveTo(14.5f, 4.5f, 13.5f, 3f, 12f, 2f)
+        close()
+        moveTo(14f, 6.5f)
+        curveTo(12f, 5.5f, 8f, 6.5f, 6.5f, 9.5f)
+        curveTo(5f, 12.5f, 5.5f, 16f, 7.5f, 19f)
+        curveTo(9f, 21f, 11.5f, 22.5f, 14.5f, 22f)
+        curveTo(17f, 21.5f, 18.5f, 18.5f, 18f, 15f)
+        curveTo(17.5f, 11.5f, 16f, 8f, 14f, 6.5f)
+        close()
+    }
+
+    // 4. Map (Tab Peta GIS)
+    val Map: ImageVector = buildIcon("Map") {
+        moveTo(15f, 5.5f)
+        lineTo(9f, 3.5f)
+        lineTo(3.5f, 5.5f)
+        lineTo(3.5f, 19.5f)
+        lineTo(9f, 17.5f)
+        lineTo(15f, 19.5f)
+        lineTo(20.5f, 17.5f)
+        lineTo(20.5f, 3.5f)
+        close()
+        moveTo(9f, 5.7f)
+        lineTo(15f, 7.7f)
+        lineTo(15f, 17.3f)
+        lineTo(9f, 15.3f)
+        close()
+    }
+
+    // 5. Sync (Tab Sinkronisasi)
+    val Sync: ImageVector = buildIcon("Sync") {
+        moveTo(12f, 4f)
+        lineTo(12f, 1f)
+        lineTo(8f, 5f)
+        lineTo(12f, 9f)
+        lineTo(12f, 6f)
+        curveTo(15.3f, 6f, 18f, 8.7f, 18f, 12f)
+        curveTo(18f, 13.6f, 17.4f, 15f, 16.3f, 16.1f)
+        lineTo(17.8f, 17.5f)
+        curveTo(19.2f, 16.1f, 20f, 14.1f, 20f, 12f)
+        curveTo(20f, 7.6f, 16.4f, 4f, 12f, 4f)
+        close()
+        moveTo(12f, 18f)
+        curveTo(8.7f, 18f, 6f, 15.3f, 6f, 12f)
+        curveTo(6f, 10.4f, 6.6f, 9f, 7.7f, 7.9f)
+        lineTo(6.2f, 6.5f)
+        curveTo(4.8f, 7.9f, 4f, 9.9f, 4f, 12f)
+        curveTo(4f, 16.4f, 7.6f, 20f, 12f, 20f)
+        lineTo(12f, 23f)
+        lineTo(16f, 19f)
+        lineTo(12f, 15f)
+        close()
+    }
+
+    // 6. Satellite (Basemap Satelit)
+    val Satellite: ImageVector = buildIcon("Satellite") {
+        moveTo(5f, 4.5f)
+        lineTo(9.5f, 9f)
+        lineTo(8f, 10.5f)
+        lineTo(3.5f, 6f)
+        close()
+        moveTo(14.5f, 14f)
+        lineTo(19f, 18.5f)
+        lineTo(17.5f, 20f)
+        lineTo(13f, 15.5f)
+        close()
+        moveTo(8.5f, 13.5f)
+        lineTo(13.5f, 8.5f)
+        lineTo(15f, 10f)
+        lineTo(10f, 15f)
+        close()
+        moveTo(12f, 2f)
+        curveTo(17.5f, 2f, 22f, 6.5f, 22f, 12f)
+        lineTo(20f, 12f)
+        curveTo(20f, 7.6f, 16.4f, 4f, 12f, 4f)
+        close()
+    }
+
+    // 7. Terrain / Mountain (Basemap Topografi)
+    val Terrain: ImageVector = buildIcon("Terrain") {
+        moveTo(14f, 6f)
+        lineTo(9f, 13f)
+        lineTo(11f, 13f)
+        lineTo(8f, 18f)
+        lineTo(2f, 18f)
+        lineTo(9f, 8f)
+        lineTo(11.5f, 11.5f)
+        close()
+        moveTo(14f, 6f)
+        lineTo(22f, 18f)
+        lineTo(13f, 18f)
+        lineTo(16.5f, 12.5f)
+        close()
+    }
+
+    // 8. HomeVillage / Carto Basemap
+    val HomeVillage: ImageVector = buildIcon("HomeVillage") {
+        moveTo(10f, 20f)
+        lineTo(10f, 14f)
+        lineTo(14f, 14f)
+        lineTo(14f, 20f)
+        lineTo(19f, 20f)
+        lineTo(19f, 10f)
+        lineTo(12f, 4.5f)
+        lineTo(5f, 10f)
+        lineTo(5f, 20f)
+        close()
+    }
+
+    // 9. WaterDrop (Hidrologi TWI)
+    val WaterDrop: ImageVector = buildIcon("WaterDrop") {
+        moveTo(12f, 2.5f)
+        curveTo(12f, 2.5f, 6f, 9.5f, 6f, 14f)
+        curveTo(6f, 17.3f, 8.7f, 20f, 12f, 20f)
+        curveTo(15.3f, 20f, 18f, 17.3f, 18f, 14f)
+        curveTo(18f, 9.5f, 12f, 2.5f, 12f, 2.5f)
+        close()
+    }
+
+    // 10. Wind / Air (Vektor Angin Spora)
+    val Wind: ImageVector = buildIcon("Wind") {
+        moveTo(3f, 8f)
+        lineTo(15f, 8f)
+        curveTo(16.7f, 8f, 18f, 6.7f, 18f, 5f)
+        curveTo(18f, 3.3f, 16.7f, 2f, 15f, 2f)
+        lineTo(14.5f, 2f)
+        lineTo(14.5f, 4f)
+        lineTo(15f, 4f)
+        curveTo(15.6f, 4f, 16f, 4.4f, 16f, 5f)
+        curveTo(16f, 5.6f, 15.6f, 6f, 15f, 6f)
+        lineTo(3f, 6f)
+        close()
+        moveTo(2f, 12f)
+        lineTo(19f, 12f)
+        curveTo(20.7f, 12f, 22f, 10.7f, 22f, 9f)
+        curveTo(22f, 7.3f, 20.7f, 6f, 19f, 6f)
+        lineTo(18.5f, 6f)
+        lineTo(18.5f, 8f)
+        lineTo(19f, 8f)
+        curveTo(19.6f, 8f, 20f, 8.4f, 20f, 9f)
+        curveTo(20f, 9.6f, 19.6f, 10f, 19f, 10f)
+        lineTo(2f, 10f)
+        close()
+        moveTo(3f, 16f)
+        lineTo(12f, 16f)
+        curveTo(13.7f, 16f, 15f, 17.3f, 15f, 19f)
+        curveTo(15f, 20.7f, 13.7f, 22f, 12f, 22f)
+        lineTo(11.5f, 22f)
+        lineTo(11.5f, 20f)
+        lineTo(12f, 20f)
+        curveTo(12.6f, 20f, 13f, 19.6f, 13f, 19f)
+        curveTo(13f, 18.4f, 12.6f, 18f, 12f, 18f)
+        lineTo(3f, 18f)
+        close()
+    }
+
+    // 11. Print (Printer Termal Bluetooth ESC/POS)
+    val Print: ImageVector = buildIcon("Print") {
+        moveTo(19f, 8f)
+        lineTo(19f, 5f)
+        lineTo(5f, 5f)
+        lineTo(5f, 8f)
+        close()
+        moveTo(19f, 12f)
+        curveTo(19.6f, 12f, 20f, 11.6f, 20f, 11f)
+        curveTo(20f, 10.4f, 19.6f, 10f, 19f, 10f)
+        curveTo(18.4f, 10f, 18f, 10.4f, 18f, 11f)
+        curveTo(18f, 11.6f, 18.4f, 12f, 19f, 12f)
+        close()
+        moveTo(17f, 19f)
+        lineTo(17f, 15f)
+        lineTo(7f, 15f)
+        lineTo(7f, 19f)
+        close()
+        moveTo(21f, 9f)
+        lineTo(3f, 9f)
+        curveTo(2.4f, 9f, 2f, 9.4f, 2f, 10f)
+        lineTo(2f, 16f)
+        curveTo(2f, 16.6f, 2.4f, 17f, 3f, 17f)
+        lineTo(5f, 17f)
+        lineTo(5f, 21f)
+        lineTo(19f, 21f)
+        lineTo(19f, 17f)
+        lineTo(21f, 17f)
+        curveTo(21.6f, 17f, 22f, 16.6f, 22f, 16f)
+        lineTo(22f, 10f)
+        curveTo(22f, 9.4f, 21.6f, 9f, 21f, 9f)
+        close()
+    }
+
+    // 12. VolumeUp (TTS Play)
+    val VolumeUp: ImageVector = buildIcon("VolumeUp") {
+        moveTo(3f, 9f)
+        lineTo(3f, 15f)
+        lineTo(7f, 15f)
+        lineTo(12f, 20f)
+        lineTo(12f, 4f)
+        lineTo(7f, 9f)
+        close()
+        moveTo(16.5f, 12f)
+        curveTo(16.5f, 10.2f, 15.5f, 8.7f, 14f, 8f)
+        lineTo(14f, 16f)
+        curveTo(15.5f, 15.3f, 16.5f, 13.8f, 16.5f, 12f)
+        close()
+        moveTo(14f, 3.2f)
+        lineTo(14f, 5.3f)
+        curveTo(16.9f, 6.1f, 19f, 8.8f, 19f, 12f)
+        curveTo(19f, 15.2f, 16.9f, 17.9f, 14f, 18.7f)
+        lineTo(14f, 20.8f)
+        curveTo(18f, 19.9f, 21f, 16.3f, 21f, 12f)
+        curveTo(21f, 7.7f, 18f, 4.1f, 14f, 3.2f)
+        close()
+    }
+
+    // 13. Stop / StopAudio
+    val Stop: ImageVector = buildIcon("Stop") {
+        moveTo(6f, 6f)
+        lineTo(18f, 6f)
+        lineTo(18f, 18f)
+        lineTo(6f, 18f)
+        close()
+    }
+
+    // 14. GpsFixed (Lokasi Presisi)
+    val GpsFixed: ImageVector = buildIcon("GpsFixed") {
+        moveTo(12f, 8f)
+        curveTo(9.8f, 8f, 8f, 9.8f, 8f, 12f)
+        curveTo(8f, 14.2f, 9.8f, 16f, 12f, 16f)
+        curveTo(14.2f, 16f, 16f, 14.2f, 16f, 12f)
+        curveTo(16f, 9.8f, 14.2f, 8f, 12f, 8f)
+        close()
+        moveTo(20.9f, 11f)
+        curveTo(20.5f, 6.6f, 17.4f, 3.5f, 13f, 3.1f)
+        lineTo(13f, 1f)
+        lineTo(11f, 1f)
+        lineTo(11f, 3.1f)
+        curveTo(6.6f, 3.5f, 3.5f, 6.6f, 3.1f, 11f)
+        lineTo(1f, 11f)
+        lineTo(1f, 13f)
+        lineTo(3.1f, 13f)
+        curveTo(3.5f, 17.4f, 6.6f, 20.5f, 11f, 20.9f)
+        lineTo(11f, 23f)
+        lineTo(13f, 23f)
+        lineTo(13f, 20.9f)
+        curveTo(17.4f, 20.5f, 20.5f, 17.4f, 20.9f, 13f)
+        lineTo(23f, 13f)
+        lineTo(23f, 11f)
+        close()
+        moveTo(12f, 19f)
+        curveTo(8.1f, 19f, 5f, 15.9f, 5f, 12f)
+        curveTo(5f, 8.1f, 8.1f, 5f, 12f, 5f)
+        curveTo(15.9f, 5f, 19f, 8.1f, 19f, 12f)
+        curveTo(19f, 15.9f, 15.9f, 19f, 12f, 19f)
+        close()
+    }
+
+    // 15. BugReport (Patologi Penyakit)
+    val BugReport: ImageVector = buildIcon("BugReport") {
+        moveTo(20f, 8f)
+        lineTo(17.2f, 8f)
+        curveTo(16.7f, 6.8f, 15.9f, 5.8f, 14.8f, 5.2f)
+        lineTo(16f, 4f)
+        lineTo(14.6f, 2.6f)
+        lineTo(13f, 4.2f)
+        curveTo(12.7f, 4.1f, 12.3f, 4f, 12f, 4f)
+        curveTo(11.7f, 4f, 11.3f, 4.1f, 11f, 4.2f)
+        lineTo(9.4f, 2.6f)
+        lineTo(8f, 4f)
+        lineTo(9.2f, 5.2f)
+        curveTo(8.1f, 5.8f, 7.3f, 6.8f, 6.8f, 8f)
+        lineTo(4f, 8f)
+        lineTo(4f, 10f)
+        lineTo(6.3f, 10f)
+        curveTo(6.1f, 10.6f, 6f, 11.3f, 6f, 12f)
+        lineTo(4f, 12f)
+        lineTo(4f, 14f)
+        lineTo(6f, 14f)
+        curveTo(6f, 14.7f, 6.1f, 15.4f, 6.3f, 16f)
+        lineTo(4f, 16f)
+        lineTo(4f, 18f)
+        lineTo(6.8f, 18f)
+        curveTo(8.2f, 20.4f, 10.9f, 22f, 14f, 22f)
+        curveTo(17.1f, 22f, 19.8f, 20.4f, 21.2f, 18f)
+        lineTo(24f, 18f)
+        lineTo(24f, 16f)
+        lineTo(21.7f, 16f)
+        curveTo(21.9f, 15.4f, 22f, 14.7f, 22f, 14f)
+        lineTo(24f, 14f)
+        lineTo(24f, 12f)
+        lineTo(22f, 12f)
+        curveTo(22f, 11.3f, 21.9f, 10.6f, 21.7f, 10f)
+        lineTo(24f, 10f)
+        close()
+        moveTo(14f, 16f)
+        lineTo(10f, 16f)
+        lineTo(10f, 14f)
+        lineTo(14f, 14f)
+        close()
+        moveTo(14f, 12f)
+        lineTo(10f, 12f)
+        lineTo(10f, 10f)
+        lineTo(14f, 10f)
+        close()
+    }
+
+    // 16. Shield (Sertifikasi / Keamanan Anti-Cheat)
+    val Shield: ImageVector = buildIcon("Shield") {
+        moveTo(12f, 1f)
+        lineTo(3f, 5f)
+        lineTo(3f, 11f)
+        curveTo(3f, 16.5f, 6.8f, 21.7f, 12f, 23f)
+        curveTo(17.2f, 21.7f, 21f, 16.5f, 21f, 11f)
+        lineTo(21f, 5f)
+        close()
+        moveTo(12f, 11.9f)
+        lineTo(19f, 11.9f)
+        curveTo(18.5f, 15.9f, 15.7f, 19.5f, 12f, 20.9f)
+        close()
+    }
+
+    // 17. Science (Uji Laboratorium & Stokes)
+    val Science: ImageVector = buildIcon("Science") {
+        moveTo(13f, 11.3f)
+        lineTo(13f, 5f)
+        lineTo(15f, 5f)
+        lineTo(15f, 3f)
+        lineTo(9f, 3f)
+        lineTo(9f, 5f)
+        lineTo(11f, 5f)
+        lineTo(11f, 11.3f)
+        lineTo(4.6f, 20.3f)
+        curveTo(4.2f, 20.9f, 4.6f, 22f, 5.4f, 22f)
+        lineTo(18.6f, 22f)
+        curveTo(19.4f, 22f, 19.8f, 20.9f, 19.4f, 20.3f)
+        close()
+        moveTo(7.7f, 18f)
+        lineTo(11.1f, 13f)
+        lineTo(12.9f, 13f)
+        lineTo(16.3f, 18f)
+        close()
+    }
+
+    // 18. CheckCircle
+    val CheckCircle: ImageVector = buildIcon("CheckCircle") {
+        moveTo(12f, 2f)
+        curveTo(6.5f, 2f, 2f, 6.5f, 2f, 12f)
+        curveTo(2f, 17.5f, 6.5f, 22f, 12f, 22f)
+        curveTo(17.5f, 22f, 22f, 17.5f, 22f, 12f)
+        curveTo(22f, 6.5f, 17.5f, 2f, 12f, 2f)
+        close()
+        moveTo(10f, 16.6f)
+        lineTo(5.4f, 12f)
+        lineTo(6.8f, 10.6f)
+        lineTo(10f, 13.8f)
+        lineTo(17.2f, 6.6f)
+        lineTo(18.6f, 8f)
+        close()
+    }
+
+    // 19. Warning
+    val Warning: ImageVector = buildIcon("Warning") {
+        moveTo(1f, 21f)
+        lineTo(23f, 21f)
+        lineTo(12f, 2f)
+        close()
+        moveTo(13f, 18f)
+        lineTo(11f, 18f)
+        lineTo(11f, 16f)
+        lineTo(13f, 16f)
+        close()
+        moveTo(13f, 14f)
+        lineTo(11f, 14f)
+        lineTo(11f, 10f)
+        lineTo(13f, 10f)
+        close()
+    }
+
+    // 20. Add
+    val Add: ImageVector = buildIcon("Add") {
+        moveTo(19f, 13f)
+        lineTo(13f, 13f)
+        lineTo(13f, 19f)
+        lineTo(11f, 19f)
+        lineTo(11f, 13f)
+        lineTo(5f, 13f)
+        lineTo(5f, 11f)
+        lineTo(11f, 11f)
+        lineTo(11f, 5f)
+        lineTo(13f, 5f)
+        lineTo(13f, 11f)
+        lineTo(19f, 11f)
+        close()
+    }
+
+    // 21. Remove
+    val Remove: ImageVector = buildIcon("Remove") {
+        moveTo(19f, 13f)
+        lineTo(5f, 13f)
+        lineTo(5f, 11f)
+        lineTo(19f, 11f)
+        close()
+    }
+
+    // 22. Timer
+    val Timer: ImageVector = buildIcon("Timer") {
+        moveTo(15f, 1f)
+        lineTo(9f, 1f)
+        lineTo(9f, 3f)
+        lineTo(15f, 3f)
+        close()
+        moveTo(12f, 6f)
+        curveTo(7.6f, 6f, 4f, 9.6f, 4f, 14f)
+        curveTo(4f, 18.4f, 7.6f, 22f, 12f, 22f)
+        curveTo(16.4f, 22f, 20f, 18.4f, 20f, 14f)
+        curveTo(20f, 9.6f, 16.4f, 6f, 12f, 6f)
+        close()
+        moveTo(12f, 20f)
+        curveTo(8.7f, 20f, 6f, 17.3f, 6f, 14f)
+        curveTo(6f, 10.7f, 8.7f, 8f, 12f, 8f)
+        curveTo(15.3f, 8f, 18f, 10.7f, 18f, 14f)
+        curveTo(18f, 17.3f, 15.3f, 20f, 12f, 20f)
+        close()
+        moveTo(13f, 14f)
+        lineTo(13f, 9f)
+        lineTo(11f, 9f)
+        lineTo(11f, 15f)
+        lineTo(16f, 17.5f)
+        lineTo(17f, 15.8f)
+        close()
+    }
+
+    // 23. Camera
+    val Camera: ImageVector = buildIcon("Camera") {
+        moveTo(12f, 15f)
+        curveTo(10.3f, 15f, 9f, 13.7f, 9f, 12f)
+        curveTo(9f, 10.3f, 10.3f, 9f, 12f, 9f)
+        curveTo(13.7f, 9f, 15f, 10.3f, 15f, 12f)
+        curveTo(15f, 13.7f, 13.7f, 15f, 12f, 15f)
+        close()
+        moveTo(20f, 4f)
+        lineTo(16.8f, 4f)
+        lineTo(15f, 2f)
+        lineTo(9f, 2f)
+        lineTo(7.2f, 4f)
+        lineTo(4f, 4f)
+        curveTo(2.9f, 4f, 2f, 4.9f, 2f, 6f)
+        lineTo(2f, 18f)
+        curveTo(2f, 19.1f, 2.9f, 20f, 4f, 20f)
+        lineTo(20f, 20f)
+        curveTo(21.1f, 20f, 22f, 19.1f, 22f, 18f)
+        lineTo(22f, 6f)
+        curveTo(22f, 4.9f, 21.1f, 4f, 20f, 4f)
+        close()
+        moveTo(12f, 17f)
+        curveTo(9.2f, 17f, 7f, 14.8f, 7f, 12f)
+        curveTo(7f, 9.2f, 9.2f, 7f, 12f, 7f)
+        curveTo(14.8f, 7f, 17f, 9.2f, 17f, 12f)
+        curveTo(17f, 14.8f, 14.8f, 17f, 12f, 17f)
+        close()
+    }
+
+    // 24. FlashOn
+    val FlashOn: ImageVector = buildIcon("FlashOn") {
+        moveTo(7f, 2f)
+        lineTo(17f, 2f)
+        lineTo(13f, 10f)
+        lineTo(18f, 10f)
+        lineTo(7f, 22f)
+        lineTo(10f, 13f)
+        lineTo(5f, 13f)
+        close()
+    }
+
+    // 25. TrendingUp
+    val TrendingUp: ImageVector = buildIcon("TrendingUp") {
+        moveTo(16f, 6f)
+        lineTo(18.3f, 8.3f)
+        lineTo(13.4f, 13.2f)
+        lineTo(9.4f, 9.2f)
+        lineTo(2f, 16.6f)
+        lineTo(3.4f, 18f)
+        lineTo(9.4f, 12f)
+        lineTo(13.4f, 16f)
+        lineTo(19.7f, 9.7f)
+        lineTo(22f, 12f)
+        lineTo(22f, 6f)
+        close()
+    }
+
+    // 26. Save
+    val Save: ImageVector = buildIcon("Save") {
+        moveTo(17f, 3f)
+        lineTo(5f, 3f)
+        curveTo(3.9f, 3f, 3f, 3.9f, 3f, 5f)
+        lineTo(3f, 19f)
+        curveTo(3f, 20.1f, 3.9f, 21f, 5f, 21f)
+        lineTo(19f, 21f)
+        curveTo(20.1f, 21f, 21f, 20.1f, 21f, 19f)
+        lineTo(21f, 7f)
+        close()
+        moveTo(12f, 19f)
+        curveTo(10.3f, 19f, 9f, 17.7f, 9f, 16f)
+        curveTo(9f, 14.3f, 10.3f, 13f, 12f, 13f)
+        curveTo(13.7f, 13f, 15f, 14.3f, 15f, 16f)
+        curveTo(15f, 17.7f, 13.7f, 19f, 12f, 19f)
+        close()
+        moveTo(15f, 9f)
+        lineTo(5f, 9f)
+        lineTo(5f, 5f)
+        lineTo(15f, 5f)
+        close()
+    }
+
+    // 27. Layers
+    val Layers: ImageVector = buildIcon("Layers") {
+        moveTo(11.99f, 18.54f)
+        lineTo(4.37f, 12.62f)
+        lineTo(3f, 13.68f)
+        lineTo(11.99f, 20.67f)
+        lineTo(21f, 13.68f)
+        lineTo(19.63f, 12.62f)
+        close()
+        moveTo(12f, 16f)
+        lineTo(19.63f, 10.08f)
+        lineTo(21f, 9.02f)
+        lineTo(12f, 2f)
+        lineTo(3f, 9.02f)
+        lineTo(4.37f, 10.08f)
+        close()
+    }
+
+    // 28. Straighten / Level
+    val Straighten: ImageVector = buildIcon("Straighten") {
+        moveTo(21f, 6f)
+        lineTo(3f, 6f)
+        curveTo(1.9f, 6f, 1f, 6.9f, 1f, 8f)
+        lineTo(1f, 16f)
+        curveTo(1f, 17.1f, 1.9f, 18f, 3f, 18f)
+        lineTo(21f, 18f)
+        curveTo(22.1f, 18f, 23f, 17.1f, 23f, 16f)
+        lineTo(23f, 8f)
+        curveTo(23f, 6.9f, 22.1f, 6f, 21f, 6f)
+        close()
+        moveTo(21f, 16f)
+        lineTo(3f, 16f)
+        lineTo(3f, 8f)
+        lineTo(5f, 8f)
+        lineTo(5f, 12f)
+        lineTo(7f, 12f)
+        lineTo(7f, 8f)
+        lineTo(9f, 8f)
+        lineTo(9f, 11f)
+        lineTo(11f, 11f)
+        lineTo(11f, 8f)
+        lineTo(13f, 8f)
+        lineTo(13f, 12f)
+        lineTo(15f, 12f)
+        lineTo(15f, 8f)
+        lineTo(17f, 8f)
+        lineTo(17f, 11f)
+        lineTo(19f, 11f)
+        lineTo(19f, 8f)
+        lineTo(21f, 8f)
+        close()
+    }
+}

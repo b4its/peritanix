@@ -28,25 +28,25 @@ enum class BasemapStyle(
     OPEN_STREET_MAP(
         id = "osm",
         displayName = "OpenStreetMap Standar",
-        icon = "🗺️",
+        icon = "map",
         urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     ),
     CARTO_VOYAGER(
         id = "carto",
         displayName = "Topografi Desa (Carto)",
-        icon = "🏡",
+        icon = "village",
         urlTemplate = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
     ),
     SATELLITE_AERIAL(
         id = "satellite",
         displayName = "Citra Satelit Lahan",
-        icon = "🛰️",
+        icon = "satellite",
         urlTemplate = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     ),
     TOPOGRAPHIC(
         id = "opentopo",
         displayName = "Kontur & Elevasi",
-        icon = "🏔️",
+        icon = "topo",
         urlTemplate = "https://tile.opentopomap.org/{z}/{x}/{y}.png"
     )
 }

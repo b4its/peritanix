@@ -30,6 +30,7 @@ build/
 **/.gradle/
 mobile/.gradle/
 mobile/.host-cache/
+**/.host-cache/
 mobile/build/
 mobile/**/build/
 mobile/**/.kotlin/
