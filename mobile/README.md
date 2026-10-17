@@ -11,7 +11,7 @@ All operations are containerized via Docker and orchestrated through the root Ma
 
 ```bash
 make mobile-up      # Start the JDK + Android toolchain container
-make mobile-test    # 102 unit tests (40 pure JVM + 62 Android unit tests)
+make mobile-test    # 112 unit tests (40 pure JVM + 72 Android unit tests)
 make mobile-run     # Physics smoke CLI (prints calorimetry, TWI, GDD, cert)
 make mobile-build   # Assemble Android debug APK via Docker (requires mounted Android SDK)
 make mobile-apk     # Copy built APK to ./dist/app-debug.apk (~13 MB)
@@ -80,11 +80,14 @@ mobile/
 └── android/                             # Android application module
     ├── app/src/main/java/id/peritanix/dape/android/
     │   ├── ui/
-    │   │   ├── MainActivity.kt          # Compose UI entrypoint & navigation tabs
-    │   │   ├── LahanScreen.kt           # GPS polygon tracker, 2D contour grid, water-level lock, & Stokes
-    │   │   ├── DiagnosticsScreen.kt     # Trans-illumination, ooze test, pericarp lock, & 72h microclimate EWS
+    │   │   ├── MainActivity.kt          # Compose UI entrypoint & navigation tabs (Lahan, Diag, Panen, Peta GIS, Sync)
+    │   │   ├── LahanScreen.kt           # GPS polygon tracker, interactive farm map preview, water-level lock, & Stokes
+    │   │   ├── DiagnosticsScreen.kt     # Trans-illumination, ooze test, pericarp lock, 72h EWS, & spatial infection map
+    │   │   ├── FarmMapScreen.kt         # Full-screen interactive GIS farm map (polygon, TWI grid, disease markers, vectors)
     │   │   ├── HarvestScreen.kt         # Pod morphology, Archimedes density, Asas Black TTS, anti-cheat QR
-    │   │   └── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
+    │   │   ├── SyncScreen.kt            # CRDT sync queue inspection & force sync trigger
+    │   │   └── components/
+    │   │       └── InteractiveFarmMap.kt # Pure-offline vector GIS canvas, multi-layer overlays, & tap inspector
     │   ├── core/
     │   │   ├── crypto/                  # AndroidKeystoreEd25519Bridge, QrMatrixGenerator (2D visual QR)
     │   │   ├── hardware/                # GpsPolygonTracker, WaterLevelOverlayController, BluetoothThermalPrinter, IndonesianTtsVoiceAdvisor, Camera2, Clinometer
@@ -99,7 +102,7 @@ mobile/
     │   ├── burst_aligner.cpp            # ORB feature matching & homography warp
     │   ├── sediment_edge_detector.cpp   # Canny edge & Hough line boundary detection
     │   └── archimedes_float_counter.cpp # HSV color mask & contour centroid counting
-    └── app/src/test/java/               # Android unit tests (62 tests)
+    └── app/src/test/java/               # Android unit tests (72 tests)
         └── id/peritanix/dape/android/
             ├── AndroidPhysicsCoreTest.kt
             ├── AndroidNativeBridgesTest.kt
@@ -117,7 +120,8 @@ mobile/
             ├── AndroidPodMorphologyAndAntiCheatTest.kt
             ├── AndroidModelInferencePipelineTest.kt
             ├── AndroidIndonesianTtsVoiceAdvisorTest.kt
-            └── AndroidQrAndThermalPrintTest.kt
+            ├── AndroidQrAndThermalPrintTest.kt
+            └── AndroidInteractiveMapTest.kt
 ```
 
 ## Cross-Platform Determinism Guarantee
