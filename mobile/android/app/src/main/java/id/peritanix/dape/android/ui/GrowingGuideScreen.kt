@@ -36,6 +36,7 @@ import id.peritanix.dape.android.core.calendar.ActivityCalendar
 import id.peritanix.dape.android.core.guide.ChiliGrowingGuide
 import id.peritanix.dape.android.core.guide.TreatmentCameraVerifier
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
+import id.peritanix.dape.android.core.missions.DailyMissions
 import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -840,6 +841,50 @@ fun GrowingGuideScreen(
                             trackColor = MaterialTheme.colorScheme.surface
                         )
                     }
+                }
+            }
+        }
+
+        // --- Card Shortcut: Misi Harian Mutu Terbaik Cabai ---
+        if (selectedFilterTab != 4) {
+            val guideDailyPlan = remember(currentHst) { DailyMissions.planFor(LocalDate.now(), currentHst) }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToTab?.invoke(12) },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Misi Mutu Harian (${guideDailyPlan.stageTitle})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            "${guideDailyPlan.missions.size} misi harian terarah untuk mencapai Grade A+ Ekspor pada fase ini.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                    Icon(AppIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(20.dp))
                 }
             }
         }

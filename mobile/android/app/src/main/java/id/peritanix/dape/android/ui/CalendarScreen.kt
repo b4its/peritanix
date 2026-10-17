@@ -23,8 +23,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import id.peritanix.dape.android.core.calendar.ActivityCalendar
+import id.peritanix.dape.android.core.missions.DailyMissions
 import id.peritanix.dape.android.data.FarmActivityEntity
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -742,6 +744,162 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
                                         )
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // 3B. Misi Harian Kualitas Cabai pada Tanggal Terpilih
+        // =====================================================================
+        val selectedEpochDay = remember(selectedDay) { selectedDay.toEpochDay() }
+        var dayMissionsCompleted by remember { mutableStateOf<Set<String>>(emptySet()) }
+        val dayMissionsPlan = remember(selectedDay) {
+            val diffDays = (selectedDay.toEpochDay() - today.toEpochDay()).toInt()
+            val computedHst = (45 + diffDays).coerceIn(-21, 120)
+            DailyMissions.planFor(selectedDay, computedHst)
+        }
+        val dayQualityScore = remember(dayMissionsPlan, dayMissionsCompleted) {
+            DailyMissions.dailyQualityScore(dayMissionsPlan, dayMissionsCompleted)
+        }
+
+        LaunchedEffect(selectedEpochDay) {
+            queue?.let { q ->
+                val done = q.completedMissionsSuspend(selectedEpochDay)
+                dayMissionsCompleted = done
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(Color(0xFFE65100), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                        Column {
+                            Text(
+                                "Misi Kualitas Cabai (${dayMissionsPlan.stageTitle})",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "${dayMissionsPlan.phaseName} · Skor Mutu: $dayQualityScore%",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "${dayMissionsCompleted.size}/${dayMissionsPlan.missions.size} Selesai",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                LinearProgressIndicator(
+                    progress = { dayQualityScore / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                )
+
+                // List of missions for this day
+                dayMissionsPlan.missions.forEach { mission ->
+                    val isDone = mission.id in dayMissionsCompleted
+                    Surface(
+                        color = if (isDone) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = isDone,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        queue?.markMissionDone(selectedEpochDay, mission.id)
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "Misi Mutu Selesai",
+                                            message = "${mission.title} dicatat di kalender.",
+                                            type = NotificationType.SUCCESS,
+                                            postSystemNotification = false
+                                        )
+                                    } else {
+                                        queue?.unmarkMissionDone(selectedEpochDay, mission.id)
+                                    }
+                                    dayMissionsCompleted = if (checked) dayMissionsCompleted + mission.id else dayMissionsCompleted - mission.id
+                                },
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            mission.qualityTarget.title.split(" ").first(),
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                    Text(
+                                        mission.title,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                        color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    mission.qualityImpact,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFE65100),
+                                    maxLines = 1
+                                )
                             }
                         }
                     }

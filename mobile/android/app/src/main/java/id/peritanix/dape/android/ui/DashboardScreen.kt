@@ -17,7 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
+import id.peritanix.dape.android.core.missions.DailyMissions
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
@@ -26,7 +28,12 @@ import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
 import id.peritanix.dape.android.ui.components.NotificationType
 import id.peritanix.dape.android.ui.components.PentasixNotificationHub
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 /**
  * Halaman Dashboard Utama Pentasix.
@@ -80,6 +87,31 @@ fun DashboardScreen(
             diagnosisCount = it.diagnosisCount().coerceAtLeast(4)
             pendingSyncCount = it.pendingCount()
         }
+    }
+
+    // Daily Quality Missions state for Dashboard
+    val today = remember { LocalDate.now() }
+    val epochDay = remember { today.toEpochDay() }
+    val dashboardHst = 45 // fase pembungaan / kritis pericarp & kualitas
+    var completedMissions by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val missionsPlan = remember { DailyMissions.planFor(today, dashboardHst) }
+    val qualityScore = remember(completedMissions) { DailyMissions.dailyQualityScore(missionsPlan, completedMissions) }
+    val exportGrade = remember(qualityScore) { DailyMissions.exportGradeBadge(qualityScore) }
+    val nextFocusMission = remember(completedMissions) { DailyMissions.nextUnfinished(missionsPlan, completedMissions) }
+    val pillarProgress = remember(completedMissions) { DailyMissions.getPillarProgress(missionsPlan, completedMissions) }
+
+    fun reloadMissions() {
+        queue?.let { q ->
+            CoroutineScope(Dispatchers.IO).launch {
+                val done = q.completedMissionsSuspend(epochDay)
+                withContext(Dispatchers.Main.immediate) {
+                    completedMissions = done
+                }
+            }
+        }
+    }
+    LaunchedEffect(epochDay) {
+        reloadMissions()
     }
 
     // Default Farm Geometry for Dashboard Preview
@@ -516,7 +548,211 @@ fun DashboardScreen(
         }
 
         // =====================================================================
-        // 3. Mini Integrated GIS Map Card
+        // 3. Kartu Misi Harian Kualitas Cabai Terbaik (Grade A+ Ekspor)
+        // =====================================================================
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when {
+                    qualityScore >= 90 -> Color(0xFF1B5E20)
+                    qualityScore >= 70 -> Color(0xFF2E7D32)
+                    qualityScore >= 40 -> Color(0xFFE65100)
+                    else -> Color(0xFFC2185B)
+                }
+            ),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Column {
+                            Text(
+                                "Misi Kualitas Cabai Hari Ini",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White
+                            )
+                            Text(
+                                exportGrade,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            "$qualityScore%",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                LinearProgressIndicator(
+                    progress = { qualityScore / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f)
+                )
+
+                // 5-Pillar Matrix Mini
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    pillarProgress.entries.take(4).forEach { (target, counts) ->
+                        val (done, total) = counts
+                        val isComplete = done == total && total > 0
+                        Surface(
+                            color = if (isComplete) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    target.title.split(" ").first(),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    "$done/$total",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isComplete) Color(0xFFC8E6C9) else Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Interactive Next Focus Mission or Completion Message
+                if (nextFocusMission != null) {
+                    val isDone = nextFocusMission.id in completedMissions
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = isDone,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        queue?.markMissionDone(epochDay, nextFocusMission.id)
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "Misi Mutu Selesai",
+                                            message = "${nextFocusMission.title} — skor kualitas meningkat.",
+                                            type = NotificationType.SUCCESS,
+                                            postSystemNotification = false
+                                        )
+                                    } else {
+                                        queue?.unmarkMissionDone(epochDay, nextFocusMission.id)
+                                    }
+                                    completedMissions = if (checked) completedMissions + nextFocusMission.id else completedMissions - nextFocusMission.id
+                                    reloadMissions()
+                                }
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Fokus: ${nextFocusMission.title}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF1B5E20)
+                                )
+                                Text(
+                                    nextFocusMission.qualityImpact,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF333333),
+                                    maxLines = 2
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Text(
+                                "Seluruh misi mutu cabai hari ini telah tuntas 100%!",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // Button to jump to Tab 12
+                Button(
+                    onClick = { onNavigateToTab(12) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                ) {
+                    Text(
+                        "Kelola Semua Misi Kualitas (${missionsPlan.missions.size}) ➜",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE65100)
+                    )
+                }
+            }
+        }
+
+        // =====================================================================
+        // 4. Mini Integrated GIS Map Card
         // =====================================================================
         Card(
             modifier = Modifier.fillMaxWidth(),
