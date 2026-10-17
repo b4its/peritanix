@@ -351,5 +351,75 @@ class DailyMissionsTest {
             }
         }
     }
+
+    @Test
+    fun testPreFlightChecklists() {
+        listOf(-10, 20, 45, 75, 100).forEach { hst ->
+            val plan = DailyMissions.planFor(today, hst)
+            plan.missions.forEach { m ->
+                val preflight = DailyMissions.getPreFlightChecklist(m)
+                assertTrue("preflight should not be empty for ${m.id}", preflight.isNotEmpty())
+                assertTrue("preflight should have at least 2 items for ${m.id}", preflight.size >= 2)
+            }
+        }
+    }
+
+    @Test
+    fun testMixingGuideWalesAndJarTest() {
+        val steps = DailyMissions.MixingGuide.walesSteps
+        assertEquals(5, steps.size)
+        assertEquals(listOf("W", "A", "L", "E", "S"), steps.map { it.code })
+        assertTrue(DailyMissions.MixingGuide.jarTestGuide.contains("Jar Compatibility Test"))
+        assertTrue(DailyMissions.MixingGuide.jarTestGuide.contains("5 menit"))
+    }
+
+    @Test
+    fun testStepProgressCachePersistence() {
+        val missionId = "test-mission-cache-123"
+        DailyMissions.clearStepProgress(missionId)
+        assertTrue(DailyMissions.getCheckedSteps(missionId).isEmpty())
+
+        DailyMissions.setStepChecked(missionId, 0, true)
+        DailyMissions.setStepChecked(missionId, 2, true)
+        assertEquals(setOf(0, 2), DailyMissions.getCheckedSteps(missionId))
+
+        DailyMissions.setStepChecked(missionId, 0, false)
+        assertEquals(setOf(2), DailyMissions.getCheckedSteps(missionId))
+
+        DailyMissions.setAllStepsChecked(missionId, 5, true)
+        assertEquals((0..4).toSet(), DailyMissions.getCheckedSteps(missionId))
+
+        DailyMissions.setAllStepsChecked(missionId, 5, false)
+        assertTrue(DailyMissions.getCheckedSteps(missionId).isEmpty())
+    }
+
+    @Test
+    fun testNewTtsAdvisorMethods() {
+        val stepScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeStepScript(
+            stepNumber = 2,
+            totalSteps = 5,
+            stepText = "Larutkan 3 gram MKP",
+            safetyReminder = "Gunakan sarung tangan nitril"
+        )
+        assertTrue(stepScript.contains("Langkah 2 dari 5"))
+        assertTrue(stepScript.contains("Larutkan 3 gram MKP"))
+        assertTrue(stepScript.contains("Gunakan sarung tangan nitril"))
+
+        val preflightScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composePreFlightScript(
+            safetyGear = listOf("Masker", "Sepatu Bot"),
+            missionTitle = "Semprot Kalsium Nitrat"
+        )
+        assertTrue(preflightScript.contains("Semprot Kalsium Nitrat"))
+        assertTrue(preflightScript.contains("Masker, Sepatu Bot"))
+
+        val mixingScript = id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor.composeMixingGuideScript(
+            tankLiters = 16,
+            dosePerTank = "48",
+            unit = "gram"
+        )
+        assertTrue(mixingScript.contains("16 Liter"))
+        assertTrue(mixingScript.contains("48 gram"))
+        assertTrue(mixingScript.contains("Urutan baku"))
+    }
 }
 

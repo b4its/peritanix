@@ -147,4 +147,42 @@ object IndonesianTtsVoiceAdvisor {
         return "Panduan Standar Operasional: $title. Sasaran pilar mutu: $qualityTarget. " +
             timingDesc + safetyDesc + durationDesc + stepsDesc + mistakesDesc + troubleshootingDesc + signsDesc + "Target parameter terukur: $targetMetric."
     }
+
+    /**
+     * Menyusun narasi audio untuk satu langkah operasional pada mode panduan bertahap (wizard).
+     */
+    fun composeStepScript(
+        stepNumber: Int,
+        totalSteps: Int,
+        stepText: String,
+        safetyReminder: String = ""
+    ): String {
+        val safetyPart = if (safetyReminder.isNotBlank()) "Peringatan keselamatan: $safetyReminder. " else ""
+        return "Langkah $stepNumber dari $totalSteps. $stepText. $safetyPart"
+    }
+
+    /**
+     * Menyusun narasi audio untuk pemeriksaan kesiapan kerja (pre-flight checklist).
+     */
+    fun composePreFlightScript(
+        safetyGear: List<String>,
+        missionTitle: String
+    ): String {
+        val gear = if (safetyGear.isNotEmpty()) safetyGear.joinToString(", ") else "topi pelindung dan sepatu bot"
+        return "Pemeriksaan kesiapan sebelum pengerjaan misi $missionTitle. Pastikan APD lengkap telah terpasang: $gear. Periksa cuaca aman dan siapkan peralatan dalam kondisi bersih."
+    }
+
+    /**
+     * Menyusun narasi audio panduan pencampuran tangki semprot metode baku W-A-L-E-S.
+     */
+    fun composeMixingGuideScript(
+        tankLiters: Int,
+        dosePerTank: String,
+        unit: String
+    ): String {
+        return "Panduan pencampuran tangki semprot $tankLiters Liter. Dosis: $dosePerTank $unit. " +
+            "Urutan baku: Pertama, isi tangki setengahnya dengan air bersih. Kedua, larutkan tepung bila ada. " +
+            "Ketiga, tuang cairan pekat atau pupuk. Keempat, tuang cairan emulsi. " +
+            "Kelima, tambahkan perekat di akhir dan penuhi air hingga $tankLiters Liter. Aduk homogen."
+    }
 }

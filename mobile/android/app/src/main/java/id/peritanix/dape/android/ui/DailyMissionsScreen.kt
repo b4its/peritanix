@@ -70,6 +70,7 @@ fun DailyMissionsScreen(
     var expandedMissionId by remember { mutableStateOf<String?>(null) }
     var showQualityStandardDialog by remember { mutableStateOf(false) }
     var selectedMissionForDetailDialog by remember { mutableStateOf<DailyMissions.Mission?>(null) }
+    var startInWizardMode by remember { mutableStateOf(false) }
 
     // Text to Speech Engine for farmer voice guidance in the field
     var ttsInstance by remember { mutableStateOf<TextToSpeech?>(null) }
@@ -723,43 +724,64 @@ fun DailyMissionsScreen(
                         }
                     }
 
-                    // Action buttons: Expand SOP, Panduan Lengkap Modal Dialog & Context Shortcut
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(
+                    // Action buttons: Ringkasan SOP, Panduan Bertahap (Wizard), SOP Lengkap & Pintasan Hardware
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            OutlinedButton(
                                 onClick = {
                                     expandedMissionId = if (isExpanded) null else mission.id
                                 },
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier.height(28.dp)
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp).weight(1f)
                             ) {
                                 Icon(
                                     if (isExpanded) AppIcons.Close else AppIcons.Info,
                                     contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(12.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                                Spacer(Modifier.width(4.dp))
+                                Spacer(Modifier.width(3.dp))
                                 Text(
-                                    if (isExpanded) "Tutup Ringkasan" else "Ringkasan SOP",
-                                    fontSize = 11.sp,
+                                    if (isExpanded) "Tutup" else "Ringkasan",
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
 
                             FilledTonalButton(
-                                onClick = { selectedMissionForDetailDialog = mission },
+                                onClick = {
+                                    startInWizardMode = true
+                                    selectedMissionForDetailDialog = mission
+                                },
                                 shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier.height(26.dp)
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp).weight(1.1f),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = OrangePrimary.copy(alpha = 0.15f),
+                                    contentColor = OrangePrimary
+                                )
+                            ) {
+                                Icon(AppIcons.TrendingUp, contentDescription = null, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text("Bertahap", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            FilledTonalButton(
+                                onClick = {
+                                    startInWizardMode = false
+                                    selectedMissionForDetailDialog = mission
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp).weight(1f)
                             ) {
                                 Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
                                 Spacer(Modifier.width(3.dp))
-                                Text("Panduan Lengkap", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("Lengkap", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -785,11 +807,11 @@ fun DailyMissionsScreen(
                             onClick = { onNavigateToTab?.invoke(shortcutTab) },
                             shape = RoundedCornerShape(6.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                            modifier = Modifier.height(28.dp)
+                            modifier = Modifier.fillMaxWidth().height(26.dp)
                         ) {
-                            Icon(shortcutIcon, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                            Icon(shortcutIcon, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
                             Spacer(Modifier.width(4.dp))
-                            Text(shortcutLabel, fontSize = 10.sp)
+                            Text(shortcutLabel, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -841,6 +863,31 @@ fun DailyMissionsScreen(
                                         Icon(AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
                                         Spacer(Modifier.width(4.dp))
                                         Text("Dengarkan SOP Suara", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+
+                                // Pre-Flight Agronomi & Kesiapan Kerja Mandiri
+                                val preFlightChecklist = remember(mission.id) { DailyMissions.getPreFlightChecklist(mission) }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(AppIcons.Shield, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(13.dp))
+                                            Text("Kesiapan Kerja Mandiri (Pre-Flight):", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        preFlightChecklist.forEach { item ->
+                                            Row(
+                                                modifier = Modifier.padding(start = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Box(Modifier.size(4.dp).background(OrangePrimary, CircleShape))
+                                                Text(item, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -1113,16 +1160,42 @@ fun DailyMissionsScreen(
                                     }
                                 }
 
-                                // Open Full Modal Dialog Button
-                                OutlinedButton(
-                                    onClick = { selectedMissionForDetailDialog = mission },
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.fillMaxWidth().height(30.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                // Open Dialog Options
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Buka Dialog Detail SOP Penuh", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                    FilledTonalButton(
+                                        onClick = {
+                                            startInWizardMode = true
+                                            selectedMissionForDetailDialog = mission
+                                        },
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1f).height(30.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                        colors = ButtonDefaults.filledTonalButtonColors(
+                                            containerColor = OrangePrimary.copy(alpha = 0.15f),
+                                            contentColor = OrangePrimary
+                                        )
+                                    ) {
+                                        Icon(AppIcons.TrendingUp, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Spacer(Modifier.width(3.dp))
+                                        Text("Panduan Bertahap", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            startInWizardMode = false
+                                            selectedMissionForDetailDialog = mission
+                                        },
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1f).height(30.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(12.dp), tint = OrangePrimary)
+                                        Spacer(Modifier.width(3.dp))
+                                        Text("SOP Lengkap", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                    }
                                 }
                             }
                         }
@@ -1199,6 +1272,18 @@ fun DailyMissionsScreen(
         MissionDetailDialog(
             mission = detailMission,
             isCompleted = isMissionDone,
+            initialWizardMode = startInWizardMode,
+            onSaveObservationNote = { note ->
+                scope.launch {
+                    queue?.addActivitySuspend(
+                        epochDay = epochDay,
+                        kind = "MISI_MUTU",
+                        title = "${detailMission.title} (Selesai)",
+                        notes = note,
+                        landId = "Lahan Cabai"
+                    )
+                }
+            },
             onToggleCompleted = { checked ->
                 if (checked) {
                     queue?.markMissionDone(epochDay, detailMission.id)

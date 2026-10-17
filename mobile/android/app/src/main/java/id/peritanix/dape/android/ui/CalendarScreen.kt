@@ -1057,6 +1057,18 @@ fun CalendarScreen(
         MissionDetailDialog(
             mission = detail,
             isCompleted = isDone,
+            onSaveObservationNote = { note ->
+                scope.launch {
+                    queue?.addActivitySuspend(
+                        epochDay = selectedEpochDay,
+                        kind = "MISI_MUTU",
+                        title = "${detail.title} (Selesai)",
+                        notes = note,
+                        landId = "Lahan Cabai"
+                    )
+                    reload()
+                }
+            },
             onToggleCompleted = { checked ->
                 if (checked) {
                     queue?.markMissionDone(selectedEpochDay, detail.id)

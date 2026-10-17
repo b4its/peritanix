@@ -225,6 +225,94 @@ object DailyMissions {
         return plan.missions.filter { it.qualityTarget == target }
     }
 
+    // --- Step progress cache (in-memory persistence across dialog toggles & tabs) ---
+    private val stepProgressCache = mutableMapOf<String, MutableSet<Int>>()
+
+    fun getCheckedSteps(missionId: String): Set<Int> = stepProgressCache[missionId]?.toSet() ?: emptySet()
+
+    fun setStepChecked(missionId: String, stepIndex: Int, isChecked: Boolean) {
+        val set = stepProgressCache.getOrPut(missionId) { mutableSetOf() }
+        if (isChecked) set.add(stepIndex) else set.remove(stepIndex)
+    }
+
+    fun setAllStepsChecked(missionId: String, totalSteps: Int, isChecked: Boolean) {
+        val set = stepProgressCache.getOrPut(missionId) { mutableSetOf() }
+        if (isChecked) {
+            set.clear()
+            for (i in 0 until totalSteps) set.add(i)
+        } else {
+            set.clear()
+        }
+    }
+
+    fun clearStepProgress(missionId: String) {
+        stepProgressCache.remove(missionId)
+    }
+
+    // --- Panduan Urutan Pencampuran Baku & Uji Kompatibilitas Toples ---
+    data class MixingStep(
+        val code: String,
+        val stageName: String,
+        val instruction: String
+    )
+
+    object MixingGuide {
+        val walesSteps = listOf(
+            MixingStep("W", "Water (Air Bersih)", "Isi tangki semprot 50% hingga 70% dengan air bersih jernih bersuhu normal (pH 6.0 - 7.0, hindari air berlumpur)."),
+            MixingStep("A", "Agitation / WP & WDG (Tepung/Granul)", "Larutkan formulasi bubuk/tepung (WP/WDG) dalam ember kecil berisi sedikit air, aduk hingga larut sempurna tanpa gumpalan, lalu tuangkan ke tangki."),
+            MixingStep("L", "Liquid / SC & SL (Larutan/Suspensi Cair)", "Tuangkan konsentrat pupuk/pestisida cair (Kalsium, Silika, Boron, atau SL/SC) ke tangki sambil terus diaduk perlahan."),
+            MixingStep("E", "Emulsifiable Concentrates (EC)", "Tambahkan formula pekatan minyak (EC) bila ada, aduk hingga larutan membentuk emulsi susu yang homogen."),
+            MixingStep("S", "Surfactant / Adjuvant (Perekat & Perata)", "Tambahkan zat perekat/perata/penembus di tahap paling akhir, lalu tambahkan air bersih hingga batas volume tangki penuh.")
+        )
+
+        const val jarTestGuide = "Uji Toples 5 Menit (Jar Compatibility Test): Jika ingin mencampur 2 atau lebih jenis bahan, larutkan masing-masing 1 sendok teh ke dalam botol kecil 500 ml air bersih. Kocok rata dan diamkan selama 5 menit. Bila terjadi gumpalan seperti susu basi, endapan kasar di dasar, kenaikan suhu panas, atau pemisahan minyak pekat, JANGAN dicampur dalam satu tangki karena berisiko menyumbat nozel dan membakar daun cabai."
+    }
+
+    /**
+     * Menghasilkan checklist kesiapan kerja mandiri (Pre-Flight Agronomi) sebelum petani turun ke kebun.
+     */
+    fun getPreFlightChecklist(mission: Mission): List<String> {
+        val base = mutableListOf<String>()
+        if (mission.safetyGear.isNotEmpty()) {
+            base.add("Kenakan APD lengkap: ${mission.safetyGear.joinToString(", ")}")
+        } else {
+            base.add("Kenakan topi kebun dan sepatu bot keselamatan kerja")
+        }
+        when (mission.category) {
+            Category.AIR -> {
+                base.add("Periksa kelembaban tanah bedengan dengan uji remas visual atau tensiometer")
+                base.add("Pastikan air siraman jernih, bebas sedimen lumpur, dan bersuhu sejuk")
+                base.add("Periksa kelancaran saluran parit pembuangan air agar tidak terjadi genangan")
+            }
+            Category.NUTRISI -> {
+                base.add("Periksa cuaca: pastikan tidak hujan lebat dalam 2 jam ke depan")
+                base.add("Pastikan tangki semprot bersih dan nozel tidak tersumbat atau aus")
+                base.add("Takar dosis bahan dengan timbangan digital atau gelas ukur baku")
+                base.add("Gunakan metode pencampuran W-A-L-E-S dalam melarutkan bahan")
+            }
+            Category.SANITASI -> {
+                base.add("Siapkan kantong plastik khusus untuk mengisolasi bagian tanaman yang terinfeksi")
+                base.add("Sterilkan gunting pangkas atau pisau dengan alkohol 70% sebelum bekerja")
+                base.add("Pilih waktu pengerjaan saat embun daun sudah mengering untuk mencegah sebaran spora")
+            }
+            Category.INSPEKSI -> {
+                base.add("Bersihkan lensa kamera ponsel pintar dengan kain mikrofiber")
+                base.add("Pilih tanaman sampel representatif (minimal 5 titik acak pola diagonal/Z)")
+                base.add("Pastikan pencahayaan cukup dan hindari backlight langsung ke lensa")
+            }
+            Category.PANEN -> {
+                base.add("Lakukan pemetikan pada jendela turgor optimal (pukul 07:00 - 10:00 WIB)")
+                base.add("Siapkan krat plastik berventilasi bersih yang diletakkan di bawah naungan teduh")
+                base.add("Pastikan kuku pendek atau pakai sarung tangan agar kulit buah tidak terluka")
+            }
+            Category.UMUM -> {
+                base.add("Siapkan seluruh peralatan kerja pendukung dalam kondisi siap pakai")
+                base.add("Periksa kelembaban dan kerapihan mulsa di sepanjang bedengan")
+            }
+        }
+        return base
+    }
+
 // --- Individual mission templates with Complete SOP Guidance ---
 
     private fun hydrationMission(stageIdx: Int, day: Long) = Mission(
