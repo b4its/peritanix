@@ -854,6 +854,46 @@ fun DashboardScreen(
             }
         }
 
+        // Mode Riil shortcuts: camera quality detection + growing guide
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Kualitas Cabai via Kamera",
+                        message = "Deteksi kematangan & mutu buah dari foto kamera perangkat.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(8)
+                },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Kualitas (Kamera)", fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Panduan Tanam Cabai",
+                        message = "Tutorial budidaya dari bibit hingga siap panen.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(9)
+                },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.Book, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Panduan Tanam", fontSize = 12.sp)
+            }
+        }
+
         // =====================================================================
         // 6. Offline-First Sync & Cryptography Audit Status
         // =====================================================================

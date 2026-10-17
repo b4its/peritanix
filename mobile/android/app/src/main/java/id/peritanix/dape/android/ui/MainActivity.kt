@@ -16,9 +16,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import id.peritanix.dape.android.core.mode.AppMode
+import id.peritanix.dape.android.core.mode.AppModeStore
 import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.ModeBanner
+import id.peritanix.dape.android.ui.components.ModeChip
 import id.peritanix.dape.android.ui.components.PentasixNotificationBanner
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import id.peritanix.dape.android.ui.theme.PentasixTheme
@@ -50,6 +54,11 @@ fun PentasixApp(queue: SyncQueueStore) {
 
     PentasixTheme(darkTheme = isDarkTheme) {
         var tab by remember { mutableStateOf(0) }
+        val modeStore = remember { AppModeStore(context.applicationContext) }
+        var mode by remember { mutableStateOf(modeStore.load()) }
+        val toggleMode = {
+            mode = modeStore.toggle()
+        }
 
         Scaffold(
             topBar = {
@@ -88,6 +97,7 @@ fun PentasixApp(queue: SyncQueueStore) {
                         }
                     },
                     actions = {
+                        ModeChip(mode = mode, onToggle = toggleMode)
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = MaterialTheme.colorScheme.primaryContainer,
@@ -131,6 +141,8 @@ fun PentasixApp(queue: SyncQueueStore) {
                     5 -> AppIcons.Sync
                     6 -> AppIcons.Compass
                     7 -> AppIcons.WbSunny
+                    8 -> AppIcons.Camera
+                    9 -> AppIcons.Book
                     else -> AppIcons.MoreVert
                 }
                 val otherTabLabel = when (tab) {
@@ -140,6 +152,8 @@ fun PentasixApp(queue: SyncQueueStore) {
                     5 -> "Sinkron ▾"
                     6 -> "Kompas ▾"
                     7 -> "Cuaca ▾"
+                    8 -> "Kualitas ▾"
+                    9 -> "Panduan ▾"
                     else -> "Lainnya ▾"
                 }
 
@@ -377,6 +391,58 @@ fun PentasixApp(queue: SyncQueueStore) {
                                             menuExpanded = false
                                         }
                                     )
+
+                                    HorizontalDivider()
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Kualitas Cabai (Kamera)",
+                                                fontWeight = if (tab == 8) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 8) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Camera,
+                                                contentDescription = null,
+                                                tint = if (tab == 8) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 8) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 8
+                                            menuExpanded = false
+                                        }
+                                    )
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "Panduan Tanam Cabai",
+                                                fontWeight = if (tab == 9) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (tab == 9) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = AppIcons.Book,
+                                                contentDescription = null,
+                                                tint = if (tab == 9) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        },
+                                        trailingIcon = if (tab == 9) {
+                                            { Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        onClick = {
+                                            tab = 9
+                                            menuExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         },
@@ -408,16 +474,24 @@ fun PentasixApp(queue: SyncQueueStore) {
                         .fillMaxSize()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    when (tab) {
-                        0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
-                        1 -> LahanScreen(queue)
-                        2 -> DiagnosticsScreen(queue)
-                        3 -> HarvestScreen(queue)
-                        4 -> FarmMapScreen(queue)
-                        5 -> SyncScreen(queue)
-                        6 -> CompassCalibrationScreen()
-                        7 -> WeatherScreen(weatherRepo)
-                        else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                    Column(Modifier.fillMaxSize()) {
+                        ModeBanner(mode = mode, onToggle = toggleMode)
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.weight(1f)) {
+                            when (tab) {
+                                0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                                1 -> LahanScreen(queue)
+                                2 -> DiagnosticsScreen(queue)
+                                3 -> HarvestScreen(queue)
+                                4 -> FarmMapScreen(queue)
+                                5 -> SyncScreen(queue)
+                                6 -> CompassCalibrationScreen()
+                                7 -> WeatherScreen(weatherRepo)
+                                8 -> ChiliQualityScreen()
+                                9 -> GrowingGuideScreen()
+                                else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                            }
+                        }
                     }
                 }
 
