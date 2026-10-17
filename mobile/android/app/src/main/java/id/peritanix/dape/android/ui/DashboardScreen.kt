@@ -914,6 +914,24 @@ fun DashboardScreen(
                 Spacer(Modifier.width(6.dp))
                 Text("Kalender Aktivitas", fontSize = 12.sp)
             }
+            OutlinedButton(
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Misi Harian Kualitas",
+                        message = "Tuntaskan misi hari ini untuk kualitas cabai terbaik.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(12)
+                },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(AppIcons.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Misi Harian", fontSize = 12.sp)
+            }
         }
 
         // =====================================================================
