@@ -30,6 +30,7 @@ import id.peritanix.dape.android.core.missions.DailyMissions
 import id.peritanix.dape.android.data.FarmActivityEntity
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.MissionDetailDialog
 import id.peritanix.dape.android.ui.components.NotificationType
 import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,10 @@ import java.time.YearMonth
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(queue: SyncQueueStore? = null) {
+fun CalendarScreen(
+    queue: SyncQueueStore? = null,
+    onNavigateToTab: ((Int) -> Unit)? = null
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val today = remember { LocalDate.now() }
@@ -58,6 +62,9 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
     var selectedDay by remember { mutableStateOf(today) }
     var dayActivities by remember { mutableStateOf<List<FarmActivityEntity>>(emptyList()) }
     var activityDaysInMonth by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val selectedEpochDay = remember(selectedDay) { selectedDay.toEpochDay() }
+    var dayMissionsCompleted by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selectedCalendarMission by remember { mutableStateOf<DailyMissions.Mission?>(null) }
 
     // Dialog & Form State
     var showYearDialog by remember { mutableStateOf(false) }
@@ -754,8 +761,6 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
         // =====================================================================
         // 3B. Misi Harian Kualitas Cabai pada Tanggal Terpilih
         // =====================================================================
-        val selectedEpochDay = remember(selectedDay) { selectedDay.toEpochDay() }
-        var dayMissionsCompleted by remember { mutableStateOf<Set<String>>(emptySet()) }
         val dayMissionsPlan = remember(selectedDay) {
             val diffDays = (selectedDay.toEpochDay() - today.toEpochDay()).toInt()
             val computedHst = (45 + diffDays).coerceIn(-21, 120)
@@ -841,7 +846,9 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
                     Surface(
                         color = if (isDone) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedCalendarMission = mission }
                     ) {
                         Row(
                             modifier = Modifier
@@ -871,27 +878,41 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
                             )
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(4.dp)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.weight(1f, fill = false)
                                     ) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                mission.qualityTarget.title.split(" ").first(),
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
                                         Text(
-                                            mission.qualityTarget.title.split(" ").first(),
-                                            fontSize = 8.sp,
+                                            mission.title,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            fontSize = 11.sp,
+                                            textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                            color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1
                                         )
                                     }
                                     Text(
-                                        mission.title,
+                                        "SOP ➜",
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
-                                        color = if (isDone) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                                        color = Color(0xFFE65100)
                                     )
                                 }
                                 Text(
@@ -1027,6 +1048,33 @@ fun CalendarScreen(queue: SyncQueueStore? = null) {
                 }
             }
         }
+    }
+
+    // Modal Dialog: Detail Panduan Lengkap SOP Misi dari Kalender
+    if (selectedCalendarMission != null) {
+        val detail = selectedCalendarMission!!
+        val isDone = detail.id in dayMissionsCompleted
+        MissionDetailDialog(
+            mission = detail,
+            isCompleted = isDone,
+            onToggleCompleted = { checked ->
+                if (checked) {
+                    queue?.markMissionDone(selectedEpochDay, detail.id)
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Misi Mutu Selesai",
+                        message = "${detail.title} dicatat di kalender.",
+                        type = NotificationType.SUCCESS,
+                        postSystemNotification = false
+                    )
+                } else {
+                    queue?.unmarkMissionDone(selectedEpochDay, detail.id)
+                }
+                dayMissionsCompleted = if (checked) dayMissionsCompleted + detail.id else dayMissionsCompleted - detail.id
+            },
+            onDismiss = { selectedCalendarMission = null },
+            onNavigateToTab = onNavigateToTab
+        )
     }
 }
 

@@ -311,14 +311,45 @@ class DailyMissionsTest {
             targetMetric = "Tebal dinding sel > 1.8 mm",
             optimalTiming = "Pagi hari pukul 06:30 - 08:30 WIB",
             executionSteps = listOf("Takar 3 gram pupuk", "Kocorkan 200 ml ke lubang tanam"),
-            commonMistakesToAvoid = listOf("Mencampur kalsium nitrat dengan pupuk fosfat")
+            commonMistakesToAvoid = listOf("Mencampur kalsium nitrat dengan pupuk fosfat"),
+            safetyGear = listOf("Sarung tangan karet nitril", "Masker partikulat N95"),
+            durationMinutes = 45,
+            troubleshootingTip = "Jangan mencampur dengan pupuk fosfat pekat",
+            qualitySigns = "Dinding buah ovarium kokoh bebas busuk pantat"
         )
         assertTrue(sopScript.contains("Aplikasi Kalsium Nitrat"))
         assertTrue(sopScript.contains("Pericarp Tebal & Keras"))
         assertTrue(sopScript.contains("06:30 - 08:30 WIB"))
         assertTrue(sopScript.contains("Langkah 1, Takar 3 gram pupuk"))
         assertTrue(sopScript.contains("Pantangan penting: Mencampur kalsium nitrat"))
-        assertTrue(sopScript.contains("1.8 mm"))
+        assertTrue(sopScript.contains("Gunakan alat pelindung: Sarung tangan karet nitril, Masker partikulat N95"))
+        assertTrue(sopScript.contains("Durasi operasional: 45 menit"))
+        assertTrue(sopScript.contains("Solusi kendala lapangan: Jangan mencampur dengan pupuk fosfat pekat"))
+        assertTrue(sopScript.contains("Tanda kualitas fisik yang dihasilkan: Dinding buah ovarium kokoh bebas busuk pantat"))
+    }
+
+    @Test
+    fun testAllMissionsHaveCompleteSopAndSafetyGear() {
+        listOf(-10, -5, 5, 20, 30, 45, 60, 75, 90, 100, 115).forEach { hst ->
+            val plan = DailyMissions.planFor(today, hst, riskBoost = 0.5)
+            assertTrue("Plan at HST $hst has no missions", plan.missions.isNotEmpty())
+            plan.missions.forEach { mission ->
+                assertTrue("Mission ${mission.id} at HST $hst missing title", mission.title.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing detail", mission.detail.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing qualityImpact", mission.qualityImpact.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing optimalTiming", mission.optimalTiming.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing toolsAndMaterials", mission.toolsAndMaterials.isNotEmpty())
+                assertTrue("Mission ${mission.id} at HST $hst missing executionSteps", mission.executionSteps.isNotEmpty())
+                assertTrue("Mission ${mission.id} at HST $hst missing commonMistakesToAvoid", mission.commonMistakesToAvoid.isNotEmpty())
+                assertTrue("Mission ${mission.id} at HST $hst missing successVerification", mission.successVerification.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing scientificBasis", mission.scientificBasis.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing safetyGear", mission.safetyGear.isNotEmpty())
+                assertTrue("Mission ${mission.id} at HST $hst should have durationMinutes > 0 (got ${mission.durationMinutes})", mission.durationMinutes > 0)
+                assertTrue("Mission ${mission.id} at HST $hst should have non-negative dosage", mission.standardDosagePerLiter >= 0.0)
+                assertTrue("Mission ${mission.id} at HST $hst missing troubleshootingTip", mission.troubleshootingTip.isNotBlank())
+                assertTrue("Mission ${mission.id} at HST $hst missing qualitySigns", mission.qualitySigns.isNotBlank())
+            }
+        }
     }
 }
 

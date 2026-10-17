@@ -26,6 +26,7 @@ import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import id.peritanix.dape.android.ui.components.MissionDetailDialog
 import id.peritanix.dape.android.ui.components.NotificationType
 import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import kotlinx.coroutines.CoroutineScope
@@ -94,6 +95,7 @@ fun DashboardScreen(
     val epochDay = remember { today.toEpochDay() }
     val dashboardHst = 45 // fase pembungaan / kritis pericarp & kualitas
     var completedMissions by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selectedDashboardMission by remember { mutableStateOf<DailyMissions.Mission?>(null) }
     val missionsPlan = remember { DailyMissions.planFor(today, dashboardHst) }
     val qualityScore = remember(completedMissions) { DailyMissions.dailyQualityScore(missionsPlan, completedMissions) }
     val exportGrade = remember(qualityScore) { DailyMissions.exportGradeBadge(qualityScore) }
@@ -665,7 +667,9 @@ fun DashboardScreen(
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedDashboardMission = nextFocusMission }
                     ) {
                         Row(
                             modifier = Modifier
@@ -694,12 +698,25 @@ fun DashboardScreen(
                                 }
                             )
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    "Fokus: ${nextFocusMission.title}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF1B5E20)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Fokus: ${nextFocusMission.title}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF1B5E20),
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    Text(
+                                        "Panduan SOP ➜",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFE65100)
+                                    )
+                                }
                                 Text(
                                     nextFocusMission.qualityImpact,
                                     fontSize = 10.sp,
@@ -1221,5 +1238,33 @@ fun DashboardScreen(
         }
 
         Spacer(Modifier.height(8.dp))
+    }
+
+    // Modal Dialog: Detail Panduan Lengkap SOP Misi dari Dashboard
+    if (selectedDashboardMission != null) {
+        val detail = selectedDashboardMission!!
+        val isDone = detail.id in completedMissions
+        MissionDetailDialog(
+            mission = detail,
+            isCompleted = isDone,
+            onToggleCompleted = { checked ->
+                if (checked) {
+                    queue?.markMissionDone(epochDay, detail.id)
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Misi Mutu Selesai",
+                        message = "${detail.title} — skor kualitas meningkat.",
+                        type = NotificationType.SUCCESS,
+                        postSystemNotification = false
+                    )
+                } else {
+                    queue?.unmarkMissionDone(epochDay, detail.id)
+                }
+                completedMissions = if (checked) completedMissions + detail.id else completedMissions - detail.id
+                reloadMissions()
+            },
+            onDismiss = { selectedDashboardMission = null },
+            onNavigateToTab = onNavigateToTab
+        )
     }
 }

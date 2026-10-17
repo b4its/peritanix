@@ -120,9 +120,15 @@ object IndonesianTtsVoiceAdvisor {
         targetMetric: String,
         optimalTiming: String = "",
         executionSteps: List<String> = emptyList(),
-        commonMistakesToAvoid: List<String> = emptyList()
+        commonMistakesToAvoid: List<String> = emptyList(),
+        safetyGear: List<String> = emptyList(),
+        durationMinutes: Int = 0,
+        troubleshootingTip: String = "",
+        qualitySigns: String = ""
     ): String {
         val timingDesc = if (optimalTiming.isNotBlank()) "Waktu pelaksanaan optimal: $optimalTiming. " else ""
+        val safetyDesc = if (safetyGear.isNotEmpty()) "Gunakan alat pelindung: ${safetyGear.joinToString(", ")}. " else ""
+        val durationDesc = if (durationMinutes > 0) "Durasi operasional: $durationMinutes menit. " else ""
         val stepsDesc = if (executionSteps.isNotEmpty()) {
             "Langkah pengerjaan: " + executionSteps.mapIndexed { idx, s -> "Langkah ${idx + 1}, $s" }.joinToString(". ") + ". "
         } else {
@@ -131,8 +137,14 @@ object IndonesianTtsVoiceAdvisor {
         val mistakesDesc = if (commonMistakesToAvoid.isNotEmpty()) {
             "Pantangan penting: ${commonMistakesToAvoid.first()}. "
         } else ""
+        val troubleshootingDesc = if (troubleshootingTip.isNotBlank()) {
+            "Solusi kendala lapangan: $troubleshootingTip. "
+        } else ""
+        val signsDesc = if (qualitySigns.isNotBlank()) {
+            "Tanda kualitas fisik yang dihasilkan: $qualitySigns. "
+        } else ""
 
         return "Panduan Standar Operasional: $title. Sasaran pilar mutu: $qualityTarget. " +
-            timingDesc + stepsDesc + mistakesDesc + "Target parameter terukur: $targetMetric."
+            timingDesc + safetyDesc + durationDesc + stepsDesc + mistakesDesc + troubleshootingDesc + signsDesc + "Target parameter terukur: $targetMetric."
     }
 }

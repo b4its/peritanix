@@ -84,7 +84,13 @@ object DailyMissions {
         val executionSteps: List<String> = emptyList(),        // Langkah pengerjaan 1, 2, 3, 4 terstruktur
         val optimalTiming: String = "",                        // Waktu & kondisi cuaca terbaik
         val commonMistakesToAvoid: List<String> = emptyList(), // Pantangan / kesalahan yang harus dihindari
-        val successVerification: String = ""                   // Kriteria verifikasi keberhasilan fisik
+        val successVerification: String = "",                  // Kriteria verifikasi keberhasilan fisik
+        val safetyGear: List<String> = emptyList(),            // Standar APD & Keselamatan Kerja
+        val standardDosagePerLiter: Double = 0.0,              // Takaran baku per liter (untuk kalkulator tangki)
+        val dosageUnit: String = "gram",                       // Satuan dosis ("gram", "ml", "L")
+        val durationMinutes: Int = 0,                          // Durasi pengerjaan khusus (untuk stopwatch/timer)
+        val troubleshootingTip: String = "",                   // Solusi kendala lapangan (troubleshooting bila terjadi masalah)
+        val qualitySigns: String = ""                          // Tanda fisik kualitas cabai terbaik yang dihasilkan
     )
 
     /** Hasil pembangkitan untuk satu hari + fase. */
@@ -249,7 +255,11 @@ object DailyMissions {
             "Menyiram daun dan bunga mekar secara deras (menyebabkan gugur putik bunga).",
             "Membiarkan parit tergenang air lebih dari 2 jam pascapenyiraman."
         ),
-        successVerification = "Tanah lembab remah saat digenggam, turgor daun tegak segar, dan parit bebas genangan."
+        successVerification = "Tanah lembab remah saat digenggam, turgor daun tegak segar, dan parit bebas genangan.",
+        safetyGear = listOf("Topi pelindung terik matahari", "Sepatu bot kebun anti-slip"),
+        durationMinutes = 30,
+        troubleshootingTip = "Bila air menggenang lebih dari 15 menit di parit atau lubang mulsa, segera bersihkan endapan lumpur saluran pembuang dan kurangi volume kocor.",
+        qualitySigns = "Turgor sel daun tegak segar tanpa layu sementara, ovarium buah muda terhidrasi stabil bebas busuk ujung (BER)."
     )
 
     private fun inspectionMission(stageIdx: Int, day: Long) = Mission(
@@ -281,7 +291,11 @@ object DailyMissions {
             "Mengambil foto buram akibat tangan bergetar saat pengambilan gambar.",
             "Hanya memeriksa tanaman pinggir bedengan yang tidak representatif."
         ),
-        successVerification = "5 sampel tanaman tervalidasi di aplikasi dengan klorosis < 5% dan nekrosis 0%."
+        successVerification = "5 sampel tanaman tervalidasi di aplikasi dengan klorosis < 5% dan nekrosis 0%.",
+        safetyGear = listOf("Topi lapangan bertali", "Sarung tangan katun periksa"),
+        durationMinutes = 20,
+        troubleshootingTip = "Bila kamera mendeteksi daun berkerut atau bintik halus di bawah daun, gunakan fitur zoom dan periksa keberadaan koloni thrips atau tungau merah.",
+        qualitySigns = "Tajuk daun simetris bebas bercak nekrotik, pucuk tunas hijau muda segar tanpa gejala keriting atau menguning (vein clearing)."
     )
 
     // Stage 1: Persemaian (-21 s.d. 0 HST)
@@ -313,7 +327,13 @@ object DailyMissions {
             "Menggunakan dosis berlebih (> 1 g/L) yang membakar daun semai muda.",
             "Menyemprot di atas jam 09:00 saat suhu sungkup > 30°C."
         ),
-        successVerification = "Bibit berdiri tegak, daun hijau segar mengkilap tanpa gejala klorosis."
+        successVerification = "Bibit berdiri tegak, daun hijau segar mengkilap tanpa gejala klorosis.",
+        safetyGear = listOf("Masker kain/partikel", "Sarung tangan karet"),
+        standardDosagePerLiter = 0.5,
+        dosageUnit = "gram",
+        durationMinutes = 25,
+        troubleshootingTip = "Bila bibit tumbuh kurus tinggi memanjang (etiolasi), pindahkan rak semai ke posisi yang terpapar sinar matahari pagi langsung minimal 4 jam.",
+        qualitySigns = "Batang semai tebal kokoh (diameter >= 2 mm), ruas pendek internode rapat, daun hijau tua mengkilap tanpa gejala etiolasi."
     )
 
     private fun pestNetMission(day: Long) = Mission(
@@ -343,7 +363,11 @@ object DailyMissions {
             "Membiarkan pintu sungkup terbuka saat ditinggal mengambil alat.",
             "Menggunakan kasa jarang (< 40 mesh) yang masih dapat ditembus hama thrips."
         ),
-        successVerification = "Sungkup tertutup 100% kedap serangga, nol kutu kebul di dalam ruang semai."
+        successVerification = "Sungkup tertutup 100% kedap serangga, nol kutu kebul di dalam ruang semai.",
+        safetyGear = listOf("Sarung tangan kebun katun"),
+        durationMinutes = 15,
+        troubleshootingTip = "Bila terdapat celah robek pada sungkup kasa serangga, segera tambal menggunakan selotip bening atau jahitan nilon agar vektor tidak menyusup.",
+        qualitySigns = "100% bibit bebas dari infeksi virus kuning (Gemini virus) dan daun bebas koloni kutu kebul (Bemisia tabaci)."
     )
 
     private fun trichodermaSeedlingMission(day: Long) = Mission(
@@ -373,7 +397,13 @@ object DailyMissions {
             "Melarutkan dengan air PDAM berkaporit yang membunuh mikroba aktif.",
             "Mencampur bio-fungisida bersama fungisida kimia sintetis."
         ),
-        successVerification = "Seluruh baki terbasahi larutan hayati, perakaran bibit putih bersih tanpa layu."
+        successVerification = "Seluruh baki terbasahi larutan hayati, perakaran bibit putih bersih tanpa layu.",
+        safetyGear = listOf("Sarung tangan nitril", "Masker pelindung spora"),
+        standardDosagePerLiter = 5.0,
+        dosageUnit = "gram",
+        durationMinutes = 15,
+        troubleshootingTip = "Jangan mencampur Trichoderma dengan fungisida kimia sintetis; berikan jeda minimal 5 hari sebelum atau sesudah aplikasi fungisida.",
+        qualitySigns = "Sistem perakaran serabut putih lebat menjalar memenuhi lubang tray, bebas layu Fusarium dan rebah semai (damping-off)."
     )
 
     private fun hardeningOffMission(day: Long) = Mission(
@@ -403,7 +433,11 @@ object DailyMissions {
             "Membuka naungan penuh sepanjang hari secara mendadak (memicu sun-scald).",
             "Membiarkan media semai kering kerontang saat pembukaan naungan berlangsung."
         ),
-        successVerification = "Batang bibit kokoh berwarna hijau kecokelatan dan daun tidak terkulai lemas."
+        successVerification = "Batang bibit kokoh berwarna hijau kecokelatan dan daun tidak terkulai lemas.",
+        safetyGear = listOf("Topi pelindung matahari", "Termometer lingkungan"),
+        durationMinutes = 15,
+        troubleshootingTip = "Bila bibit menunjukkan layu permanen saat dijemur terik, segera tarik paranet peneduh 50% selama 1 jam dan percikkan sedikit air halus.",
+        qualitySigns = "Kutikula daun tebal berlilin, batang kemerahan liat tidak mudah patah saat dipindah tanam ke lahan terbuka."
     )
 
     private fun seedThermoSterilizationMission(day: Long) = Mission(
@@ -433,7 +467,11 @@ object DailyMissions {
             "Suhu air melampaui 53°C yang dapat mematikan daya hidup embrio benih.",
             "Suhu di bawah 48°C yang tidak efektif membunuh spora antraknosa laten."
         ),
-        successVerification = "Suhu stabil 50°C selama 15 menit, benih mengering merata dengan daya kecambah > 90%."
+        successVerification = "Suhu stabil 50°C selama 15 menit, benih mengering merata dengan daya kecambah > 90%.",
+        safetyGear = listOf("Sarung tangan tahan panas (heat-resistant)", "Termometer digital presisi"),
+        durationMinutes = 30,
+        troubleshootingTip = "Jika suhu air perendaman naik melebihi 52°C, segera tambahkan air dingin tetes demi tetes sambil diaduk cepat agar embrio benih tidak mati.",
+        qualitySigns = "Daya berkecambah > 90%, bibit bebas bawaan bakteri Xanthomonas campestris pv. vesicatoria dan virus TMV/PMMoV."
     )
 
     private fun cellTrayAerationMission(day: Long) = Mission(
@@ -463,7 +501,11 @@ object DailyMissions {
             "Menaruh baki semai langsung di atas tanah yang memicu akar menembus tanah.",
             "Merapatkan baki tanpa jarak celah sehingga terjadi kelembaban stagnan."
         ),
-        successVerification = "Ujung akar serabut tertahan rapi di dalam sel baki tanpa memanjang keluar melingkar."
+        successVerification = "Ujung akar serabut tertahan rapi di dalam sel baki tanpa memanjang keluar melingkar.",
+        safetyGear = listOf("Sarung tangan katun bibit"),
+        durationMinutes = 15,
+        troubleshootingTip = "Bila dasar tray semai lembab berlebih dan berlumut, gunakan ganjal kayu setinggi 15 cm agar sirkulasi udara bawah baki lancar.",
+        qualitySigns = "Media semai tidak berlumut hijau, perakaran mendapat pasokan oksigen prima dan tidak terjadi pembusukan akar semai."
     )
 
     // Stage 2: Vegetatif (1 s.d. 35 HST)
@@ -495,7 +537,11 @@ object DailyMissions {
             "Memangkas saat daun basah kuyup oleh embun atau hujan (memicu infeksi bakteri).",
             "Menarik tunas ke arah bawah yang merobek kulit batang utama."
         ),
-        successVerification = "Batang utama di bawah cabang Y bersih 100%, luka pangkas mengering kecokelatan rapi."
+        successVerification = "Batang utama di bawah cabang Y bersih 100%, luka pangkas mengering kecokelatan rapi.",
+        safetyGear = listOf("Sarung tangan steril lateks", "Gunting pangkas steril 70% alkohol"),
+        durationMinutes = 45,
+        troubleshootingTip = "Jika tunas ketiak sudah berkayu (> 5 mm), jangan ditarik paksa; gunakan pisau atau gunting steril agar kulit batang utama tidak terkoyak.",
+        qualitySigns = "Batang utama berbentuk 'V' kokoh, distribusi asimilasi hara fokus ke 2 cabang primer untuk buah berukuran seragam."
     )
 
     private fun nitrogenBalanceMission(day: Long) = Mission(
@@ -525,7 +571,13 @@ object DailyMissions {
             "Menggunakan pupuk Urea tunggal berlebih (membuat dinding sel sukulen tipis dan mengundang patek).",
             "Mengocorkan pupuk pekat pada media tanah yang kering kerontang."
         ),
-        successVerification = "EC larutan terkalibrasi 1,5 - 1,8 mS/cm, daun tetap tebal kaku berwarna hijau tua alami."
+        successVerification = "EC larutan terkalibrasi 1,5 - 1,8 mS/cm, daun tetap tebal kaku berwarna hijau tua alami.",
+        safetyGear = listOf("Sarung tangan karet", "Masker pelindung debu pupuk"),
+        standardDosagePerLiter = 2.5,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Bila daun berwarna hijau terlalu gelap dan melengkung seperti mangkuk, segera hentikan pupuk Urea/ZA dan kocorkan Kalsium Nitrat + Kalium Sulfat.",
+        qualitySigns = "Warna daun hijau segar proporsional (SPAD 38-44), dinding sel batang tebal, tidak memicu kerontokan bunga atau serangan antraknosa."
     )
 
     private fun silicaEpidermisMission(day: Long) = Mission(
@@ -555,7 +607,13 @@ object DailyMissions {
             "Mencampur silika pekat langsung bersama kalsium nitrat tanpa pengenceran air terlebih dahulu.",
             "Menyemprot dengan tetesan butir kasar yang mengalir terbuang ke tanah."
         ),
-        successVerification = "Permukaan daun terasa kaku berlilin saat diraba, kutikula mengkilap tanpa kerak kapur."
+        successVerification = "Permukaan daun terasa kaku berlilin saat diraba, kutikula mengkilap tanpa kerak kapur.",
+        safetyGear = listOf("Masker respirator partikel", "Kacamata pelindung (goggles)", "Sarung tangan nitril"),
+        standardDosagePerLiter = 1.5,
+        dosageUnit = "gram",
+        durationMinutes = 30,
+        troubleshootingTip = "Gunakan silika larut air dengan pH stabil; jangan campur dengan pupuk mikro ber-chelating asam kuat tanpa uji kelarutan dalam ember kecil.",
+        qualitySigns = "Kutikula daun dan kulit buah terasa kesat dan keras, sel-sel epidermis terlapisi lapisan silika biogenik tahan gigitan hama pengisap."
     )
 
     private fun yellowTrapMission(day: Long) = Mission(
@@ -585,7 +643,11 @@ object DailyMissions {
             "Memasang perangkap terlalu rendah di dalam tajuk rimbun yang menempel ke daun.",
             "Membiarkan perangkap yang kotor tertutup debu > 60% tanpa diganti."
         ),
-        successVerification = "Perangkap terpasang tegak 20 cm di atas tajuk, tangkapan kutu kebul < 2 ekor/perangkap/hari."
+        successVerification = "Perangkap terpasang tegak 20 cm di atas tajuk, tangkapan kutu kebul < 2 ekor/perangkap/hari.",
+        safetyGear = listOf("Sarung tangan sekali pakai (anti-lengket lem)"),
+        durationMinutes = 20,
+        troubleshootingTip = "Jika lem perangkap tertutup debu jalan atau bangkai serangga lebih dari 70%, oleskan lem perangkap serangga baru agar daya rekat tetap maksimal.",
+        qualitySigns = "Populasi kutu kebul, thrips, dan lalat penggorok daun terkendali di bawah ambang batas ekonomi tanpa residu kimia berlebih."
     )
 
     private fun bedSlopeClinometerMission(day: Long) = Mission(
@@ -615,7 +677,11 @@ object DailyMissions {
             "Mengukur langsung di atas mulsa bergelombang tanpa menggunakan mistar datar.",
             "Membiarkan parit buntu di ujung petak yang memicu genangan air balik."
         ),
-        successVerification = "Sudut kemiringan terukur 0,5° - 1,0°, air hujan mengalir tuntas keluar petak dalam 15 menit."
+        successVerification = "Sudut kemiringan terukur 0,5° - 1,0°, air hujan mengalir tuntas keluar petak dalam 15 menit.",
+        safetyGear = listOf("Sepatu bot kebun bergerigi anti-slip"),
+        durationMinutes = 15,
+        troubleshootingTip = "Bila kemiringan bedengan < 0,2%, buat sudetan silang pembuang air di tengah bedengan menuju parit utama agar air tidak terjebak.",
+        qualitySigns = "Drainase parit bekerja optimal saat hujan lebat, tidak ada genangan air yang memicu asfiksia akar atau Phytophthora capsici."
     )
 
     private fun canopyCeptometerMission(day: Long) = Mission(
@@ -645,7 +711,11 @@ object DailyMissions {
             "Bayangan tubuh petani menutupi sensor cahaya saat pengukuran berlangsung.",
             "Mengukur saat kondisi langit berawan mendung tebal berganti-ganti secara cepat."
         ),
-        successVerification = "Rasio transmisi cahaya tajuk > 40%, Leaf Area Index (LAI) berada pada rentang seimbang 2,5 - 3,2."
+        successVerification = "Rasio transmisi cahaya tajuk > 40%, Leaf Area Index (LAI) berada pada rentang seimbang 2,5 - 3,2.",
+        safetyGear = listOf("Topi kebun", "Tali lanyard pengaman smartphone"),
+        durationMinutes = 20,
+        troubleshootingTip = "Bila nilai LAI > 4.0 (terlalu rimbun), segera lakukan perompesan 20% daun tua di bawah cabang 'V' untuk memperbaiki sirkulasi udara.",
+        qualitySigns = "Indeks Luas Daun (LAI) ideal 3.0-3.5, sinar matahari tembus merata ke bagian dalam tajuk, menstimulasi fotosintesis bunga."
     )
 
     private fun humicAcidRootMission(day: Long) = Mission(
@@ -675,7 +745,13 @@ object DailyMissions {
             "Menggunakan asam humat berkadar rendah yang tidak larut air dan menyumbat lubang mulsa.",
             "Mencampurkan bakterisida kimia pada ember yang sama dengan inokulan hayati."
         ),
-        successVerification = "Larutan meresap ke zona rizosfer, serapan Kalsium dan Kalium terakselerasi aktif."
+        successVerification = "Larutan meresap ke zona rizosfer, serapan Kalsium dan Kalium terakselerasi aktif.",
+        safetyGear = listOf("Sarung tangan karet", "Masker debu organik"),
+        standardDosagePerLiter = 3.0,
+        dosageUnit = "gram",
+        durationMinutes = 30,
+        troubleshootingTip = "Pastikan asam humat terlarut sempurna tanpa gumpalan; saring larutan induk sebelum dimasukkan ke tangki kocor agar pipa tidak tersumbat.",
+        qualitySigns = "Kapasitas Tukar Kation (KTK) rizosfer meningkat, bulu-bulu akar aktif memanjang dan serapan hara kation K+, Ca2+, Mg2+ melonjak drastis."
     )
 
     // Stage 3: Pembungaan (36 s.d. 55 HST)
@@ -707,7 +783,13 @@ object DailyMissions {
             "Mencampur kalsium bersama pupuk berkandungan sulfat atau fosfat (terjadi endapan gipsum tak larut!).",
             "Menyemprot di siang hari saat suhu udara > 32°C."
         ),
-        successVerification = "Dinding ovarium pentil tebal padat, kejadian busuk ujung buah (BER) nol persen."
+        successVerification = "Dinding ovarium pentil tebal padat, kejadian busuk ujung buah (BER) nol persen.",
+        safetyGear = listOf("Masker respirator semprot", "Sarung tangan nitril", "Kacamata pelindung"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "gram",
+        durationMinutes = 40,
+        troubleshootingTip = "Jangan mencampur kalsium nitrat dengan pupuk fosfat pekat (seperti MKP atau SP-36) karena akan mengendap membentuk kalsium fosfat tak larut.",
+        qualitySigns = "Bunga mekar serempak tidak rontok, terbentuk tabung polen yang kuat, dan dinding ovarium buah terbentuk kokoh bebas busuk pantat (BER)."
     )
 
     private fun flowerRetentionMission(day: Long) = Mission(
@@ -737,7 +819,11 @@ object DailyMissions {
             "Membiarkan tanah mengering hingga daun layu saat fase antesis bunga.",
             "Genangan air berlebih di parit yang memicu pembentukan gas etilen perakaran."
         ),
-        successVerification = "Retensi bunga mekar menjadi pentil buah (fruit set) mencapai > 80%."
+        successVerification = "Retensi bunga mekar menjadi pentil buah (fruit set) mencapai > 80%.",
+        safetyGear = listOf("Sepatu bot kebun sol datar"),
+        durationMinutes = 25,
+        troubleshootingTip = "Hindari penyemprotan insektisida kimia berbau tajam pada pagi hari saat lebah dan serangga penyerbuk alami sedang giat mencari nektar.",
+        qualitySigns = "Persentase buah jadi (fruit set) > 85%, bunga mekar tahan terpaan angin kencang dan tidak rontok massal."
     )
 
     private fun fruitFlyTrapMission(day: Long) = Mission(
@@ -767,7 +853,11 @@ object DailyMissions {
             "Menggantung perangkap di tengah tajuk cabai (memancing lalat berkumpul dekat buah pentil).",
             "Meneteskan metil eugenol berlebihan hingga mengotori dinding luar botol."
         ),
-        successVerification = "Lalat jantan terperangkap di dasar botol, nol sengatan ovipositor pada pentil buah."
+        successVerification = "Lalat jantan terperangkap di dasar botol, nol sengatan ovipositor pada pentil buah.",
+        safetyGear = listOf("Sarung tangan sekali pakai lateks (minyak atraktan)"),
+        durationMinutes = 20,
+        troubleshootingTip = "Gantungkan perangkap di luar tajuk tanaman pada ketinggian 1-1,5 meter; jangan menaruh perangkap tepat di tengah tajuk karena justru memikat lalat ke tanaman.",
+        qualitySigns = "Buah cabai muda bebas dari lubang sengatan ovipositor lalat buah (Bactrocera dorsalis) dan larva belatung di dalam rongga buah."
     )
 
     private fun foliarPBMission(day: Long) = Mission(
@@ -797,7 +887,13 @@ object DailyMissions {
             "Menggunakan dosis > 3 g/L yang memicu stres garam pada pucuk daun muda.",
             "Menyemprot saat angin kencang (> 15 km/jam) yang menerbangkan droplet kabut."
         ),
-        successVerification = "Tangkai bunga berdiameter > 1,5 mm, bunga mekar serempak dan tidak mudah rontok."
+        successVerification = "Tangkai bunga berdiameter > 1,5 mm, bunga mekar serempak dan tidak mudah rontok.",
+        safetyGear = listOf("Masker respirator", "Sarung tangan karet semprot"),
+        standardDosagePerLiter = 3.0,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Gunakan nozel semprot berkabut halus (hollow cone) dengan tekanan 3-4 bar agar larutan pupuk menempel merata di permukaan bawah daun tempat stomata berada.",
+        qualitySigns = "Dinding pericarp buah berbobot padat, rongga buah terisi penuh biji bernas, dan kulit buah tebal elastis."
     )
 
     private fun barometerSprayCheckMission(day: Long) = Mission(
@@ -827,7 +923,11 @@ object DailyMissions {
             "Memaksakan semprot saat sinyal badai mikro aktif sehingga pupuk terbuang sia-sia.",
             "Mengabaikan sensor barometer fisik dan hanya mengandalkan perkiraan awan kasat mata."
         ),
-        successVerification = "Indikator atmosfer stabil (|ΔP/Δt| < 1,0 hPa/jam), pupuk terserap sempurna sebelum hujan."
+        successVerification = "Indikator atmosfer stabil (|ΔP/Δt| < 1,0 hPa/jam), pupuk terserap sempurna sebelum hujan.",
+        safetyGear = listOf("Topi pelindung lapangan"),
+        durationMinutes = 10,
+        troubleshootingTip = "Bila tekanan udara turun drastis (> 1,5 hPa/jam), tunda penyemprotan dan amankan peralatan; prioritaskan sanitasi gulma manual.",
+        qualitySigns = "Aplikasi pestisida atau pupuk daun efektif 100%, tidak tercuci oleh air hujan dalam 2 jam setelah penyemprotan."
     )
 
     private fun flowerVibrationPollinationMission(day: Long) = Mission(
@@ -856,7 +956,11 @@ object DailyMissions {
             "Menggoyang terlalu kasar yang mematahkan tangkai bunga muda.",
             "Melakukan getaran saat bunga masih basah kuyup oleh embun (polen menggumpal)."
         ),
-        successVerification = "Butir polen membasahi kepala putik, fruit set simetris lurus mencapai > 90%."
+        successVerification = "Butir polen membasahi kepala putik, fruit set simetris lurus mencapai > 90%.",
+        safetyGear = listOf("Sarung tangan katun bersih lembut"),
+        durationMinutes = 25,
+        troubleshootingTip = "Goyangkan tali gawar secara lembut; jangan menghentak kencang yang dapat mematahkan tangkai bunga muda atau merobek daun.",
+        qualitySigns = "Seluruh putik terserbuki sempurna menghasilkan buah berbentuk silindris lurus tanpa lekukan bengkok akibat malformasi ovul."
     )
 
     private fun flowerPetalSanitationMission(day: Long) = Mission(
@@ -885,7 +989,11 @@ object DailyMissions {
             "Menarik paksa kelopak bunga yang masih melekat kuat dan melukai ujung pentil.",
             "Membiarkan kelopak basah membusuk di atas mulsa tepat di bawah tetesan daun."
         ),
-        successVerification = "Pentil buah bersih dari mahkota kering 100%, nol gejala busuk basah Choanephora."
+        successVerification = "Pentil buah bersih dari mahkota kering 100%, nol gejala busuk basah Choanephora.",
+        safetyGear = listOf("Sarung tangan steril", "Wadah penampung kelopak"),
+        durationMinutes = 30,
+        troubleshootingTip = "Hanya sentuh mahkota bunga yang sudah berwarna cokelat kering; mahkota yang masih melekat kuat jangan ditarik paksa karena dapat melukai bakal buah.",
+        qualitySigns = "Pangkal buah cabai muda mulus bebas spora jamur Botrytis cinerea atau Colletotrichum yang bersembunyi di balik mahkota bunga layu."
     )
 
     // Stage 4: Pembuahan & Pematangan (56 s.d. 75 HST)
@@ -917,7 +1025,13 @@ object DailyMissions {
             "Menggunakan pupuk KCl berkadar klorida tinggi yang merusak kilap merah kapsantin.",
             "Mengocorkan pada tanah yang sedang mengalami kekeringan ekstrem."
         ),
-        successVerification = "Buah membesar padat terisi, bobot rata-rata buah > 15 gram, warna merah menyala serempak."
+        successVerification = "Buah membesar padat terisi, bobot rata-rata buah > 15 gram, warna merah menyala serempak.",
+        safetyGear = listOf("Sarung tangan karet", "Masker debu pupuk"),
+        standardDosagePerLiter = 2.5,
+        dosageUnit = "gram",
+        durationMinutes = 40,
+        troubleshootingTip = "Kocorkan pada media lembab; bila tanah kering, siram air biasa terlebih dahulu 15 menit sebelumnya agar akar tidak mengalami syok osmotik.",
+        qualitySigns = "Kulit buah cabai mengkilap mengilap, tingkat kepedasan kapsaisin tinggi, dan bobot per buah meningkat 15-20%."
     )
 
     private fun antracnoseScoutMission(day: Long) = Mission(
@@ -947,7 +1061,11 @@ object DailyMissions {
             "Membuang buah busuk patek ke parit bedengan (menjadi sumber spora jutaan konidia).",
             "Menyentuh buah sehat dengan tangan yang baru memetik buah sakit tanpa cuci tangan."
         ),
-        successVerification = "Petak bersih dari buah berlesi patek, insidensi antraknosa terkendali nol persen."
+        successVerification = "Petak bersih dari buah berlesi patek, insidensi antraknosa terkendali nol persen.",
+        safetyGear = listOf("Sarung tangan isolasi sekali pakai", "Kantong plastik zip-lock sampel"),
+        durationMinutes = 25,
+        troubleshootingTip = "Buah yang bergejala bintik antraknosa wajib dimasukkan ke dalam kantong plastik rapat dan dibakar atau dikubur di luar area kebun; jangan dibuang di parit.",
+        qualitySigns = "0% buah bergejala patek di seluruh lahan, rantai penyebaran spora konidia terputus sejak fase buah hijau awal."
     )
 
     private fun capsaicinStressMission(day: Long) = Mission(
@@ -976,7 +1094,11 @@ object DailyMissions {
             "Membiarkan tanaman mengalami kelayuan permanen (daun rontok dan buah terbakar matahari).",
             "Menerapkan cekaman air pada fase pembungaan yang menyebabkan rontok bunga massal."
         ),
-        successVerification = "Kadar kapsaisin buah cabai terstimulasi optimal dengan kepedasan > 80.000 SHU."
+        successVerification = "Kadar kapsaisin buah cabai terstimulasi optimal dengan kepedasan > 80.000 SHU.",
+        safetyGear = listOf("Sepatu bot kebun"),
+        durationMinutes = 20,
+        troubleshootingTip = "Bila daun cabai mulai layu permanen hingga pucuk merunduk di sore hari, segera berikan sedikit air di pangkal batang untuk mencegah rontok buah prematur.",
+        qualitySigns = "Tingkat kepedasan (Scoville Heat Units / SHU) meningkat drastis > 80.000 SHU pada plasenta buah cabai."
     )
 
     private fun calciumCrackGuardMission(day: Long) = Mission(
@@ -1006,7 +1128,13 @@ object DailyMissions {
             "Menyemprot kalsium kelat bersama insektisida pekat berbahan dasar minyak (EC).",
             "Terlambat aplikasi setelah buah sudah mengalami retak fisik membujur."
         ),
-        successVerification = "Kulit buah elastis kencang, nol buah retak membujur (cracking = 0%) pascahujan deras."
+        successVerification = "Kulit buah elastis kencang, nol buah retak membujur (cracking = 0%) pascahujan deras.",
+        safetyGear = listOf("Masker pelindung semprot", "Sarung tangan nitril"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Jika diperkirakan hujan badai turun sore hari, lakukan penyemprotan kalsium klorida (CaCl2) pagi hari agar sel kutikula menyerap ion Ca sebelum air hujan membanjiri perakaran.",
+        qualitySigns = "Dinding pericarp lentur dan kuat menahan lonjakan tekanan turgor internal buah, bebas retak mikro (micro-cracking) saat panen."
     )
 
     private fun mulchSoilThermistorMission(day: Long) = Mission(
@@ -1036,7 +1164,11 @@ object DailyMissions {
             "Membiarkan air parit tergenang diam hingga air ikut memanas oleh terik matahari.",
             "Mengukur suhu di atas permukaan mulsa bukan pada zona perakaran dalam tanah."
         ),
-        successVerification = "Suhu zona perakaran bawah mulsa stabil < 30°C, tanaman bebas aborsi buah."
+        successVerification = "Suhu zona perakaran bawah mulsa stabil < 30°C, tanaman bebas aborsi buah.",
+        safetyGear = listOf("Topi pelindung terik", "Lanyard HP anti-jatuh"),
+        durationMinutes = 15,
+        troubleshootingTip = "Bila suhu mulsa perak-hitam tembus > 35°C di siang terik, tutupi sebagian lorong antar bedengan dengan serasah jerami padi tipis untuk mereduksi radiasi balik termal.",
+        qualitySigns = "Suhu rizosfer stabil di kisaran 24-28°C, respirasi akar efisien dan penyerapan hara mikro (Fe, Mn, Zn) berjalan lancar."
     )
 
     private fun magnesiumCuticleGlossMission(day: Long) = Mission(
@@ -1066,7 +1198,13 @@ object DailyMissions {
             "Menyemprotkan larutan terlalu pekat yang meninggalkan kerak putih pada buah.",
             "Menyemprot di siang hari yang menyebabkan efek lensa air pembakar kulit buah."
         ),
-        successVerification = "Kutikula buah mengkilap kristal (pantulan spekular > 80%), susut bobot simpan < 0,5%/hari."
+        successVerification = "Kutikula buah mengkilap kristal (pantulan spekular > 80%), susut bobot simpan < 0,5%/hari.",
+        safetyGear = listOf("Masker respirator", "Sarung tangan karet"),
+        standardDosagePerLiter = 1.5,
+        dosageUnit = "gram",
+        durationMinutes = 30,
+        troubleshootingTip = "Pastikan garam Epsom (MgSO4) larut 100% tanpa residu; hindari penyemprotan saat terik matahari siang untuk menghindari bintik garam (salt scorch) di kulit buah.",
+        qualitySigns = "Kulit buah cabai memiliki pantulan cahaya mengkilap (glossy) dengan lapisan lilin alami tebal yang menekan susut bobot pascapanen."
     )
 
     private fun bottomLeafPruningMission(day: Long) = Mission(
@@ -1096,7 +1234,11 @@ object DailyMissions {
             "Merontokkan daun dengan menarik ke bawah yang merusak jaringan kulit batang.",
             "Memangkas daun di atas percabangan Y yang masih aktif mengisi buah."
         ),
-        successVerification = "Bagian bawah percabangan Y bersih dari daun kuning, sirkulasi udara parit lancar."
+        successVerification = "Bagian bawah percabangan Y bersih dari daun kuning, sirkulasi udara parit lancar.",
+        safetyGear = listOf("Gunting pangkas tajam steril", "Sarung tangan tebal", "Sepatu bot"),
+        durationMinutes = 45,
+        troubleshootingTip = "Gunakan gunting pangkas tajam yang sudah dibasahi alkohol 70%; potong tangkai daun menyisakan 0,5 cm dari batang utama agar tidak mengelupas jaringan korteks batang.",
+        qualitySigns = "Sirkulasi udara di bawah kanopi lancar (kelembaban mikroklimat < 75%), sinar matahari pagi menembus pangkal batang utama."
     )
 
     // Stage 5: Panen & Pascapanen (76 s.d. 120 HST)
@@ -1128,7 +1270,11 @@ object DailyMissions {
             "Memanen saat buah masih basah kuyup oleh embun (memicu pembusukan bakteri di keranjang).",
             "Memanen di siang hari terik (buah layu, bobot susut drastis, dan tekstur lembek)."
         ),
-        successVerification = "Buah bertekstur kencang renyah dengan turgor sel > 95%, susut bobot simpan < 2%."
+        successVerification = "Buah bertekstur kencang renyah dengan turgor sel > 95%, susut bobot simpan < 2%.",
+        safetyGear = listOf("Topi pelindung embun pagi", "Sarung tangan katun petik halus"),
+        durationMinutes = 60,
+        troubleshootingTip = "Hentikan panen setelah pukul 10:00 WIB saat suhu udara mulai panas; buah yang dipetik saat suhu tinggi mengalami laju respirasi 3x lebih cepat dan cepat lembek.",
+        qualitySigns = "Kandungan air dan turgor pericarp maksimal (krispi renyah), tangkai buah hijau segar tidak keriput, dan masa simpan mencapai > 14 hari."
     )
 
     private fun harvestRipenessMission(day: Long) = Mission(
@@ -1158,7 +1304,11 @@ object DailyMissions {
             "Memetik dengan mencabut tangkai menggunakan tangan (merobek kulit ari dan memicu luka).",
             "Mencampur buah matang sempurna dengan buah hijau mentah dalam satu wadah."
         ),
-        successVerification = "Kematangan merah > 85%, tangkai buah hijau segar utuh 2-3 cm, nol memar fisik."
+        successVerification = "Kematangan merah > 85%, tangkai buah hijau segar utuh 2-3 cm, nol memar fisik.",
+        safetyGear = listOf("Sarung tangan petik halus", "Krat berventilasi bersih"),
+        durationMinutes = 45,
+        troubleshootingTip = "Untuk pasar jarak jauh (> 3 hari pengiriman), petik buah dengan tingkat kematangan semburat merah 80%; untuk pasar lokal atau segar petik merah penuh 95%.",
+        qualitySigns = "Buah cabai memenuhi standar Grade A+ Ekspor dengan kematangan merah seragam 85-90%, rasa pedas optimal dan aroma khas cabai pekat."
     )
 
     private fun sortationMission(day: Long) = Mission(
@@ -1188,7 +1338,11 @@ object DailyMissions {
             "Suhu perendaman > 55°C yang mematangkan daging buah dan merusak lapisan lilin.",
             "Menjemur cabai di bawah terik matahari pascaperendaman air hangat."
         ),
-        successVerification = "Spora laten antraknosa terdenaturasi 100%, Grade A+ terpisah murni dengan permukaan kering."
+        successVerification = "Spora laten antraknosa terdenaturasi 100%, Grade A+ terpisah murni dengan permukaan kering.",
+        safetyGear = listOf("Sarung tangan katun bersih steril", "Meja sortir berlapis busa"),
+        durationMinutes = 40,
+        troubleshootingTip = "Gunakan sarung tangan katun saat memegang buah cabai untuk mencegah goresan kuku tangan yang memicu infeksi sekunder bakteri Erwinia.",
+        qualitySigns = "Keseragaman ukuran panjang 12-15 cm, diameter 1,2-1,5 cm, permukaan mulus tanpa cacat fisik, dan nilai jual di pedagang atau eksportir melonjak 30-50%."
     )
 
     private fun archimedesFloatMission(day: Long) = Mission(
@@ -1218,7 +1372,11 @@ object DailyMissions {
             "Menggunakan air berlumpur kotor yang mengubah berat jenis cairan.",
             "Menekan buah mengapung ke dasar bejana dengan jari secara manual."
         ),
-        successVerification = "Persentase buah tenggelam > 80% (membuktikan pericarp tebal tanpa rongga kopong/ulat)."
+        successVerification = "Persentase buah tenggelam > 80% (membuktikan pericarp tebal tanpa rongga kopong/ulat).",
+        safetyGear = listOf("Sarung tangan karet panjang", "Wadah perendaman bersih non-reaktif"),
+        durationMinutes = 25,
+        troubleshootingTip = "Setelah uji sampel apung Archimedes, keringkan buah sampel dengan lap mikrofiber bersih; jangan campur kembali buah basah ke dalam krat panen kering.",
+        qualitySigns = "Kepadatan jaringan pericarp teruji 100% (buah tenggelam di larutan garam Archimedes), tidak ada rongga udara kosong atau kopong di dalam buah."
     )
 
     private fun crateStorageMission(day: Long) = Mission(
@@ -1248,7 +1406,11 @@ object DailyMissions {
             "Menggunakan karung plastik kedap yang memicu akumulasi panas respirasi dan pembusukan kilat.",
             "Menumpuk cabai lebih dari 15 kg dalam satu krat yang meremukkan lapisan bawah."
         ),
-        successVerification = "Sirkulasi udara antar-krat lancar, suhu tumpukan stabil tanpa uap embun kondensasi."
+        successVerification = "Sirkulasi udara antar-krat lancar, suhu tumpukan stabil tanpa uap embun kondensasi.",
+        safetyGear = listOf("Sarung tangan pelindung beban", "Sepatu bot kerja"),
+        durationMinutes = 20,
+        troubleshootingTip = "Jangan pernah menggunakan karung plastik tertutup untuk menyimpan cabai segar; gunakan krat plastik berlubang dengan kapasitas maksimal 15-20 kg per krat.",
+        qualitySigns = "Tidak terjadi pembusukan anaerobik, suhu tumpukan stabil tanpa kenaikan panas akibat gas etilen terperangkap di dalam kemasan."
     )
 
     private fun pedicelFreshnessMission(day: Long) = Mission(
@@ -1278,7 +1440,11 @@ object DailyMissions {
             "Memotong tangkai terlalu pendek (< 1 cm) yang merusak kelopak calyx pelindung.",
             "Membiarkan tangkai kotor berlumpur yang memicu jamur pembusuk tangkai."
         ),
-        successVerification = "Tangkai buah utuh 2,5 - 3,5 cm hijau segar, nodus tertutup rapat tanpa luka robek."
+        successVerification = "Tangkai buah utuh 2,5 - 3,5 cm hijau segar, nodus tertutup rapat tanpa luka robek.",
+        safetyGear = listOf("Gunting petik buah steril berujung lengkung", "Sarung tangan katun"),
+        durationMinutes = 30,
+        troubleshootingTip = "Petik dengan mematahkan persendian nodus tangkai ke arah atas secara perlahan; jangan menarik atau memuntir tangkai karena dapat merusak kelopak buah.",
+        qualitySigns = "Tangkai buah berwarna hijau segar berukuran seragam 2-3 cm, calyx (kelopak) utuh merekat erat di pangkal buah cabai."
     )
 
     private fun cielabColorCameraMission(day: Long) = Mission(
@@ -1308,7 +1474,11 @@ object DailyMissions {
             "Mengambil foto di bawah lampu pijar kuning yang membiaskan nilai spektrum warna asli.",
             "Memotret cabai yang masih kotor tertutup debu atau residu semprotan."
         ),
-        successVerification = "Nilai CIELAB a* >= 42,0 terkonfirmasi di aplikasi, menandakan kapsantin > 85% standar ekspor."
+        successVerification = "Nilai CIELAB a* >= 42,0 terkonfirmasi di aplikasi, menandakan kapsantin > 85% standar ekspor.",
+        safetyGear = listOf("Kain mikrofiber optik lensa", "Kartu kalibrasi warna abu-abu 18%"),
+        durationMinutes = 20,
+        troubleshootingTip = "Saat memotret kalibrasi warna CIELAB, posisikan HP tegak lurus sejajar dengan kertas putih atau kartu kalibrasi di tempat teduh agar tidak ada bayangan kamera.",
+        qualitySigns = "Nilai kromatisitas CIELAB a* > 35, b* > 18, menghasilkan tampilan warna merah menyala yang sangat diminati pasar ekspor dan industri pasta cabai."
     )
 
     private fun fieldHeatPreCoolingMission(day: Long) = Mission(
@@ -1338,7 +1508,11 @@ object DailyMissions {
             "Menumpuk cabai tebal saat pendinginan yang memerangkap panas di bagian tengah.",
             "Langsung memasukkan cabai panas dari lapangan ke dalam mobil boks tertutup rapat."
         ),
-        successVerification = "Suhu internal buah turun ke 18°C - 20°C, laju respirasi etilen melambat drastis."
+        successVerification = "Suhu internal buah turun ke 18°C - 20°C, laju respirasi etilen melambat drastis.",
+        safetyGear = listOf("Sarung tangan pelindung", "Termometer sensor infrared / tusuk"),
+        durationMinutes = 30,
+        troubleshootingTip = "Gunakan kipas angin angin-anginkan di ruangan teduh berventilasi; jangan langsung memasukkan cabai hangat ke dalam cold storage bersuhu < 10°C karena memicu chilling injury.",
+        qualitySigns = "Suhu internal buah turun dari 32°C ke 18-20°C dalam waktu < 2 jam, memblokir degradasi vitamin C dan kapsantin pascapanen."
     )
 
     // EWS defensive addition
@@ -1370,6 +1544,12 @@ object DailyMissions {
             "Menggunakan fungisida sistemik terus-menerus yang memicu resistensi jamur.",
             "Menyemprot tanpa perekat saat musim hujan (lapisan fungisida luntur tercuci air)."
         ),
-        successVerification = "Lapisan fungisida protektif melapisi seluruh organ buah dan daun, sporulasi ditekan 0%."
+        successVerification = "Lapisan fungisida protektif melapisi seluruh organ buah dan daun, sporulasi ditekan 0%.",
+        safetyGear = listOf("Masker respirator gas & partikel", "Kacamata pelindung kedap (goggles)", "Sarung tangan nitril tebal kimia", "Baju kerja lengan panjang", "Sepatu bot kebun"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "gram",
+        durationMinutes = 45,
+        troubleshootingTip = "Pastikan penyemprotan mengenai kedua sisi daun dan celah ketiak cabang; tambahkan bahan perata dan perekat non-ionik berstandar pertanian pangan.",
+        qualitySigns = "Spora jamur patogen Colletotrichum dan Phytophthora inaktif 100% pada mikroklimat kebun saat cuaca mendung atau lembab ekstrem."
     )
 }
