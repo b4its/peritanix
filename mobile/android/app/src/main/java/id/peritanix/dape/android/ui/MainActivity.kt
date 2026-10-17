@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.PentasixNotificationBanner
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import id.peritanix.dape.android.ui.theme.PentasixTheme
 
@@ -401,19 +402,31 @@ fun PentasixApp(queue: SyncQueueStore) {
                 Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                when (tab) {
-                    0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
-                    1 -> LahanScreen(queue)
-                    2 -> DiagnosticsScreen(queue)
-                    3 -> HarvestScreen(queue)
-                    4 -> FarmMapScreen(queue)
-                    5 -> SyncScreen(queue)
-                    6 -> CompassCalibrationScreen()
-                    7 -> WeatherScreen(weatherRepo)
-                    else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    when (tab) {
+                        0 -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                        1 -> LahanScreen(queue)
+                        2 -> DiagnosticsScreen(queue)
+                        3 -> HarvestScreen(queue)
+                        4 -> FarmMapScreen(queue)
+                        5 -> SyncScreen(queue)
+                        6 -> CompassCalibrationScreen()
+                        7 -> WeatherScreen(weatherRepo)
+                        else -> DashboardScreen(queue, weatherRepo = weatherRepo, onNavigateToTab = { tab = it })
+                    }
                 }
+
+                // Global Interactive Action Notification Banner
+                PentasixNotificationBanner(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                )
             }
         }
     }

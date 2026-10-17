@@ -27,6 +27,8 @@ import id.peritanix.dape.android.core.physics.WeatherCondition
 import id.peritanix.dape.android.core.physics.WeatherRepository
 import id.peritanix.dape.android.core.physics.WeatherSyncResult
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -48,6 +50,7 @@ fun WeatherScreen(
     weatherRepo: WeatherRepository,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -180,8 +183,24 @@ fun WeatherScreen(
                                         syncResult = data
                                         currentCondition = data.currentCondition
                                         syncMessage = "Berhasil disinkronkan (${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())})"
-                                    }.onFailure {
+
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "Sinkronisasi Cuaca Berhasil",
+                                            message = "GDD 30 hari (${data.accumulatedGdd30Days.toInt()} °Cd) dan prakiraan 7 hari diperbarui dari Open-Meteo.",
+                                            type = NotificationType.SUCCESS,
+                                            postSystemNotification = true
+                                        )
+                                    }.onFailure { err ->
                                         syncMessage = "Gagal koneksi. Menggunakan baseline offline."
+
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "Sinkronisasi Cuaca Gagal",
+                                            message = "Tidak dapat terhubung ke Open-Meteo (${err.message ?: "Periksa koneksi"}). Menggunakan data baseline lokal.",
+                                            type = NotificationType.ERROR,
+                                            postSystemNotification = true
+                                        )
                                     }
                                 }
                             }
@@ -341,6 +360,15 @@ fun WeatherScreen(
                             rainStartTime = 0L
                             currentCondition = weatherRepo.currentCondition
                             rainEvents = weatherRepo.getRainEvents()
+
+                            val durStr = event.durationFormatted
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Hujan Ditandai Berakhir",
+                                message = "Pencatatan hujan selesai ($durStr). Data tersimpan ke histori kejadian hujan.",
+                                type = NotificationType.RAIN,
+                                postSystemNotification = true
+                            )
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
                         shape = RoundedCornerShape(10.dp),
@@ -358,6 +386,14 @@ fun WeatherScreen(
                                 rainStartTime = weatherRepo.startRain(WeatherCondition.HUJAN_SEDANG)
                                 isRaining = true
                                 currentCondition = WeatherCondition.HUJAN_SEDANG
+
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Pencatatan Hujan Dimulai",
+                                    message = "Kondisi: Hujan Sedang. Stopwatch presipitasi aktif memantau spora patogen.",
+                                    type = NotificationType.RAIN,
+                                    postSystemNotification = true
+                                )
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                             shape = RoundedCornerShape(10.dp),
@@ -373,6 +409,14 @@ fun WeatherScreen(
                                 rainStartTime = weatherRepo.startRain(WeatherCondition.HUJAN_LEBAT)
                                 isRaining = true
                                 currentCondition = WeatherCondition.HUJAN_LEBAT
+
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Peringatan Hujan Deras",
+                                    message = "Kondisi: Hujan Lebat / Badai. Waspada risiko antraknosa & kelayuan tinggi.",
+                                    type = NotificationType.WARNING,
+                                    postSystemNotification = true
+                                )
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1)),
                             shape = RoundedCornerShape(10.dp),
@@ -454,6 +498,14 @@ fun WeatherScreen(
                                         currentCondition = cond
                                         isRaining = weatherRepo.isRaining
                                         rainStartTime = weatherRepo.rainStartTimeMs
+
+                                        PentasixNotificationHub.notify(
+                                            context = context,
+                                            title = "Kondisi Lapangan Diperbarui",
+                                            message = "${cond.label} (${cond.defaultTempC}°C, RH ${cond.defaultRhPct}%).",
+                                            type = NotificationType.INFO,
+                                            postSystemNotification = false
+                                        )
                                     },
                                     shape = RoundedCornerShape(10.dp),
                                     color = if (isSelected) OrangePrimary else MaterialTheme.colorScheme.surfaceVariant,
@@ -675,6 +727,13 @@ fun WeatherScreen(
                         TextButton(onClick = {
                             weatherRepo.clearRainEvents()
                             rainEvents = emptyList()
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Riwayat Hujan Dikosongkan",
+                                message = "Semua rekaman kejadian hujan lapangan telah dihapus.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
                         }) {
                             Text("Bersihkan", fontSize = 11.sp, color = MaterialTheme.colorScheme.error)
                         }

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,8 @@ import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 
 /**
  * Peta GIS Interaktif Terintegrasi Pentasix (Tahap 1.1 GPS, FR-1.3 Topografi TWI, FR-2 Pathology).
@@ -34,6 +37,7 @@ import id.peritanix.dape.android.ui.components.InteractiveFarmMap
  */
 @Composable
 fun FarmMapScreen(queue: SyncQueueStore? = null) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     // --- State: GPS Polygon Tracker ---
@@ -316,6 +320,14 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                             areaHa = polygonTracker.calculateAreaHectares()
                             perimeterMeters = polygonTracker.calculatePerimeterMeters()
                             isClosed = polygonTracker.isPolygonClosed()
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Titik GPS Pematang Ditambahkan",
+                                message = "Titik #$pointCount tersimpan. Keliling: ${perimeterMeters.toInt()}m, Luas: ${"%.3f".format(areaHa)} Ha.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -342,6 +354,14 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                                     actionNote = "Deteksi baru: lakukan sanitasi buah busuk dan kurangi pupuk N."
                                 )
                             )
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Titik Infeksi Dipetakan",
+                                message = "Patogen Antraknosa #$newId ditandai pada koordinat peta GIS (TWI 7.1).",
+                                type = NotificationType.WARNING,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -354,8 +374,17 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            baseUpslope = if (baseUpslope > 250.0) 150.0 else 380.0
+                            val wasHigh = baseUpslope > 250.0
+                            baseUpslope = if (wasHigh) 150.0 else 380.0
                             baseSlope = if (baseSlope < 3.0) 4.5 else 2.1
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = if (!wasHigh) "Simulasi Hujan Lebat Aktif" else "Kondisi Aliran Normal",
+                                message = if (!wasHigh) "Upslope area dinaikkan ke 380 m². Zona rawan genangan TWI meluas." else "Parameter hidrologi mikro dinormalkan kembali.",
+                                type = NotificationType.RAIN,
+                                postSystemNotification = false
+                            )
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                         modifier = Modifier.weight(1f)
@@ -378,6 +407,14 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                             areaHa = polygonTracker.calculateAreaHectares()
                             perimeterMeters = polygonTracker.calculatePerimeterMeters()
                             isClosed = polygonTracker.isPolygonClosed()
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Peta Lahan Direset",
+                                message = "Konfigurasi pematang poligon dikembalikan ke 4 titik awal.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(0.7f)
                     ) {
@@ -438,7 +475,16 @@ fun FarmMapScreen(queue: SyncQueueStore? = null) {
                             }
                             AssistChip(
                                 modifier = Modifier.wrapContentSize(),
-                                onClick = { selectedMarkerInfo = marker },
+                                onClick = {
+                                    selectedMarkerInfo = marker
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Inspeksi Patologi Dipilih",
+                                        message = "${marker.title} (Keparahan ${marker.severityPct.toInt()}%, TWI ${marker.localTwi}).",
+                                        type = NotificationType.INFO,
+                                        postSystemNotification = false
+                                    )
+                                },
                                 leadingIcon = {
                                     Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(14.dp))
                                 },

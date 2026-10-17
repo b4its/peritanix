@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
@@ -21,11 +22,14 @@ import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.physics.Physics
 import java.io.File
 
 @Composable
 fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     // --- State: GPS Polygon Tracker (Tahap 1.1) ---
@@ -159,6 +163,14 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                             areaHa = polygonTracker.calculateAreaHectares()
                             isClosed = polygonTracker.isPolygonClosed()
                             wktPolygon = polygonTracker.toWktPolygon()
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Titik GPS Dicatat",
+                                message = "Titik #$pointCount (${"%.6f".format(baseLat)}, ${"%.6f".format(baseLon)}) tersimpan. Luas: ${"%.3f".format(areaHa)} Ha.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -176,6 +188,14 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                             isClosed = false
                             wktPolygon = ""
                             gpsSaveStatus = ""
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Poligon Direset",
+                                message = "Seluruh koordinat batas poligon lahan telah dikosongkan.",
+                                type = NotificationType.WARNING,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(0.7f)
                     ) {
@@ -243,6 +263,14 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                                 currentPhase = "VEGETATIVE"
                             )
                             gpsSaveStatus = "Batas poligon lahan tersimpan ke Room SQLite & diantrekan ke server."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Batas Lahan Disimpan",
+                                message = "Poligon ${"%.3f".format(areaHa)} Ha tersimpan ke Room SQLite & diantrekan untuk Delta Sync.",
+                                type = NotificationType.SUCCESS,
+                                postSystemNotification = true
+                            )
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -660,6 +688,14 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                             nitratePpm = 85.0
                         )
                         saveStatus = "Penilaian tanah tersimpan ke Room SQLite & diantrekan untuk Delta Sync."
+
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Penilaian Tanah Disimpan",
+                            message = "USDA: $usdaClass (pH $soilPh, CEC $cec meq). Resep NPK diantrekan ke sync queue.",
+                            type = NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -736,8 +772,24 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                                 luxVerified = calib.luxVerified
                             )
                             calibStatus = "Kalibrasi Berhasil: Matriks R=${calib.rScale}, G=${calib.gScale}, B=${calib.bScale} tersimpan ke Room SQLite."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Kalibrasi Spektral Berhasil",
+                                message = "Matriks R=${calib.rScale}, G=${calib.gScale}, B=${calib.bScale} tersimpan ke Room SQLite.",
+                                type = NotificationType.SUCCESS,
+                                postSystemNotification = true
+                            )
                         } else {
                             calibStatus = "Gagal: Mangkuk belum kedap cahaya (Sensor Lux > 0.5 Lux)."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Kalibrasi Mangkuk Gagal",
+                                message = "Sensor Lux terdeteksi $calibLux Lux (> 0.5 Lux). Pastikan mangkuk tertutup rapat kedap cahaya.",
+                                type = NotificationType.ERROR,
+                                postSystemNotification = true
+                            )
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

@@ -885,5 +885,51 @@ object AppIcons {
         curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
         close()
     }
+
+    // 40. Notifications (Lonceng Notifikasi Aksi)
+    val Notifications: ImageVector = buildIcon("Notifications") {
+        moveTo(12f, 22f)
+        curveTo(13.1f, 22f, 14f, 21.1f, 14f, 20f)
+        lineTo(10f, 20f)
+        curveTo(10f, 21.1f, 10.9f, 22f, 12f, 22f)
+        close()
+        moveTo(18f, 16f)
+        lineTo(18f, 11f)
+        curveTo(18f, 7.93f, 16.37f, 5.36f, 13.5f, 4.68f)
+        lineTo(13.5f, 4f)
+        curveTo(13.5f, 3.17f, 12.83f, 2.5f, 12f, 2.5f)
+        curveTo(11.17f, 2.5f, 10.5f, 3.17f, 10.5f, 4f)
+        lineTo(10.5f, 4.68f)
+        curveTo(7.64f, 5.36f, 6f, 7.92f, 6f, 11f)
+        lineTo(6f, 16f)
+        lineTo(4f, 18f)
+        lineTo(4f, 19f)
+        lineTo(20f, 19f)
+        lineTo(20f, 18f)
+        lineTo(18f, 16f)
+        close()
+    }
+
+    // 41. Info (Informasi Notifikasi)
+    val Info: ImageVector = buildIcon("Info") {
+        moveTo(12f, 2f)
+        curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+        curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
+        curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+        curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+        close()
+        moveTo(13f, 17f)
+        lineTo(11f, 17f)
+        lineTo(11f, 11f)
+        lineTo(13f, 11f)
+        lineTo(13f, 17f)
+        close()
+        moveTo(13f, 9f)
+        lineTo(11f, 9f)
+        lineTo(11f, 7f)
+        lineTo(13f, 7f)
+        lineTo(13f, 9f)
+        close()
+    }
 }
 

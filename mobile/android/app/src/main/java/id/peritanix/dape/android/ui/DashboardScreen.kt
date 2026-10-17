@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.core.physics.WeatherRepository
@@ -23,6 +24,8 @@ import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import kotlinx.coroutines.delay
 
 /**
@@ -43,6 +46,7 @@ fun DashboardScreen(
     weatherRepo: WeatherRepository? = null,
     onNavigateToTab: (Int) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     // Observe dynamic weather and live rain state from weatherRepo
@@ -343,7 +347,16 @@ fun DashboardScreen(
                                 )
                             }
                             Button(
-                                onClick = { weatherRepo?.stopRain() },
+                                onClick = {
+                                    val event = weatherRepo?.stopRain()
+                                    val durationStr = event?.durationFormatted ?: "0 dtk"
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Hujan Ditandai Berakhir",
+                                        message = "Pencatatan hujan selesai ($durationStr). Data disimpan ke log cuaca.",
+                                        type = NotificationType.RAIN
+                                    )
+                                },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
@@ -687,7 +700,16 @@ fun DashboardScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = { onNavigateToTab(1) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Lahan",
+                        message = "Membuka modul pemetaan poligon GPS & analisis tanah TWI.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(1)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -696,7 +718,16 @@ fun DashboardScreen(
                 Text("Ukur Lahan", fontSize = 12.sp)
             }
             Button(
-                onClick = { onNavigateToTab(2) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Diagnosa AI",
+                        message = "Membuka deteksi patologi daun & buah cabai on-device.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(2)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -708,7 +739,16 @@ fun DashboardScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
-                onClick = { onNavigateToTab(3) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Uji Panen",
+                        message = "Membuka termoterapi, densitas benih & sertifikat QR.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(3)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -717,7 +757,16 @@ fun DashboardScreen(
                 Text("Uji Panen", fontSize = 12.sp)
             }
             OutlinedButton(
-                onClick = { onNavigateToTab(4) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Peta GIS",
+                        message = "Membuka visualisasi spasial lahan, TWI & infeksi.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(4)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -729,7 +778,16 @@ fun DashboardScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
-                onClick = { onNavigateToTab(6) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Kompas Lahan",
+                        message = "Membuka sensor arah mata angin & waterpass perataan.",
+                        type = NotificationType.CALIBRATION,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(6)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -738,7 +796,16 @@ fun DashboardScreen(
                 Text("Kompas Lahan", fontSize = 12.sp)
             }
             OutlinedButton(
-                onClick = { onNavigateToTab(6) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Kalibrasi Sensor",
+                        message = "Membuka kalibrasi sensor magnetik figure-8 & zero tilt.",
+                        type = NotificationType.CALIBRATION,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(6)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -750,7 +817,16 @@ fun DashboardScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = { onNavigateToTab(7) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Cuaca & Hujan",
+                        message = "Membuka pemantau presipitasi & sinkronisasi Open-Meteo.",
+                        type = NotificationType.RAIN,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(7)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -759,7 +835,16 @@ fun DashboardScreen(
                 Text("Cuaca & Hujan", fontSize = 12.sp)
             }
             OutlinedButton(
-                onClick = { onNavigateToTab(5) },
+                onClick = {
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Navigasi: Sinkron Data",
+                        message = "Membuka antrean mutasi Room SQLite & WorkManager.",
+                        type = NotificationType.SYNC,
+                        postSystemNotification = false
+                    )
+                    onNavigateToTab(5)
+                },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp)
             ) {

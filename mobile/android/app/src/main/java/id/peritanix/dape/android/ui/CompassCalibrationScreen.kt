@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.hardware.CompassSensorManager
 import id.peritanix.dape.android.core.hardware.SensorCalibrationMath
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.android.ui.theme.OrangePrimary
 import kotlin.math.cos
 import kotlin.math.sin
@@ -124,21 +126,48 @@ fun CompassCalibrationScreen(modifier: Modifier = Modifier) {
                         text = "Kompas",
                         icon = AppIcons.Compass,
                         selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
+                        onClick = {
+                            selectedTab = 0
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Mode: Kompas & Waterpass",
+                                message = "Menampilkan arah derajat azimuth & indikator perataan gelembung air.",
+                                type = NotificationType.CALIBRATION,
+                                postSystemNotification = false
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     TabSegmentButton(
                         text = "Kalibrasi",
                         icon = AppIcons.RotateRight,
                         selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
+                        onClick = {
+                            selectedTab = 1
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Mode: Kalibrasi Sensor",
+                                message = "Prosedur kalibrasi pola angka 8 & penetapan zero-tilt waterpass.",
+                                type = NotificationType.CALIBRATION,
+                                postSystemNotification = false
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     TabSegmentButton(
                         text = "Sensor HP",
                         icon = AppIcons.Sensors,
                         selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
+                        onClick = {
+                            selectedTab = 2
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Mode: Diagnostik HW Sensor",
+                                message = "Memeriksa ketersediaan hardware magnetometer, akselerometer & giroskop.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -343,6 +372,8 @@ private fun CalibrationTabContent(
     manager: CompassSensorManager,
     state: CompassSensorManager.CompassState
 ) {
+    val context = LocalContext.current
+
     // 1. Magnetometer Figure-8 Calibration Card
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -423,7 +454,16 @@ private fun CalibrationTabContent(
                 }
 
                 Button(
-                    onClick = { manager.cancelFigure8Calibration() },
+                    onClick = {
+                        manager.cancelFigure8Calibration()
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Kalibrasi Dibatalkan",
+                            message = "Pengambilan sampel vektor angka-8 dihentikan.",
+                            type = NotificationType.WARNING,
+                            postSystemNotification = false
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
@@ -452,7 +492,16 @@ private fun CalibrationTabContent(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { manager.startFigure8Calibration() },
+                        onClick = {
+                            manager.startFigure8Calibration()
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Kalibrasi Angka-8 Dimulai",
+                                message = "Gerakkan ponsel membentuk angka 8 di udara selama 4-5 detik.",
+                                type = NotificationType.CALIBRATION,
+                                postSystemNotification = true
+                            )
+                        },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
                     ) {
@@ -462,7 +511,16 @@ private fun CalibrationTabContent(
                     }
                     if (state.hardIronOffsets.isCalibrated) {
                         OutlinedButton(
-                            onClick = { manager.resetFigure8Calibration() },
+                            onClick = {
+                                manager.resetFigure8Calibration()
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Offset Magnetik Direset",
+                                    message = "Koreksi hard-iron bias dikembalikan ke default pabrik.",
+                                    type = NotificationType.INFO,
+                                    postSystemNotification = false
+                                )
+                            },
                             modifier = Modifier.wrapContentWidth()
                         ) {
                             Text("Reset", fontSize = 12.sp)
@@ -539,7 +597,16 @@ private fun CalibrationTabContent(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { manager.calibrateZeroTilt() },
+                    onClick = {
+                        manager.calibrateZeroTilt()
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Kalibrasi Nol Waterpass Disimpan",
+                            message = "Posisi ponsel saat ini disimpan sebagai acuan bidang datar (0.0°).",
+                            type = NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
                 ) {
@@ -549,7 +616,16 @@ private fun CalibrationTabContent(
                 }
                 if (state.tiltOffset.isCalibrated) {
                     OutlinedButton(
-                        onClick = { manager.resetTiltCalibration() },
+                        onClick = {
+                            manager.resetTiltCalibration()
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Kalibrasi Kemiringan Direset",
+                                message = "Offset pitch & roll waterpass dinetralkan kembali.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
+                        },
                         modifier = Modifier.wrapContentWidth()
                     ) {
                         Text("Reset", fontSize = 12.sp)

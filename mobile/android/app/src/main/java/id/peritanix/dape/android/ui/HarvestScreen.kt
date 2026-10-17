@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,11 +23,14 @@ import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
 import id.peritanix.dape.android.core.physics.PodMorphologyGrader
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.crypto.Ed25519OfflineSigner
 import id.peritanix.dape.physics.Physics
 
 @Composable
 fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     var elevationM by remember { mutableStateOf(850.0) }
@@ -164,7 +168,16 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                         }
                         Text(spokenScript, style = MaterialTheme.typography.bodySmall)
                         FilledTonalButton(
-                            onClick = { isTtsPlaying = !isTtsPlaying },
+                            onClick = {
+                                isTtsPlaying = !isTtsPlaying
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = if (isTtsPlaying) "Panduan Suara Aktif" else "Panduan Suara Berhenti",
+                                    message = if (isTtsPlaying) "Memutar takaran gayung air mendidih vs sumur (Bahasa Indonesia)." else "Pemutaran audio dihentikan.",
+                                    type = NotificationType.INFO,
+                                    postSystemNotification = false
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(if (isTtsPlaying) AppIcons.Stop else AppIcons.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -177,7 +190,24 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                 Button(
                     onClick = {
                         isTimerRunning = !isTimerRunning
-                        if (isTimerRunning) secondsLeft = 180
+                        if (isTimerRunning) {
+                            secondsLeft = 180
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Perendaman 180 Detik Aktif",
+                                message = "Termoterapi 52°C berjalan dengan pemantauan giroskop anti-bypass.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = true
+                            )
+                        } else {
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Timer Dihentikan",
+                                message = "Perendaman benih dihentikan pada sisa $secondsLeft detik.",
+                                type = NotificationType.WARNING,
+                                postSystemNotification = false
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -392,6 +422,14 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                             "gyro_variance" to 0.42
                         )
                         signedCert = Ed25519OfflineSigner.certificate(payload, kp)
+
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Sertifikat QR Diterbitkan",
+                            message = "Sertifikat mutu panen ditandatangani Ed25519 secara offline (RFC 8785).",
+                            type = NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -459,6 +497,14 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                                 qrPayload = signedCert
                             )
                             printStatus = "Bukti Fisik ESC/POS Siap (${receipt.byteCount} bytes) untuk Printer Termal Bluetooth 58mm/80mm."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Struk ESC/POS Siap",
+                                message = "Label fisik (${receipt.byteCount} bytes) siap dicetak via printer Bluetooth.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -492,11 +538,19 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                                 signature = signedCert
                             )
                             saveStatus = "Batch panen & sertifikat QR tersimpan ke Room SQLite (Offline-First)."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Batch Panen Tersimpan",
+                                message = "Data panen Grade $seedGrade & sertifikat QR tersimpan ke Room SQLite.",
+                                type = NotificationType.SUCCESS,
+                                postSystemNotification = true
+                            )
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text("Simpan Batch Panen ke Room SQLite")
                     }
 

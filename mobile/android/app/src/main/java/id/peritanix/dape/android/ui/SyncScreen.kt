@@ -11,13 +11,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import id.peritanix.dape.android.data.SyncQueueStore
 import id.peritanix.dape.android.ui.components.AppIcons
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 
 @Composable
 fun SyncScreen(queue: SyncQueueStore) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     var pendingCount by remember { mutableStateOf(queue.pendingCount()) }
     var syncStatus by remember { mutableStateOf("Tersimpan di Room SQLite (Offline-First)") }
@@ -155,6 +159,14 @@ fun SyncScreen(queue: SyncQueueStore) {
                             queue.enqueueSimulatedSync()
                             pendingCount = queue.pendingCount()
                             syncStatus = "Mutasi baru ditambahkan ke antrean offline."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Mutasi Ditambahkan ke Antrean",
+                                message = "1 data mutasi offline baru berhasil diantrekan ke SQLite (Total: $pendingCount pending).",
+                                type = NotificationType.SYNC,
+                                postSystemNotification = false
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -168,6 +180,14 @@ fun SyncScreen(queue: SyncQueueStore) {
                             queue.schedule()
                             pendingCount = queue.pendingCount()
                             syncStatus = "WorkManager dipicu. Menunggu koneksi stabil untuk flush ke Go API."
+
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Sinkronisasi Dipicu",
+                                message = "WorkManager menjadwalkan flush antrean delta ($pendingCount item) saat konektivitas aktif.",
+                                type = NotificationType.SYNC,
+                                postSystemNotification = true
+                            )
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -181,6 +201,14 @@ fun SyncScreen(queue: SyncQueueStore) {
                     onClick = {
                         pendingCount = queue.pendingCount()
                         syncStatus = "Statistik antrean lokal diperbarui."
+
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Antrean Lokal Diperbarui",
+                            message = "Statistik offline: $pendingCount mutasi tersimpan di Room SQLite.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {

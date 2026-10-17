@@ -544,6 +544,13 @@ fun InteractiveFarmMap(
                             onClick = {
                                 currentBasemapStyle = style
                                 basemapMenuExpanded = false
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Tipe Peta Berubah",
+                                    message = "Basemap dialihkan ke ${style.displayName}.",
+                                    type = NotificationType.INFO,
+                                    postSystemNotification = false
+                                )
                             }
                         )
                     }
@@ -561,7 +568,16 @@ fun InteractiveFarmMap(
 
                 FilterChip(
                     selected = showPolygon,
-                    onClick = { showPolygon = !showPolygon },
+                    onClick = {
+                        showPolygon = !showPolygon
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = if (showPolygon) "Lapisan Lahan Aktif" else "Lapisan Lahan Nonaktif",
+                            message = if (showPolygon) "Garis batas pematang poligon GPS ditampilkan." else "Garis batas poligon disembunyikan.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
                     leadingIcon = {
                         Icon(AppIcons.Sprout, contentDescription = null, modifier = Modifier.size(12.dp))
                     },
@@ -578,7 +594,16 @@ fun InteractiveFarmMap(
 
                 FilterChip(
                     selected = showTwiGrid,
-                    onClick = { showTwiGrid = !showTwiGrid },
+                    onClick = {
+                        showTwiGrid = !showTwiGrid
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = if (showTwiGrid) "Lapisan TWI Aktif" else "Lapisan TWI Nonaktif",
+                            message = if (showTwiGrid) "Grid hidrologi mikro rawan genangan ditampilkan." else "Grid TWI disembunyikan.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
                     leadingIcon = {
                         Icon(AppIcons.WaterDrop, contentDescription = null, modifier = Modifier.size(12.dp))
                     },
@@ -595,7 +620,16 @@ fun InteractiveFarmMap(
 
                 FilterChip(
                     selected = showDiseaseMarkers,
-                    onClick = { showDiseaseMarkers = !showDiseaseMarkers },
+                    onClick = {
+                        showDiseaseMarkers = !showDiseaseMarkers
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = if (showDiseaseMarkers) "Lapisan Penyakit Aktif" else "Lapisan Penyakit Nonaktif",
+                            message = if (showDiseaseMarkers) "Titik koordinat infeksi patologi ditampilkan." else "Titik patologi disembunyikan.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
                     leadingIcon = {
                         Icon(AppIcons.BugReport, contentDescription = null, modifier = Modifier.size(12.dp))
                     },
@@ -612,7 +646,16 @@ fun InteractiveFarmMap(
 
                 FilterChip(
                     selected = showFlowVectors,
-                    onClick = { showFlowVectors = !showFlowVectors },
+                    onClick = {
+                        showFlowVectors = !showFlowVectors
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = if (showFlowVectors) "Lapisan Vektor Aktif" else "Lapisan Vektor Nonaktif",
+                            message = if (showFlowVectors) "Arah aliran limpasan dan angin spora ditampilkan." else "Vektor arah disembunyikan.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
                     leadingIcon = {
                         Icon(AppIcons.Wind, contentDescription = null, modifier = Modifier.size(12.dp))
                     },
@@ -629,7 +672,16 @@ fun InteractiveFarmMap(
 
                 FilterChip(
                     selected = showGpsDot,
-                    onClick = { showGpsDot = !showGpsDot },
+                    onClick = {
+                        showGpsDot = !showGpsDot
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = if (showGpsDot) "Titik GPS Aktif" else "Titik GPS Nonaktif",
+                            message = if (showGpsDot) "Posisi GPS pemantau ditampilkan." else "Posisi GPS disembunyikan.",
+                            type = NotificationType.INFO,
+                            postSystemNotification = false
+                        )
+                    },
                     leadingIcon = {
                         Icon(AppIcons.GpsFixed, contentDescription = null, modifier = Modifier.size(12.dp))
                     },

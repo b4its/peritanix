@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
@@ -20,12 +21,15 @@ import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.FarmMapMarker
 import id.peritanix.dape.android.ui.components.InteractiveFarmMap
+import id.peritanix.dape.android.ui.components.NotificationType
+import id.peritanix.dape.android.ui.components.PentasixNotificationHub
 import id.peritanix.dape.pathology.PathologyClassifier
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     // --- State: Morfologi Keriting & Lesi ---
@@ -324,6 +328,14 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                             )
                         )
                         saveStatus = "Diagnosis tersimpan ke Room SQLite & ditambahkan ke Peta Spasial Lahan."
+
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Diagnosis AI Disimpan",
+                            message = "${diag.condition} (${unetResult.calculatedSeverityPct}%). Disimpan ke SQLite & ditandai pada Peta GIS.",
+                            type = NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -542,6 +554,29 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                             onClick = {
                                 proposedFertilizer = name
                                 proposedNitrogenPct = nPct
+
+                                val check = PericarpFortificationManager.validateFertilizerProposal(
+                                    fertilizerName = name,
+                                    nitrogenPct = nPct,
+                                    isLocked = fortStatus.isLocked
+                                )
+                                if (check.isCriticalBlock) {
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Peringatan Fortifikasi",
+                                        message = check.warningMessage,
+                                        type = NotificationType.WARNING,
+                                        postSystemNotification = true
+                                    )
+                                } else {
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Pupuk Terverifikasi",
+                                        message = "Dosis $name ($nPct% N) aman bagi perikarp buah.",
+                                        type = NotificationType.INFO,
+                                        postSystemNotification = false
+                                    )
+                                }
                             },
                             label = { Text(name, style = MaterialTheme.typography.labelSmall) }
                         )
