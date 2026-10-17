@@ -39,6 +39,20 @@ class AcousticAnemometer(private val context: Context) {
                 android.Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
         }
+
+        /**
+         * Pure aerodynamic calibration: converts low-frequency turbulence RMS to an
+         * estimated wind speed in km/h (v ~ a·ln(RMS) + b), clamped to 2..35 km/h.
+         * Extracted so the safety-critical drift decision is unit-testable.
+         */
+        fun windSpeedFromRms(rms: Double): Double {
+            val rawKmh = (4.2 * ln(rms.coerceAtLeast(10.0)) - 10.5).coerceIn(2.0, 35.0)
+            return Math.round(rawKmh * 10.0) / 10.0
+        }
+
+        /** True when the wind speed exceeds the spray-drift hazard threshold. */
+        fun isDriftHazard(windSpeedKmh: Double): Boolean =
+            windSpeedKmh > DRIFT_HAZARD_THRESHOLD_KMH
     }
 
     /**
@@ -96,12 +110,10 @@ class AcousticAnemometer(private val context: Context) {
 
             val rms = if (sampleCount > 0) sqrt(totalSumSquares / sampleCount) else 100.0
 
-            // Aerodynamic calibration polynomial converting low-frequency acoustic buffeting RMS to wind speed:
-            // v_wind ~ a * ln(RMS + 1) + b
-            val rawKmh = (4.2 * ln(rms.coerceAtLeast(10.0)) - 10.5).coerceIn(2.0, 35.0)
-            val windKmh = Math.round(rawKmh * 10.0) / 10.0
+            // Aerodynamic calibration polynomial converting low-frequency acoustic buffeting RMS to wind speed.
+            val windKmh = windSpeedFromRms(rms)
 
-            val isHazard = windKmh > DRIFT_HAZARD_THRESHOLD_KMH
+            val isHazard = isDriftHazard(windKmh)
             val msg = if (isHazard) {
                 "BAHAYA SPRAY DRIFT! Kecepatan angin ${windKmh} km/jam (> 12 km/jam). Partikel semprotan akan terbang terbawa angin, membuang obat s.d. 40% dan membahayakan pekerja!"
             } else {

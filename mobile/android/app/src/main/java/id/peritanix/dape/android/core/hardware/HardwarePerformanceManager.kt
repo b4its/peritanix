@@ -113,11 +113,7 @@ class HardwarePerformanceManager(private val context: Context) {
         val hasNnapi = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
         val hasGpu = true // standard OpenGL ES 3.0+ present on Android 8.0+
 
-        val tier = when {
-            totalRamMb >= 5500 -> DeviceTier.HIGH_END
-            totalRamMb >= 3500 -> DeviceTier.MID_TIER
-            else -> DeviceTier.LOW_END_KENTANG
-        }
+        val tier = tierForRam(totalRamMb)
 
         val lowMem = tier == DeviceTier.LOW_END_KENTANG || memInfo.lowMemory
 
@@ -153,7 +149,7 @@ class HardwarePerformanceManager(private val context: Context) {
     }
 
     fun evaluateThermalState(tempC: Float, thermalStatus: String): ThermalState {
-        val isThrottled = tempC >= 43.0f || thermalStatus in listOf("MODERATE", "SEVERE", "CRITICAL", "EMERGENCY")
+        val isThrottled = isThermallyThrottled(tempC, thermalStatus)
         val fps = if (isThrottled) 24 else 60
         val msg = if (isThrottled) {
             "Suhu perangkat ${"%.1f".format(tempC)}°C ($thermalStatus). Mode Sunlight Survival aktif: Pratinjau 24 fps, komputasi dialihkan ke inti efisiensi."
@@ -176,5 +172,26 @@ class HardwarePerformanceManager(private val context: Context) {
         if (!isOnline) return false
         // Offload if network latency is low and device is low-end or thermally throttled
         return (pingLatencyMs in 1..80) && (currentProfile.lowMemoryMode || currentThermalState.isSunlightThrottled)
+    }
+
+    companion object {
+        /** Pure tier mapping from total RAM (MB) → device class. */
+        fun tierForRam(totalRamMb: Long): DeviceTier = when {
+            totalRamMb >= 5500 -> DeviceTier.HIGH_END
+            totalRamMb >= 3500 -> DeviceTier.MID_TIER
+            else -> DeviceTier.LOW_END_KENTANG
+        }
+
+        /**
+         * Whether hybrid Edge-Cloud split-computing should offload a heavy model to
+         * the server. Pure form of [shouldOffloadToCloud] for unit testing the policy:
+         * only when online, low latency (1..80 ms), AND (low-memory OR thermally throttled).
+         */
+        fun shouldOffload(latencyMs: Long, isOnline: Boolean, lowMemory: Boolean, throttled: Boolean): Boolean =
+            isOnline && (latencyMs in 1..80) && (lowMemory || throttled)
+
+        /** Pure thermal-decision helper: true when the device must throttle. */
+        fun isThermallyThrottled(tempC: Float, thermalStatus: String): Boolean =
+            tempC >= 43.0f || thermalStatus in listOf("MODERATE", "SEVERE", "CRITICAL", "EMERGENCY")
     }
 }

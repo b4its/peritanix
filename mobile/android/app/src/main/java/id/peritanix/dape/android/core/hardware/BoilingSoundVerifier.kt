@@ -35,6 +35,13 @@ class BoilingSoundVerifier(private val context: Context) {
                 android.Manifest.permission.RECORD_AUDIO
             ) == PackageManager.PERMISSION_GRANTED
         }
+
+        /**
+         * Barometric boiling-point of water at altitude h (m): T = 100 − 0.0033·h.
+         * Extracted so the Asas Black target temperature is unit-testable.
+         */
+        fun localBoilingPointC(altitudeMeters: Double): Double =
+            Math.round((100.0 - 0.0033 * altitudeMeters) * 10.0) / 10.0
     }
 
     /**
@@ -45,7 +52,7 @@ class BoilingSoundVerifier(private val context: Context) {
         altitudeMeters: Double = 850.0,
         durationMs: Int = 1500
     ): BoilingAcousticVerification {
-        val tDidih = Math.round((100.0 - 0.0033 * altitudeMeters) * 10.0) / 10.0
+        val tDidih = localBoilingPointC(altitudeMeters)
 
         if (!hasAudioPermission(context)) {
             return BoilingAcousticVerification(
