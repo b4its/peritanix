@@ -34,11 +34,15 @@ object SmartCloudSync {
         pendingMediaItems: Int,
         isOnline: Boolean,
         isWifi: Boolean,
-        isCharging: Boolean
+        isCharging: Boolean,
+        cellularSignalBars: Int = 4,     // 0..4 (0 = no bars, 1 = weak Edge-ish)
+        pingLatencyMs: Long = 40L        // optional latency probe (ms)
     ): SyncQueueLaneStatus {
         val netQuality = when {
             !isOnline -> NetworkQuality.OFFLINE
             isWifi -> NetworkQuality.WIFI_HIGH_SPEED
+            // Weak cellular: few bars or high latency → fast-lane only (defer media).
+            cellularSignalBars <= 1 || pingLatencyMs > 250 -> NetworkQuality.CELLULAR_WEAK_EDGE
             else -> NetworkQuality.CELLULAR_4G_STABLE
         }
 
