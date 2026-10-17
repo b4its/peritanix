@@ -193,6 +193,22 @@ class TreatmentCameraVerifierTest {
         assertTrue(script.contains("Kalsium Nitrat"))
     }
 
+    @Test
+    fun testTreatmentIdPreservation() {
+        val stageVeg = ChiliGrowingGuide.stageForHst(20)
+        val trt = stageVeg.treatments.first()
+        val sample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageVeg,
+            hst = 20,
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL,
+            treatmentName = trt.name,
+            treatmentId = trt.id
+        )
+
+        assertEquals(trt.id, sample.treatmentId)
+        assertEquals(trt.name, sample.treatmentName)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun testAnalyzePixelsZeroDimensions() {
         val stage = ChiliGrowingGuide.stages[0]

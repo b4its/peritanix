@@ -46,7 +46,8 @@ object TreatmentCameraVerifier {
         val statusTitle: String,
         val diagnosisText: String,
         val prescriptiveAction: String,
-        val sampledPixelsCount: Int
+        val sampledPixelsCount: Int,
+        val treatmentId: String? = null
     )
 
     /**
@@ -56,13 +57,14 @@ object TreatmentCameraVerifier {
         stage: ChiliGrowingGuide.Stage,
         bitmap: Bitmap,
         hst: Int,
-        treatmentName: String = "Perawatan Rutin"
+        treatmentName: String = "Perawatan Rutin",
+        treatmentId: String? = null
     ): InspectionResult {
         val width = bitmap.width
         val height = bitmap.height
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        return analyzePixels(stage, pixels, width, height, hst, treatmentName)
+        return analyzePixels(stage, pixels, width, height, hst, treatmentName, treatmentId)
     }
 
     /**
@@ -74,7 +76,8 @@ object TreatmentCameraVerifier {
         width: Int,
         height: Int,
         hst: Int,
-        treatmentName: String = "Perawatan Rutin"
+        treatmentName: String = "Perawatan Rutin",
+        treatmentId: String? = null
     ): InspectionResult {
         require(width > 0 && height > 0) { "Lebar dan tinggi gambar harus > 0" }
         val total = width * height
@@ -165,7 +168,8 @@ object TreatmentCameraVerifier {
             statusTitle = status.displayName,
             diagnosisText = diagnosis,
             prescriptiveAction = prescriptive,
-            sampledPixelsCount = sampled
+            sampledPixelsCount = sampled,
+            treatmentId = treatmentId
         )
     }
 
@@ -386,7 +390,8 @@ object TreatmentCameraVerifier {
         stage: ChiliGrowingGuide.Stage,
         hst: Int,
         condition: SampleCondition = SampleCondition.OPTIMAL,
-        treatmentName: String = "Perawatan Rutin"
+        treatmentName: String = "Perawatan Rutin",
+        treatmentId: String? = null
     ): InspectionResult {
         val width = 60
         val height = 60
@@ -430,7 +435,7 @@ object TreatmentCameraVerifier {
             }
         }
 
-        return analyzePixels(stage, pixels, width, height, hst, treatmentName)
+        return analyzePixels(stage, pixels, width, height, hst, treatmentName, treatmentId)
     }
 
     private fun round1(v: Double): Double = Math.round(v * 10.0) / 10.0
