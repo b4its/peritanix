@@ -87,10 +87,14 @@ fun GrowingGuideScreen(
     val filterTabs = listOf(
         "Semua Panduan",
         "Cara Menanam",
-        "Cara Memelihara (Kamera)",
+        "Cara Memelihara",
         "Kunci Panen",
         "Inspeksi Kamera"
     )
+
+    // --- State: Dialog Panduan Kamera Perawatan ---
+    var showCameraGuideDialog by remember { mutableStateOf(false) }
+    var dialogTreatment by remember { mutableStateOf<ChiliGrowingGuide.TreatmentItem?>(null) }
 
     // --- State: Real-Time Weather & Iklim Mikro ---
     val isRaining = weatherRepo?.isRaining ?: false
@@ -211,6 +215,12 @@ fun GrowingGuideScreen(
         }
     }
 
+    fun openCameraGuideDialog(treatment: ChiliGrowingGuide.TreatmentItem) {
+        dialogTreatment = treatment
+        selectedTreatment = treatment
+        showCameraGuideDialog = true
+    }
+
     fun triggerTreatmentSimulation(
         treatment: ChiliGrowingGuide.TreatmentItem,
         condition: TreatmentCameraVerifier.SampleCondition
@@ -274,6 +284,80 @@ fun GrowingGuideScreen(
 
     // Checklist state per stage
     val checkedMap = remember { mutableStateMapOf<String, Boolean>() }
+
+    // --- Dialog Panduan Kamera Perawatan SOP ---
+    if (showCameraGuideDialog && dialogTreatment != null) {
+        val trt = dialogTreatment!!
+        AlertDialog(
+            onDismissRequest = { showCameraGuideDialog = false },
+            icon = { Icon(AppIcons.Camera, contentDescription = null, tint = OrangePrimary) },
+            title = {
+                Text(
+                    "Panduan Kamera SOP: ${trt.name}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = OrangePrimary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "${trt.pillar.displayName} · ${trt.category}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = OrangePrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    Text(
+                        "Subjek Foto: ${trt.targetCameraSubject}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Kriteria Sukses: ${trt.visualSuccessCriteria}",
+                        fontSize = 11.sp,
+                        color = Color(0xFF2E7D32)
+                    )
+                    HorizontalDivider()
+                    Text("Sudut Bidik: ${trt.shootingAngle}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Pencahayaan: ${trt.recommendedLighting}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCameraGuideDialog = false
+                        triggerTreatmentCamera(trt)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Buka Kamera HP", fontSize = 11.sp)
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            showCameraGuideDialog = false
+                            triggerTreatmentSimulation(trt, TreatmentCameraVerifier.SampleCondition.OPTIMAL)
+                        }
+                    ) {
+                        Text("Uji Sehat", fontSize = 10.sp)
+                    }
+                    TextButton(onClick = { showCameraGuideDialog = false }) {
+                        Text("Tutup", fontSize = 10.sp)
+                    }
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -596,6 +680,29 @@ fun GrowingGuideScreen(
                             )
                         }
                     }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Mikroklimat: ${currentTemp.toInt()}°C · RH ${currentRh.toInt()}%${if (isRaining) " · Sedang Hujan" else " · Cerah"}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isRaining) Color(0xFF0D47A1) else MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        OutlinedButton(
+                            onClick = { onNavigateToTab?.invoke(7) },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Icon(AppIcons.WbSunny, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Buka Cuaca & Sync", fontSize = 10.sp)
+                        }
+                    }
                 }
             }
 
@@ -637,6 +744,17 @@ fun GrowingGuideScreen(
                         }
                     }
 
+                    val p1Treatments = remember { ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.PLANTING) }
+                    val p1Verified = p1Treatments.count { treatmentResults.containsKey(it.id) }
+
+                    val p2Treatments = remember { ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.MAINTENANCE) }
+                    val p2Verified = p2Treatments.count { treatmentResults.containsKey(it.id) }
+
+                    val p3Treatments = remember { ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.HARVEST) }
+                    val p3Verified = p3Treatments.count { treatmentResults.containsKey(it.id) }
+
+                    val totalCompliance = ChiliGrowingGuide.calculateTotalComplianceScore(treatmentResults.keys)
+
                     // 3 Pillar Columns / Cards
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -658,14 +776,13 @@ fun GrowingGuideScreen(
                                     Text("1. Menanam", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
                                 }
                                 Text("Bedengan: 45 cm", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Mulsa: Perak-Hitam", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Drainase: TWI Aman", fontSize = 9.sp, color = Color(0xFF2E7D32))
+                                Text("Mulsa: Perak", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Kamera: $p1Verified/${p1Treatments.size} Teruji", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (p1Verified > 0) Color(0xFF2E7D32) else OrangePrimary)
                             }
                         }
 
                         // Pilar 2: Memelihara
                         val isP2Selected = selectedFilterTab == 2
-                        val verifiedCount = activeStage.treatments.count { treatmentResults.containsKey(it.id) }
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = if (isP2Selected) OrangePrimary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
@@ -677,11 +794,11 @@ fun GrowingGuideScreen(
                             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(AppIcons.Camera, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(13.dp))
-                                    Text("2. Memelihara", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                                    Text("2. Pelihara", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
                                 }
-                                Text("Fertigasi: Terjadwal", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Wiwilan: LAI < 3.5", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Kamera: $verifiedCount/${activeStage.treatments.size} Teruji", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (verifiedCount > 0) Color(0xFF2E7D32) else OrangePrimary)
+                                Text("Wiwilan: LAI < 3.5", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Nutrisi: NPK/Ca", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Kamera: $p2Verified/${p2Treatments.size} Teruji", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (p2Verified > 0) Color(0xFF2E7D32) else OrangePrimary)
                             }
                         }
 
@@ -701,10 +818,27 @@ fun GrowingGuideScreen(
                                     Text("3. Panen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
                                 }
                                 Text(if (advisory.daysToHarvest > 0) "${advisory.daysToHarvest} Hari Lagi" else "Masa Panen", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Mutu: Merah > 85%", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("SOP: Asas Black 52°", fontSize = 9.sp, color = Color(0xFFD32F2F))
+                                Text("Merah > 85%", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Kamera: $p3Verified/${p3Treatments.size} Teruji", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (p3Verified > 0) Color(0xFF2E7D32) else Color(0xFFD32F2F))
                             }
                         }
+                    }
+
+                    // Progress Bar Kepatuhan Kamera Total Seluruh Kebun
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Kepatuhan Kamera Budidaya:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${totalCompliance.toInt()}% (${treatmentResults.size}/26 Terverifikasi)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
+                        }
+                        LinearProgressIndicator(
+                            progress = { (totalCompliance / 100.0).toFloat().coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            color = OrangePrimary,
+                            trackColor = MaterialTheme.colorScheme.surface
+                        )
                     }
                 }
             }
@@ -1054,6 +1188,65 @@ fun GrowingGuideScreen(
             }
         }
 
+        // --- Kartu Khusus: Panduan Cara Menanam & Olah Lahan Presisi (Tampil jika Tab == 1) ---
+        if (selectedFilterTab == 1) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                border = BorderStroke(1.dp, Color(0xFF2E7D32))
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(AppIcons.Terrain, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
+                        Text(
+                            "Pilar 1: Panduan Presisi Cara Menanam Cabai DAPE",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
+                    }
+                    Text(
+                        "1. Bedengan 40-50 cm: Memastikan perakaran tidak jenuh air dan mencegah layu bakteri Ralstonia.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Text(
+                        "2. Drainase Parit TWI < 7.5: Parit sedalam 50 cm menjamin air tuntas surut < 15 menit saat hujan lebat.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Text(
+                        "3. Mulsa Perak-Hitam: Memantulkan sinar UV mengusir thrips dan menstabilkan fluktuasi suhu tanah.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Text(
+                        "4. Jarak Tanam Staggered: 50 cm antar-lubang x 60 cm antar-baris pola segitiga zig-zag untuk aerasi kanopi.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Text(
+                        "5. Penanaman Sore Hari: Mengurangi stres transpirasi bibit, disertai inokulasi PGPR & mikoriza perakaran.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF1B5E20)
+                    )
+                    OutlinedButton(
+                        onClick = { onNavigateToTab?.invoke(1) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2E7D32)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(AppIcons.Terrain, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Buka Manajemen Lahan & Petak", fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+
         // --- Kartu Emas: Kunci Panen Mutu Terbaik & Pascapanen (Tampil jika Tab == 3) ---
         if (selectedFilterTab == 3) {
             Card(
@@ -1101,6 +1294,15 @@ fun GrowingGuideScreen(
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    OutlinedButton(
+                        onClick = { onNavigateToTab?.invoke(3) },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(AppIcons.Chili, contentDescription = null, modifier = Modifier.size(14.dp), tint = OrangePrimary)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Buka Layar Panen & Grading DAPE", fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -1304,300 +1506,96 @@ fun GrowingGuideScreen(
                                     }
                                 }
 
-                                // 1. Cara Menanam (Tampil jika tab 0 atau 1)
+                                // 1. Cara Menanam & Verifikasi Kamera Menanam (Tampil jika tab 0 atau 1)
                                 if (selectedFilterTab == 0 || selectedFilterTab == 1) {
                                     SectionLabel("1. Cara Menanam & Persiapan Lahan")
                                     stage.plantingGuide.forEach { item ->
                                         BulletRow(item, MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
-                                }
 
-                                // 2. Cara Memelihara / Merawat & Kamera Setiap Perawatan (Tampil jika tab 0 atau 2)
-                                if (selectedFilterTab == 0 || selectedFilterTab == 2) {
-                                    SectionLabel("2. Cara Memelihara & Verifikasi Kamera Setiap Perawatan")
-
-                                    // Render structured treatment items with dedicated camera inspection & inline verification
-                                    stage.treatments.forEach { trt ->
-                                        val trtResult = treatmentResults[trt.id]
-                                        val trtBitmap = treatmentBitmaps[trt.id]
-
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(12.dp),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (trtResult != null) Color(trtResult.status.badgeColorHex).copy(alpha = 0.6f)
-                                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                            ),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(12.dp),
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                // Category & Target Subject Header Row
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Surface(
-                                                        color = OrangePrimary.copy(alpha = 0.12f),
-                                                        shape = RoundedCornerShape(4.dp)
-                                                    ) {
-                                                        Text(
-                                                            trt.category,
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = OrangePrimary,
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-
-                                                    if (trtResult != null) {
-                                                        val bColor = Color(trtResult.status.badgeColorHex)
-                                                        Surface(
-                                                            color = bColor.copy(alpha = 0.15f),
-                                                            shape = RoundedCornerShape(6.dp)
-                                                        ) {
-                                                            Row(
-                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                            ) {
-                                                                Box(modifier = Modifier.size(6.dp).background(bColor, CircleShape))
-                                                                Text(
-                                                                    "Terverifikasi: ${trtResult.healthScore.toInt()}%",
-                                                                    fontSize = 10.sp,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    color = bColor
-                                                                )
-                                                            }
-                                                        }
-                                                    } else {
-                                                        Surface(
-                                                            color = MaterialTheme.colorScheme.surfaceVariant,
-                                                            shape = RoundedCornerShape(6.dp)
-                                                        ) {
-                                                            Text(
-                                                                "Belum Diverifikasi Kamera",
-                                                                fontSize = 9.sp,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-
-                                                Text(
-                                                    trt.name,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-
-                                                Text(
-                                                    trt.description,
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-
-                                                // Visual Target & Success Criteria
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                                        .padding(8.dp),
-                                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                                ) {
-                                                    Text(
-                                                        "Subjek Foto Kamera: ${trt.targetCameraSubject}",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                    Text(
-                                                        "Kriteria Visual Sukses: ${trt.visualSuccessCriteria}",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Medium,
-                                                        color = Color(0xFF2E7D32)
-                                                    )
-                                                }
-
-                                                // Dedicated Per-Treatment Action Buttons
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                ) {
-                                                    Button(
-                                                        onClick = { triggerTreatmentCamera(trt) },
-                                                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                                        modifier = Modifier.weight(1.3f)
-                                                    ) {
-                                                        Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(15.dp))
-                                                        Spacer(Modifier.width(4.dp))
-                                                        Text("Foto Kamera HP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                                    }
-
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            triggerTreatmentSimulation(trt, TreatmentCameraVerifier.SampleCondition.OPTIMAL)
-                                                        },
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                                                        modifier = Modifier.weight(0.9f)
-                                                    ) {
-                                                        Text("Uji Sehat", fontSize = 11.sp)
-                                                    }
-
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            triggerTreatmentSimulation(trt, TreatmentCameraVerifier.SampleCondition.MILD_DEFECT)
-                                                        },
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                                                        modifier = Modifier.weight(0.9f)
-                                                    ) {
-                                                        Text("Uji Gejala", fontSize = 11.sp)
-                                                    }
-                                                }
-
-                                                // INLINE INSPECTION RESULT (when verified)
-                                                if (trtResult != null) {
-                                                    val resColor = Color(trtResult.status.badgeColorHex)
-                                                    Surface(
-                                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                                        shape = RoundedCornerShape(10.dp),
-                                                        border = BorderStroke(1.dp, resColor.copy(alpha = 0.5f)),
-                                                        modifier = Modifier.fillMaxWidth()
-                                                    ) {
-                                                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                Row(
-                                                                    verticalAlignment = Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                                ) {
-                                                                    Box(modifier = Modifier.size(8.dp).background(resColor, CircleShape))
-                                                                    Text(
-                                                                        trtResult.statusTitle,
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        fontSize = 11.sp,
-                                                                        color = resColor
-                                                                    )
-                                                                }
-                                                                Text(
-                                                                    "Skor: ${trtResult.healthScore.toInt()}%",
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 11.sp,
-                                                                    color = resColor
-                                                                )
-                                                            }
-
-                                                            // Captured Photo Preview
-                                                            if (trtBitmap != null) {
-                                                                Box(
-                                                                    modifier = Modifier
-                                                                        .fillMaxWidth()
-                                                                        .height(110.dp)
-                                                                        .clip(RoundedCornerShape(6.dp))
-                                                                        .background(Color.Black),
-                                                                    contentAlignment = Alignment.Center
-                                                                ) {
-                                                                    Image(
-                                                                        bitmap = trtBitmap.asImageBitmap(),
-                                                                        contentDescription = "Foto Hasil Perawatan",
-                                                                        modifier = Modifier.fillMaxSize()
-                                                                    )
-                                                                }
-                                                            }
-
-                                                            // Metrics row
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.SpaceBetween
-                                                            ) {
-                                                                Text("Klorofil: ${trtResult.greenPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
-                                                                Text("Merah: ${trtResult.redPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD32F2F))
-                                                                Text("Klorosis: ${trtResult.yellowPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFF57F17))
-                                                                Text("Nekrosis: ${trtResult.defectPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = if (trtResult.defectPct > 5) Color.Red else Color.Gray)
-                                                            }
-
-                                                            // Diagnosis
-                                                            Text(
-                                                                "Diagnosis: ${trtResult.diagnosisText}",
-                                                                fontSize = 10.sp,
-                                                                color = MaterialTheme.colorScheme.onSurface
-                                                            )
-
-                                                            // Prescriptive Action
-                                                            Text(
-                                                                "Tindakan SOP: ${trtResult.prescriptiveAction}",
-                                                                fontSize = 10.sp,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                color = OrangePrimary
-                                                            )
-
-                                                            // Inline Actions: Save to Calendar & TTS Listen
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                            ) {
-                                                                Button(
-                                                                    onClick = { saveInspectionToCalendar(trtResult) },
-                                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                                                    shape = RoundedCornerShape(6.dp),
-                                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
-                                                                    modifier = Modifier.weight(1.1f)
-                                                                ) {
-                                                                    Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(13.dp))
-                                                                    Spacer(Modifier.width(4.dp))
-                                                                    Text("Simpan Kalender", fontSize = 10.sp)
-                                                                }
-
-                                                                OutlinedButton(
-                                                                    onClick = { speakInspection(trtResult) },
-                                                                    shape = RoundedCornerShape(6.dp),
-                                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
-                                                                    modifier = Modifier.weight(0.9f)
-                                                                ) {
-                                                                    Icon(
-                                                                        imageVector = if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp,
-                                                                        contentDescription = null,
-                                                                        modifier = Modifier.size(13.dp),
-                                                                        tint = OrangePrimary
-                                                                    )
-                                                                    Spacer(Modifier.width(3.dp))
-                                                                    Text(if (isTtsSpeaking) "Stop" else "Dengarkan", fontSize = 10.sp)
-                                                                }
-
-                                                                OutlinedButton(
-                                                                    onClick = { triggerTreatmentCamera(trt) },
-                                                                    shape = RoundedCornerShape(6.dp),
-                                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
-                                                                    modifier = Modifier.weight(0.8f)
-                                                                ) {
-                                                                    Text("Foto Ulang", fontSize = 10.sp)
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                    val plantingTreatments = stage.treatments.filter { it.pillar == ChiliGrowingGuide.PillarType.PLANTING }
+                                    if (plantingTreatments.isNotEmpty()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "Kamera Verifikasi Hasil Menanam & Olah Lahan:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OrangePrimary
+                                        )
+                                        plantingTreatments.forEach { trt ->
+                                            TreatmentItemCard(
+                                                trt = trt,
+                                                trtResult = treatmentResults[trt.id],
+                                                trtBitmap = treatmentBitmaps[trt.id],
+                                                onTriggerCamera = { openCameraGuideDialog(it) },
+                                                onTriggerSimulation = { t, cond -> triggerTreatmentSimulation(t, cond) },
+                                                onSaveCalendar = { saveInspectionToCalendar(it) },
+                                                onSpeak = { speakInspection(it) },
+                                                isTtsSpeaking = isTtsSpeaking
+                                            )
                                         }
                                     }
                                 }
 
-                                // 3. Cara Panen Kualitas Terbaik (Tampil jika tab 0 atau 3)
+                                // 2. Cara Memelihara & Verifikasi Kamera Pemeliharaan (Tampil jika tab 0 atau 2)
+                                if (selectedFilterTab == 0 || selectedFilterTab == 2) {
+                                    SectionLabel("2. Cara Memelihara & Pemupukan Rutin")
+                                    stage.maintenanceGuide.forEach { item ->
+                                        BulletRow(item, MaterialTheme.colorScheme.onPrimaryContainer)
+                                    }
+
+                                    val maintenanceTreatments = stage.treatments.filter { it.pillar == ChiliGrowingGuide.PillarType.MAINTENANCE }
+                                    if (maintenanceTreatments.isNotEmpty()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "Kamera Verifikasi Hasil Pemeliharaan & SOP:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OrangePrimary
+                                        )
+                                        maintenanceTreatments.forEach { trt ->
+                                            TreatmentItemCard(
+                                                trt = trt,
+                                                trtResult = treatmentResults[trt.id],
+                                                trtBitmap = treatmentBitmaps[trt.id],
+                                                onTriggerCamera = { openCameraGuideDialog(it) },
+                                                onTriggerSimulation = { t, cond -> triggerTreatmentSimulation(t, cond) },
+                                                onSaveCalendar = { saveInspectionToCalendar(it) },
+                                                onSpeak = { speakInspection(it) },
+                                                isTtsSpeaking = isTtsSpeaking
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 3. Cara Panen Kualitas Terbaik & Verifikasi Kamera Panen (Tampil jika tab 0 atau 3)
                                 if (selectedFilterTab == 0 || selectedFilterTab == 3) {
-                                    SectionLabel("3. Panduan Panen & Kualitas Terbaik")
+                                    SectionLabel("3. Panduan Panen & Kualitas Mutu Terbaik")
                                     stage.harvestGuide.forEach { item ->
                                         BulletRow(item, MaterialTheme.colorScheme.onPrimaryContainer)
+                                    }
+
+                                    val harvestTreatments = stage.treatments.filter { it.pillar == ChiliGrowingGuide.PillarType.HARVEST }
+                                    if (harvestTreatments.isNotEmpty()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "Kamera Verifikasi Hasil Panen & Pasca-Panen Mutu Terbaik:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OrangePrimary
+                                        )
+                                        harvestTreatments.forEach { trt ->
+                                            TreatmentItemCard(
+                                                trt = trt,
+                                                trtResult = treatmentResults[trt.id],
+                                                trtBitmap = treatmentBitmaps[trt.id],
+                                                onTriggerCamera = { openCameraGuideDialog(it) },
+                                                onTriggerSimulation = { t, cond -> triggerTreatmentSimulation(t, cond) },
+                                                onSaveCalendar = { saveInspectionToCalendar(it) },
+                                                onSpeak = { speakInspection(it) },
+                                                isTtsSpeaking = isTtsSpeaking
+                                            )
+                                        }
                                     }
                                 }
 
@@ -1805,3 +1803,298 @@ private fun BulletRow(text: String, color: Color) {
         )
     }
 }
+
+@Composable
+private fun TreatmentItemCard(
+    trt: ChiliGrowingGuide.TreatmentItem,
+    trtResult: TreatmentCameraVerifier.InspectionResult?,
+    trtBitmap: Bitmap?,
+    onTriggerCamera: (ChiliGrowingGuide.TreatmentItem) -> Unit,
+    onTriggerSimulation: (ChiliGrowingGuide.TreatmentItem, TreatmentCameraVerifier.SampleCondition) -> Unit,
+    onSaveCalendar: (TreatmentCameraVerifier.InspectionResult) -> Unit,
+    onSpeak: (TreatmentCameraVerifier.InspectionResult) -> Unit,
+    isTtsSpeaking: Boolean
+) {
+    val bColor = if (trtResult != null) Color(trtResult.status.badgeColorHex) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, if (trtResult != null) bColor.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Category & Status Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = OrangePrimary.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        "${trt.pillar.displayName} · ${trt.category}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OrangePrimary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                if (trtResult != null) {
+                    Surface(
+                        color = bColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(modifier = Modifier.size(6.dp).background(bColor, CircleShape))
+                            Text(
+                                "Terverifikasi: ${trtResult.healthScore.toInt()}%",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = bColor
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "Belum Diverifikasi Kamera",
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                trt.name,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                trt.description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Visual Target, Criteria, Angle, and Lighting
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    "Subjek Foto Kamera: ${trt.targetCameraSubject}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Kriteria Visual Sukses: ${trt.visualSuccessCriteria}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF2E7D32)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Sudut: ${trt.shootingAngle}",
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Cahaya: ${trt.recommendedLighting}",
+                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Dedicated Per-Treatment Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Button(
+                    onClick = { onTriggerCamera(trt) },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(1.3f)
+                ) {
+                    Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Foto Kamera HP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        onTriggerSimulation(trt, TreatmentCameraVerifier.SampleCondition.OPTIMAL)
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(0.9f)
+                ) {
+                    Text("Uji Sehat", fontSize = 11.sp)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        onTriggerSimulation(trt, TreatmentCameraVerifier.SampleCondition.MILD_DEFECT)
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(0.9f)
+                ) {
+                    Text("Uji Gejala", fontSize = 11.sp)
+                }
+            }
+
+            // INLINE INSPECTION RESULT (when verified)
+            if (trtResult != null) {
+                val resColor = Color(trtResult.status.badgeColorHex)
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, resColor.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(modifier = Modifier.size(8.dp).background(resColor, CircleShape))
+                                Text(
+                                    trtResult.statusTitle,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = resColor
+                                )
+                            }
+                            Text(
+                                "Skor: ${trtResult.healthScore.toInt()}%",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = resColor
+                            )
+                        }
+
+                        // Captured Photo Preview
+                        if (trtBitmap != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(110.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    bitmap = trtBitmap.asImageBitmap(),
+                                    contentDescription = "Foto Hasil Perawatan",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+
+                        // Metrics row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Klorofil: ${trtResult.greenPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+                            Text("Merah: ${trtResult.redPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD32F2F))
+                            Text("Klorosis: ${trtResult.yellowPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFF57F17))
+                            Text("Nekrosis: ${trtResult.defectPct}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = if (trtResult.defectPct > 5) Color.Red else Color.Gray)
+                        }
+
+                        // Diagnosis
+                        Text(
+                            "Diagnosis: ${trtResult.diagnosisText}",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        // Prescriptive Action
+                        Text(
+                            "Tindakan SOP: ${trtResult.prescriptiveAction}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OrangePrimary
+                        )
+
+                        // Inline Actions: Save to Calendar & TTS Listen
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Button(
+                                onClick = { onSaveCalendar(trtResult) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.weight(1.1f)
+                            ) {
+                                Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Simpan Kalender", fontSize = 10.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = { onSpeak(trtResult) },
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.weight(0.9f)
+                            ) {
+                                Icon(
+                                    imageVector = if (isTtsSpeaking) AppIcons.Stop else AppIcons.VolumeUp,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = OrangePrimary
+                                )
+                                Spacer(Modifier.width(3.dp))
+                                Text(if (isTtsSpeaking) "Stop" else "Dengarkan", fontSize = 10.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = { onTriggerCamera(trt) },
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.weight(0.8f)
+                            ) {
+                                Text("Foto Ulang", fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

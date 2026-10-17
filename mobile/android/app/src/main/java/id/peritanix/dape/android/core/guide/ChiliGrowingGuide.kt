@@ -21,13 +21,22 @@ object ChiliGrowingGuide {
         val failAction: String
     )
 
+    enum class PillarType(val displayName: String) {
+        PLANTING("Cara Menanam"),
+        MAINTENANCE("Cara Memelihara"),
+        HARVEST("Panen Terbaik")
+    }
+
     data class TreatmentItem(
         val id: String,
         val name: String,
         val category: String,
         val description: String,
         val targetCameraSubject: String,
-        val visualSuccessCriteria: String
+        val visualSuccessCriteria: String,
+        val pillar: PillarType = PillarType.MAINTENANCE,
+        val shootingAngle: String = "Sudut 45°",
+        val recommendedLighting: String = "Cahaya alami terang pagi hari"
     )
 
     data class Stage(
@@ -119,7 +128,10 @@ object ChiliGrowingGuide {
                     category = "Persiapan Benih",
                     description = "Perendaman benih air hangat 45-50°C selama 30 menit. Buang benih terapung.",
                     targetCameraSubject = "Wadah Benih & Rasio Tenggelam",
-                    visualSuccessCriteria = "Benih bernas tenggelam di dasar wadah tanpa benda asing."
+                    visualSuccessCriteria = "Benih bernas tenggelam di dasar wadah tanpa benda asing.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Tegak Lurus 90° Atas Wadah",
+                    recommendedLighting = "Cahaya Terang Ruangan / Pagi"
                 ),
                 TreatmentItem(
                     id = "T1_2",
@@ -127,7 +139,10 @@ object ChiliGrowingGuide {
                     category = "Irigasi & Kelembaban",
                     description = "Penyiraman kabut pagi hari menjaga kelembaban arang sekam + kompos tanpa menggenang.",
                     targetCameraSubject = "Permukaan Tray Semai & Butir Kabut",
-                    visualSuccessCriteria = "Media lembab merata berpori, tidak ada genangan atau kerak kering."
+                    visualSuccessCriteria = "Media lembab merata berpori, tidak ada genangan atau kerak kering.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Sudut 45° Permukaan Tray",
+                    recommendedLighting = "Pagi Hari 07:00"
                 ),
                 TreatmentItem(
                     id = "T1_3",
@@ -135,7 +150,10 @@ object ChiliGrowingGuide {
                     category = "Nutrisi Bibit",
                     description = "Semprot nutrisi daun mikro dosis 0,5 g/L pada hari ke-12 setelah semai.",
                     targetCameraSubject = "Warna Daun Sejati Bibit",
-                    visualSuccessCriteria = "Daun hijau segar simetris (klorofil > 65%), daun tidak menguning pucat."
+                    visualSuccessCriteria = "Daun hijau segar simetris (klorofil > 65%), daun tidak menguning pucat.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 10-15 cm Daun Sejati",
+                    recommendedLighting = "Cahaya Pagi Alami"
                 ),
                 TreatmentItem(
                     id = "T1_4",
@@ -143,7 +161,10 @@ object ChiliGrowingGuide {
                     category = "Pengendalian Hama",
                     description = "Pasang kasa insect net 50 mesh rapat di bedeng semai untuk memblokir kutu kebul.",
                     targetCameraSubject = "Kerapatan Kasa Pelindung Semai",
-                    visualSuccessCriteria = "Insect net tertutup rapat tanpa celah robek di sekeliling bedeng semai."
+                    visualSuccessCriteria = "Insect net tertutup rapat tanpa celah robek di sekeliling bedeng semai.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Horizontal 0° Keliling Bedeng Semai",
+                    recommendedLighting = "Cahaya Siang Merata"
                 ),
                 TreatmentItem(
                     id = "T1_5",
@@ -151,7 +172,10 @@ object ChiliGrowingGuide {
                     category = "Adaptasi Lingkungan",
                     description = "Buka sungkup paranet penuh 4 hari sebelum pindah tanam untuk memperkuat kutikula batang.",
                     targetCameraSubject = "Ketegakan Batang Bibit di Bawah Terik",
-                    visualSuccessCriteria = "Batang tebal kokoh tegak lurus, tidak layu di bawah matahari siang."
+                    visualSuccessCriteria = "Batang tebal kokoh tegak lurus, tidak layu di bawah matahari siang.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Sudut 45° Tajuk Bibit di Terik",
+                    recommendedLighting = "Cahaya Siang Penuh (Aklimatisasi)"
                 )
             )
         ),
@@ -209,7 +233,10 @@ object ChiliGrowingGuide {
                     category = "Persiapan Lahan",
                     description = "Bedengan tinggi 40-50 cm, lebar 100 cm, parit pembuangan 50 cm dengan TWI < 7,5.",
                     targetCameraSubject = "Profil Ketinggian Bedengan & Parit",
-                    visualSuccessCriteria = "Bedengan lurus kokoh, parit bersih bebas sumbatan genangan air."
+                    visualSuccessCriteria = "Bedengan lurus kokoh, parit bersih bebas sumbatan genangan air.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Sudut 45° Profil Parit & Bedengan",
+                    recommendedLighting = "Pagi atau Sore Hari"
                 ),
                 TreatmentItem(
                     id = "T2_2",
@@ -217,7 +244,10 @@ object ChiliGrowingGuide {
                     category = "Mulsa & Jarak Tanam",
                     description = "Mulsa ditarik kencang, lubang tanam 50x60 cm pola segitiga zig-zag.",
                     targetCameraSubject = "Hamparan Mulsa & Lubang Tanam",
-                    visualSuccessCriteria = "Mulsa perak memantulkan cahaya rapi, lubang tanam presisi."
+                    visualSuccessCriteria = "Mulsa perak memantulkan cahaya rapi, lubang tanam presisi.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Tegak Lurus 90° Hamparan Mulsa",
+                    recommendedLighting = "Cahaya Siang Terang"
                 ),
                 TreatmentItem(
                     id = "T2_3",
@@ -225,7 +255,10 @@ object ChiliGrowingGuide {
                     category = "Struktur & Penopang",
                     description = "Ajir bambu 1,5 meter dipancangkan 10 cm dari pangkal batang saat 7-10 HST.",
                     targetCameraSubject = "Ikatan Ajir pada Batang Utama",
-                    visualSuccessCriteria = "Ajir tertancap kokoh, ikatan tali membentuk angka 8 longgar."
+                    visualSuccessCriteria = "Ajir tertancap kokoh, ikatan tali membentuk angka 8 longgar.",
+                    pillar = PillarType.PLANTING,
+                    shootingAngle = "Sudut 45° Pangkal Batang & Ikatan Ajir",
+                    recommendedLighting = "Pagi Hari"
                 ),
                 TreatmentItem(
                     id = "T2_4",
@@ -233,7 +266,10 @@ object ChiliGrowingGuide {
                     category = "Pemangkasan & Wiwilan",
                     description = "Buang seluruh tunas samping di ketiak daun di bawah percabangan Y untuk menjaga LAI < 3.5.",
                     targetCameraSubject = "Pangkal Batang & Ketiak Daun Bawah",
-                    visualSuccessCriteria = "Pangkal batang hingga cabang Y bersih total dari tunas air liar."
+                    visualSuccessCriteria = "Pangkal batang hingga cabang Y bersih total dari tunas air liar.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 15 cm Bawah Percabangan Y",
+                    recommendedLighting = "Pagi Hari 07:00-09:00"
                 ),
                 TreatmentItem(
                     id = "T2_5",
@@ -241,7 +277,10 @@ object ChiliGrowingGuide {
                     category = "Pemupukan & Nutrisi",
                     description = "Kocor NPK 16-16-16 dosis 3-4 gram dilarutkan dalam 200 ml air per tanaman setiap 7 hari.",
                     targetCameraSubject = "Tajuk Daun Muda & Warna Klorofil",
-                    visualSuccessCriteria = "Pertumbuhan tunas baru merata hijau pekat tanpa gejala terbakar pupuk."
+                    visualSuccessCriteria = "Pertumbuhan tunas baru merata hijau pekat tanpa gejala terbakar pupuk.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Sudut 45° Tajuk Daun Muda",
+                    recommendedLighting = "Pagi Hari Setelah Kocor"
                 ),
                 TreatmentItem(
                     id = "T2_6",
@@ -249,7 +288,10 @@ object ChiliGrowingGuide {
                     category = "Pengendalian Hama",
                     description = "Penyemprotan insektisida abamektin / nabati saat terdeteksi daun melengkung ke atas.",
                     targetCameraSubject = "Pucuk Daun Muda Cabai",
-                    visualSuccessCriteria = "Helaian daun muda melebar mulus tanpa lekukan perahu atau keriting."
+                    visualSuccessCriteria = "Helaian daun muda melebar mulus tanpa lekukan perahu atau keriting.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 10 cm Pucuk Daun Muda",
+                    recommendedLighting = "Pagi Hari"
                 )
             )
         ),
@@ -304,7 +346,10 @@ object ChiliGrowingGuide {
                     category = "Nutrisi Pembungaan",
                     description = "Semprot Kalsium Nitrat (2 g/L) + Boron (1 g/L) + Silika cair untuk memperkuat tangkai bunga.",
                     targetCameraSubject = "Gugus Bunga Mekar & Tangkai Bunga",
-                    visualSuccessCriteria = "Kelopak bunga putih bersih merekah kuat, tangkai hijau tebal menempel kokoh."
+                    visualSuccessCriteria = "Kelopak bunga putih bersih merekah kuat, tangkai hijau tebal menempel kokoh.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 10-15 cm Gugus Bunga Mekar",
+                    recommendedLighting = "Pagi Hari 07:00-08:30"
                 ),
                 TreatmentItem(
                     id = "T3_2",
@@ -312,7 +357,10 @@ object ChiliGrowingGuide {
                     category = "Manajemen Nutrisi",
                     description = "Stop aplikasi Urea untuk mencegah gugur bunga massal dan vegetatif liar menutupi bunga.",
                     targetCameraSubject = "Keseimbangan Tajuk & Kepadatan Bunga",
-                    visualSuccessCriteria = "Kanopi tidak terlalu rimbun gelap, penetrasi sinar matahari sampai ke dahan tengah."
+                    visualSuccessCriteria = "Kanopi tidak terlalu rimbun gelap, penetrasi sinar matahari sampai ke dahan tengah.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Sudut 45° Kanopi & Penetrasi Sinar",
+                    recommendedLighting = "Cahaya Siang Hari"
                 ),
                 TreatmentItem(
                     id = "T3_3",
@@ -320,7 +368,10 @@ object ChiliGrowingGuide {
                     category = "Pemupukan Generatif",
                     description = "Kocor Mono Kalium Fosfat (MKP) dosis 4 g/pohon mempercepat inisiasi bakal buah cabai.",
                     targetCameraSubject = "Bakal Buah Cabai (Fruit-Set) di Cabang Y",
-                    visualSuccessCriteria = "Persentase bunga menjadi bakal buah (fruit-set) > 85%, putik tidak menguning."
+                    visualSuccessCriteria = "Persentase bunga menjadi bakal buah (fruit-set) > 85%, putik tidak menguning.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 15 cm Bakal Buah Cabang Y",
+                    recommendedLighting = "Pagi Hari"
                 ),
                 TreatmentItem(
                     id = "T3_4",
@@ -328,7 +379,10 @@ object ChiliGrowingGuide {
                     category = "Irigasi & Drainase",
                     description = "Pastikan parit mengalir tuntas saat hujan deras untuk mencegah stres fluktuasi air perakaran.",
                     targetCameraSubject = "Kelancaran Aliran Parit Bedengan",
-                    visualSuccessCriteria = "Air hujan tuntas surut dalam < 15 menit, bedengan tetap lembab konstan 65%."
+                    visualSuccessCriteria = "Air hujan tuntas surut dalam < 15 menit, bedengan tetap lembab konstan 65%.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Sudut 30° Aliran Parit Bedengan",
+                    recommendedLighting = "Saat atau Segera Pasca-Hujan"
                 ),
                 TreatmentItem(
                     id = "T3_5",
@@ -336,7 +390,10 @@ object ChiliGrowingGuide {
                     category = "Proteksi Penyakit",
                     description = "Pengamatan lesi basah jamur pada kelopak bunga dan semprot fungisida tembaga Cu(OH)2 jika perlu.",
                     targetCameraSubject = "Kelopak Bunga & Pangkal Putik",
-                    visualSuccessCriteria = "Kelopak bunga bebas bercak cokelat busuk (nekrosis < 3%)."
+                    visualSuccessCriteria = "Kelopak bunga bebas bercak cokelat busuk (nekrosis < 3%).",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 10 cm Kelopak Bunga",
+                    recommendedLighting = "Pagi Hari"
                 )
             )
         ),
@@ -390,7 +447,10 @@ object ChiliGrowingGuide {
                     category = "Pemupukan Pembesaran Buah",
                     description = "KNO3 putih 5-7 gram/tanaman kocor tiap minggu untuk memadatkan dinding buah dan mengilapkan warna.",
                     targetCameraSubject = "Kulit Buah Cabai & Kilau Pericarp",
-                    visualSuccessCriteria = "Kulit cabai mengkilap mulus bertekstur kenyal padat, pericarp tebal > 1.8 mm."
+                    visualSuccessCriteria = "Kulit cabai mengkilap mulus bertekstur kenyal padat, pericarp tebal > 1.8 mm.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 15-20 cm Buah Menggantung",
+                    recommendedLighting = "Pagi Hari"
                 ),
                 TreatmentItem(
                     id = "T4_2",
@@ -398,7 +458,10 @@ object ChiliGrowingGuide {
                     category = "Fortifikasi Kalsium",
                     description = "Semprot kalsium chelate larut air pada buah muda untuk mencegah nekrosis pantat buah.",
                     targetCameraSubject = "Ujung / Pantat Buah Cabai",
-                    visualSuccessCriteria = "Ujung buah cabai utuh meruncing tanpa bercak gosong hitam atau cekungan."
+                    visualSuccessCriteria = "Ujung buah cabai utuh meruncing tanpa bercak gosong hitam atau cekungan.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 10 cm Ujung Pantat Buah",
+                    recommendedLighting = "Pagi Hari"
                 ),
                 TreatmentItem(
                     id = "T4_3",
@@ -406,7 +469,10 @@ object ChiliGrowingGuide {
                     category = "Sanitasi Penyakit",
                     description = "Petik segera dan musnahkan buah dengan bercak cincin konsentris, semprot fungisida azoksistrobin.",
                     targetCameraSubject = "Gantungan Buah Cabai di Dahan",
-                    visualSuccessCriteria = "Gantungan buah di pohon bersih dari lesi patek (bebas antraknosa aktif)."
+                    visualSuccessCriteria = "Gantungan buah di pohon bersih dari lesi patek (bebas antraknosa aktif).",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Makro 15 cm Permukaan Buah & Tajuk",
+                    recommendedLighting = "Pagi Hari 07:00-09:00"
                 ),
                 TreatmentItem(
                     id = "T4_4",
@@ -414,7 +480,10 @@ object ChiliGrowingGuide {
                     category = "Pengendalian Hama",
                     description = "Pasang perangkap metil eugenol dan likat kuning di sekeliling petak lahan cabai.",
                     targetCameraSubject = "Perangkap Lalat Buah & Permukaan Buah",
-                    visualSuccessCriteria = "Buah mulus tanpa bekas sengatan ovipositor lalat buah (tanpa bintik jarum)."
+                    visualSuccessCriteria = "Buah mulus tanpa bekas sengatan ovipositor lalat buah (tanpa bintik jarum).",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Sudut 45° Perangkap & Batas Petak",
+                    recommendedLighting = "Pagi atau Sore Hari"
                 ),
                 TreatmentItem(
                     id = "T4_5",
@@ -422,7 +491,10 @@ object ChiliGrowingGuide {
                     category = "Struktur & Penopang",
                     description = "Ikat dahan yang sarat buah dengan tali gawar penopang agar tidak patah terkoyak angin.",
                     targetCameraSubject = "Ikatan Tali Dahan pada Tiang Ajir",
-                    visualSuccessCriteria = "Dahan-dahan berbuah lebat tertopang seimbang tanpa lengkungan patah."
+                    visualSuccessCriteria = "Dahan-dahan berbuah lebat tertopang seimbang tanpa lengkungan patah.",
+                    pillar = PillarType.MAINTENANCE,
+                    shootingAngle = "Sudut 45° Cabang Buah Sarat Beban",
+                    recommendedLighting = "Sore Hari"
                 )
             )
         ),
@@ -478,7 +550,10 @@ object ChiliGrowingGuide {
                     category = "Pemanenan Presisi",
                     description = "Petik pukul 07.00 - 10.00 setelah embun kering. Potong tangkai buah hijau segar dengan gunting steril.",
                     targetCameraSubject = "Tangkai Buah Cabai yang Baru Dipetik",
-                    visualSuccessCriteria = "Tangkai cabai hijau segar utuh, tidak ada luka sobek pada daging buah."
+                    visualSuccessCriteria = "Tangkai cabai hijau segar utuh, tidak ada luka sobek pada daging buah.",
+                    pillar = PillarType.HARVEST,
+                    shootingAngle = "Makro 10 cm Tangkai Buah Dipetik",
+                    recommendedLighting = "Pagi Hari 07:00-10:00"
                 ),
                 TreatmentItem(
                     id = "T5_2",
@@ -486,7 +561,10 @@ object ChiliGrowingGuide {
                     category = "Grading Mutu",
                     description = "Klasifikasi Grade A+ (merah > 85%, panjang > 12 cm, lurus), Grade A, Grade B, dan BS afkir.",
                     targetCameraSubject = "Hamparan Buah di Meja Grading",
-                    visualSuccessCriteria = "Kematangan merah seragam > 85%, buah lurus mulus tanpa cacat fisik."
+                    visualSuccessCriteria = "Kematangan merah seragam > 85%, buah lurus mulus tanpa cacat fisik.",
+                    pillar = PillarType.HARVEST,
+                    shootingAngle = "Tegak Lurus 90° Hamparan Meja",
+                    recommendedLighting = "Cahaya Terang Merata"
                 ),
                 TreatmentItem(
                     id = "T5_3",
@@ -494,7 +572,10 @@ object ChiliGrowingGuide {
                     category = "Pasca-Panen Karantina",
                     description = "Rendam buah 180 detik dalam campuran air panas 52°C terkalibrasi untuk membunuh spora laten patek.",
                     targetCameraSubject = "Buah Cabai dalam Wadah Tirisan Termoterapi",
-                    visualSuccessCriteria = "Buah ditiriskan kering di tempat berangin tanpa bercak melepuh."
+                    visualSuccessCriteria = "Buah ditiriskan kering di tempat berangin tanpa bercak melepuh.",
+                    pillar = PillarType.HARVEST,
+                    shootingAngle = "Sudut 45° Wadah Penirisan Buah",
+                    recommendedLighting = "Ruang Terang Bebas Lembab"
                 ),
                 TreatmentItem(
                     id = "T5_4",
@@ -502,7 +583,10 @@ object ChiliGrowingGuide {
                     category = "Uji Laboratorium Lapangan",
                     description = "Uji apung di wadah air: cabai padat berbobot tenggelam (>80%), cabai berongga terapung.",
                     targetCameraSubject = "Permukaan Air Uji Densitas Cabai",
-                    visualSuccessCriteria = "Mayoritas buah cabai tenggelam di dasar, membuktikan dinding sel padat tebal."
+                    visualSuccessCriteria = "Mayoritas buah cabai tenggelam di dasar, membuktikan dinding sel padat tebal.",
+                    pillar = PillarType.HARVEST,
+                    shootingAngle = "Tegak Lurus 90° Permukaan Air Uji",
+                    recommendedLighting = "Cahaya Terang"
                 ),
                 TreatmentItem(
                     id = "T5_5",
@@ -510,7 +594,10 @@ object ChiliGrowingGuide {
                     category = "Pengemasan & Penjualan",
                     description = "Kemas dalam krat berventilasi maksimal 15 kg/krat, pasang tanda sertifikat mutu Ed25519.",
                     targetCameraSubject = "Krat Panen Bersusun & Label Sertifikat",
-                    visualSuccessCriteria = "Krat berventilasi rapi dengan label sertifikasi mutu terverifikasi."
+                    visualSuccessCriteria = "Krat berventilasi rapi dengan label sertifikasi mutu terverifikasi.",
+                    pillar = PillarType.HARVEST,
+                    shootingAngle = "Sudut 45° Krat Susun & Label",
+                    recommendedLighting = "Ruang Pengemasan"
                 )
             )
         )
@@ -583,4 +670,24 @@ object ChiliGrowingGuide {
             cameraInspectionTip = cameraTip
         )
     }
+
+    /** Mengambil seluruh tindakan perawatan berdasarkan pilar (Menanam, Memelihara, Panen). */
+    fun getTreatmentsForPillar(pillar: PillarType): List<TreatmentItem> =
+        stages.flatMap { it.treatments }.filter { it.pillar == pillar }
+
+    /** Menghitung skor kepatuhan kamera untuk tahapan tertentu (0 - 100%). */
+    fun calculateComplianceScore(stage: Stage, verifiedTreatmentIds: Set<String>): Double {
+        if (stage.treatments.isEmpty()) return 100.0
+        val verified = stage.treatments.count { verifiedTreatmentIds.contains(it.id) }
+        return (verified.toDouble() / stage.treatments.size) * 100.0
+    }
+
+    /** Menghitung skor kepatuhan kamera total seluruh siklus budidaya (0 - 100%). */
+    fun calculateTotalComplianceScore(verifiedTreatmentIds: Set<String>): Double {
+        val allTreatments = stages.flatMap { it.treatments }
+        if (allTreatments.isEmpty()) return 100.0
+        val verified = allTreatments.count { verifiedTreatmentIds.contains(it.id) }
+        return (verified.toDouble() / allTreatments.size) * 100.0
+    }
 }
+

@@ -214,4 +214,39 @@ class TreatmentCameraVerifierTest {
         val stage = ChiliGrowingGuide.stages[0]
         TreatmentCameraVerifier.analyzePixels(stage, IntArray(10), 0, 10, 0)
     }
+
+    @Test
+    fun testPillarTypeCategorizationAndComplianceScores() {
+        val planting = ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.PLANTING)
+        val maintenance = ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.MAINTENANCE)
+        val harvest = ChiliGrowingGuide.getTreatmentsForPillar(ChiliGrowingGuide.PillarType.HARVEST)
+
+        assertEquals(7, planting.size)
+        assertEquals(14, maintenance.size)
+        assertEquals(5, harvest.size)
+        assertEquals(26, planting.size + maintenance.size + harvest.size)
+
+        for (stage in ChiliGrowingGuide.stages) {
+            for (trt in stage.treatments) {
+                assertTrue("Shooting angle must not be blank for ${trt.id}", trt.shootingAngle.isNotBlank())
+                assertTrue("Recommended lighting must not be blank for ${trt.id}", trt.recommendedLighting.isNotBlank())
+                assertNotNull("Pillar must be defined for ${trt.id}", trt.pillar)
+            }
+        }
+
+        // Test stage compliance scoring
+        val stage1 = ChiliGrowingGuide.stages[0]
+        assertEquals(0.0, ChiliGrowingGuide.calculateComplianceScore(stage1, emptySet()), 0.001)
+        val stage1Ids = stage1.treatments.map { it.id }.toSet()
+        assertEquals(100.0, ChiliGrowingGuide.calculateComplianceScore(stage1, stage1Ids), 0.001)
+
+        // Test total compliance scoring
+        assertEquals(0.0, ChiliGrowingGuide.calculateTotalComplianceScore(emptySet()), 0.001)
+        val partialIds = setOf("T1_1", "T1_2", "T2_1")
+        val expectedScore = (3.0 / 26.0) * 100.0
+        assertEquals(expectedScore, ChiliGrowingGuide.calculateTotalComplianceScore(partialIds), 0.001)
+
+        val allIds = ChiliGrowingGuide.stages.flatMap { it.treatments }.map { it.id }.toSet()
+        assertEquals(100.0, ChiliGrowingGuide.calculateTotalComplianceScore(allIds), 0.001)
+    }
 }
