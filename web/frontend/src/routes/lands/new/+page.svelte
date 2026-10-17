@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { initLand, type LandInitResult } from '$lib/api';
 	import { toPolygonWKT } from '$lib/geo';
+	import Icon from '$lib/Icon.svelte';
 
 	let mapEl: HTMLDivElement;
 	let map: any;
@@ -24,6 +25,7 @@
 		if (!browser) return;
 		L = (await import('leaflet')).default;
 		await import('leaflet/dist/leaflet.css');
+		if (!mapEl) return; // container not mounted (fast SPA nav) — skip.
 		map = L.map(mapEl).setView([-6.9035, 107.6035], 16);
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '© OpenStreetMap'
@@ -37,7 +39,10 @@
 
 	function addVertex(lat: number, lng: number) {
 		vertices = [...vertices, [lat, lng]];
-		L.marker([lat, lng], { icon: L.divIcon({ className: 'vtx', html: '●' }) }).addTo(markerLayer);
+		const dot =
+			'<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">' +
+			'<circle cx="6" cy="6" r="5" fill="#f26a1b" stroke="#fff" stroke-width="1.5"/></svg>';
+		L.marker([lat, lng], { icon: L.divIcon({ className: 'vtx', html: dot }) }).addTo(markerLayer);
 		renderPolygon();
 	}
 
@@ -150,9 +155,11 @@
 		<h2>Poligon</h2>
 		<p>Titik: <strong>{vertices.length}</strong></p>
 		<div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-			<button class="btn" onclick={toggleGps}>{gpsWatching ? '⏹ Stop GPS' : '📍 Mulai Rekam GPS'}</button>
-			<button class="btn secondary" onclick={undo}>↶ Hapus Titik</button>
-			<button class="btn secondary" onclick={reset}>🗑 Reset</button>
+			<button class="btn" onclick={toggleGps}>
+				{#if gpsWatching}<Icon name="cancel" size={14} /> Stop GPS{:else}<Icon name="pin" size={14} /> Mulai Rekam GPS{/if}
+			</button>
+			<button class="btn secondary" onclick={undo}><Icon name="back" size={14} /> Hapus Titik</button>
+			<button class="btn secondary" onclick={reset}><Icon name="trash" size={14} /> Reset</button>
 		</div>
 	</div>
 	<div class="card">
@@ -164,18 +171,18 @@
 		<label class="muted" for="pd" style="display:block;margin-top:0.5rem">Tanggal tanam</label>
 		<input id="pd" type="date" bind:value={plantingDate} />
 		<button class="btn" style="margin-top:0.75rem" onclick={submit} disabled={busy}>
-			{busy ? 'Menyimpan…' : '💾 Simpan Lahan'}
+			<Icon name="save" size={14} /> {busy ? 'Menyimpan…' : 'Simpan Lahan'}
 		</button>
 	</div>
 </div>
 
 {#if err}
-	<div class="card" style="margin-top:1rem;border-color:#fca5a5"><p class="error">{err}</p></div>
+	<div class="card alert danger" style="margin-top:1rem"><p class="error">{err}</p></div>
 {/if}
 
 {#if result}
-	<div class="card" style="margin-top:1rem;border-color:#86efac">
-		<h2>✅ Lahan dibuat</h2>
+	<div class="card" style="margin-top:1rem;border-color:var(--orange-200)">
+		<h2><Icon name="check-circle" size={16} /> Lahan dibuat</h2>
 		<p><strong>{result.land.name}</strong> — {(result.land.area_ha ?? 0).toFixed(3)} ha</p>
 		<p class="muted">
 			Cache TWI: {(result.cache_kb ?? 0).toFixed(1)} KB ·

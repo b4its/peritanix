@@ -16,6 +16,7 @@
 	} from '$lib/api';
 	import { speak, stopSpeaking, ttsSupported, dosingSpeech } from '$lib/tts';
 	import { validateTrace as validateTraceOffline } from '$lib/physics';
+	import Icon from '$lib/Icon.svelte';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -167,7 +168,7 @@
 					tts_text: `Campurkan ${r.vBoilParts.toFixed(1)} gayung air mendidih dengan ${r.vWellParts} gayung air sumur.`,
 					countdown_s: 180
 				};
-				err = '⚠️ Dihitung offline (server tak terjangkau).';
+				err = 'Dihitung offline (server tak terjangkau).';
 			} catch (e2: any) {
 				err = e2.message;
 			}
@@ -233,28 +234,30 @@
 			<p class="muted">{calo.tts_text} ({calo.countdown_s} detik)</p>
 			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
 				<button class="btn" onclick={toggleTTS} disabled={!ttsSupported()}>
-					{ticking ? '⏹ Stop Suara' : '🔊 Bacakan (TTS)'}
+					{#if ticking}<Icon name="cancel" size={14} /> Stop Suara{:else}<Icon name="volume" size={14} /> Bacakan (TTS){/if}
 				</button>
-				<button class="btn" onclick={startCountdown}>⏱ Mulai Perendaman {calo.countdown_s}s</button>
+				<button class="btn" onclick={startCountdown}>
+					<Icon name="pulse" size={14} /> Mulai Perendaman {calo.countdown_s}s
+				</button>
 			</div>
 			{#if ticking || countdown > 0}
 				<p style="margin-top:0.5rem;font-size:1.4rem;font-weight:700">
-					⏳ {String(Math.floor(countdown / 60)).padStart(2, '0')}:{String(countdown % 60).padStart(2, '0')}
+					<Icon name="pulse" size={18} /> {String(Math.floor(countdown / 60)).padStart(2, '0')}:{String(countdown % 60).padStart(2, '0')}
 					{#if !ticking && countdown <= 0}<span class="badge high">SELESAI</span>{/if}
 				</p>
 			{/if}
 			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
 				<button class="btn secondary" onclick={recording ? stopTrace : startTrace}>
-					{recording ? '⏹ Stop Rekam Gerak' : '📳 Rekam Gerak (Anti-Cheat)'}
+					{#if recording}<Icon name="cancel" size={14} /> Stop Rekam Gerak{:else}<Icon name="vibrate" size={14} /> Rekam Gerak (Anti-Cheat){/if}
 				</button>
 				<button class="btn secondary" onclick={validateRecordedTrace} disabled={trace.length === 0}>
-					✅ Validasi Bukti Fisik ({trace.length} sampel)
+					<Icon name="check-circle" size={14} /> Validasi Bukti Fisik ({trace.length} sampel)
 				</button>
 			</div>
 			{#if traceResult}
-				<div style="margin-top:0.5rem;border:1px solid {traceResult.valid ? '#86efac' : '#fca5a5'};border-radius:8px;padding:0.5rem">
-					<p>
-						{traceResult.valid ? '✅ Bukti fisik wajar' : '❌ Bukti fisik tidak wajar'}
+				<div class="alert" class:accent={traceResult.valid} class:danger={!traceResult.valid} style="margin-top:0.5rem">
+					<p class="alert-title">
+						{#if traceResult.valid}<Icon name="check-circle" size={15} /> Bukti fisik wajar{:else}<Icon name="cancel" size={15} /> Bukti fisik tidak wajar{/if}
 						· skor {traceResult.score} · durasi {traceResult.duration_s.toFixed(0)}s
 					</p>
 					{#each traceResult.reasons as r}<p class="muted">{r}</p>{/each}
@@ -272,7 +275,8 @@
 		</div>
 		<button class="btn" style="margin-top:0.75rem" onclick={doArch}>Hitung Densitas</button>
 		{#if arch}
-			<p style="margin-top:0.75rem">Sink ratio: <strong>{arch.sink_ratio.toFixed(3)}</strong> →
+			<p style="margin-top:0.75rem">Sink ratio: <strong>{arch.sink_ratio.toFixed(3)}</strong>
+				<Icon name="chevron-right" size={12} />
 				<span class="badge high">{arch.physics_grade}</span></p>
 		{/if}
 	</div>
@@ -299,7 +303,7 @@
 		<div><label class="muted" for="gd">GDD</label><input id="gd" type="number" bind:value={gdd} /></div>
 		<div><label class="muted" for="ph">Fase</label><input id="ph" bind:value={phase} /></div>
 		<div><label class="muted" for="pt">Tren harga 14 hari (±%)</label><input id="pt" type="number" bind:value={priceTrend} step="0.05" /></div>
-		<button class="btn" onclick={doDecide}>🧭 Hitung Keputusan</button>
+		<button class="btn" onclick={doDecide}><Icon name="compass" size={14} /> Hitung Keputusan</button>
 	</div>
 
 	{#if decision}

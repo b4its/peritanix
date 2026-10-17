@@ -19,6 +19,7 @@
 		diseaseHeatPoints,
 		type WindVector
 	} from '$lib/heatmap';
+	import Icon from '$lib/Icon.svelte';
 
 	let lands = $state<Land[]>([]);
 	let diseases = $state<DiseaseLog[]>([]);
@@ -129,16 +130,24 @@
 </p>
 <p class="muted">
 	<button class="btn secondary" onclick={toggleTWI}>
-		{showTWI ? '🙈 Sembunyikan' : '👁 Tampilkan'} kontur TWI
+		<Icon name="eye" size={14} /> {showTWI ? 'Sembunyikan' : 'Tampilkan'} kontur TWI
 	</button>
-	&nbsp; Legenda TWI: <span style="color:#16a34a">● kering</span> →
-	<span style="color:#d97706">● lembap</span> →
-	<span style="color:#dc2626">● cekungan/genangan (risiko Phytophthora)</span>
+	<span class="legend">
+		Legenda TWI:
+		<span class="legend-item"><span class="dot" style="background:var(--ok)"></span> kering</span>
+		<Icon name="chevron-right" size={12} />
+		<span class="legend-item"><span class="dot" style="background:var(--warn)"></span> lembap</span>
+		<Icon name="chevron-right" size={12} />
+		<span class="legend-item"><span class="dot" style="background:var(--danger)"></span> cekungan/genangan (risiko Phytophthora)</span>
+	</span>
 </p>
 <p class="muted">
-	Legenda pH: <span style="color:#16a34a">● optimal</span> ·
-	<span style="color:#d97706">● masam (&lt;5.5)</span> ·
-	<span style="color:#2563eb">● basa (&gt;7.0)</span>
+	<span class="legend">
+		Legenda pH:
+		<span class="legend-item"><span class="dot" style="background:var(--ok)"></span> optimal</span>
+		<span class="legend-item"><span class="dot" style="background:var(--warn)"></span> masam (&lt;5.5)</span>
+		<span class="legend-item"><span class="dot" style="background:#2563eb"></span> basa (&gt;7.0)</span>
+	</span>
 </p>
 
 <div class="grid" style="margin-top:1rem">

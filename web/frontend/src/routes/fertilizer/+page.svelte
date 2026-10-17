@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { listLands, soilList, fertilizerPlan, type Land, type FertilizerPlan } from '$lib/api';
 	import { prescribeFertilizer } from '$lib/physics';
+	import Icon from '$lib/Icon.svelte';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -50,7 +51,7 @@
 			// Offline fallback: deterministic mirror.
 			plan = prescribeFertilizer(ph, cec, hst, targetYield);
 			source = 'offline';
-			err = '⚠️ Dihitung offline (server tak terjangkau).';
+			err = 'Dihitung offline (server tak terjangkau).';
 		}
 	}
 </script>
@@ -82,7 +83,7 @@
 			<div><label class="muted" for="hs">HST</label><input id="hs" type="number" bind:value={hst} /></div>
 			<div><label class="muted" for="ty">Target (t/ha)</label><input id="ty" type="number" bind:value={targetYield} /></div>
 		</div>
-		<button class="btn" style="margin-top:0.75rem" onclick={compute}>🧪 Hitung Dosis</button>
+		<button class="btn" style="margin-top:0.75rem" onclick={compute}><Icon name="beaker" size={14} /> Hitung Dosis</button>
 	</div>
 
 	<div class="card">

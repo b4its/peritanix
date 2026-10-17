@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { listLands, saveHarvestBatch, type Land } from '$lib/api';
+	import Icon from '$lib/Icon.svelte';
 	import { generateKeyPair, signCertificate, type SignedCertificate } from '$lib/sign';
 
 	let lands = $state<Land[]>([]);
@@ -82,7 +83,7 @@
 				saved = code;
 			} catch (se: any) {
 				saved = '';
-				err = '⚠️ Sertifikat dibuat offline; sinkronisasi riwayat tertunda: ' + se.message;
+				err = 'Sertifikat dibuat offline; sinkronisasi riwayat tertunda: ' + se.message;
 			}
 		} catch (e: any) {
 			err = e.message;
@@ -145,10 +146,13 @@
 			<input type="checkbox" bind:checked={fortificationCompliant} />
 			<span class="muted">Patuh Fortification Lock (Ca+B+Si)</span>
 		</label>
-		<button class="btn" style="margin-top:0.75rem" onclick={issue}>🔏 Tandatangani &amp; Buat QR</button>
+		<button class="btn" style="margin-top:0.75rem" onclick={issue}>
+			<Icon name="lock" size={14} /> Tandatangani &amp; Buat QR
+		</button>
 		{#if saved}
-			<p style="color:#16a34a;margin-top:0.5rem">
-				✓ Tersimpan di server sebagai <code>{saved}</code>
+			<p class="alert-ok" style="margin-top:0.5rem">
+				<Icon name="check-circle" size={15} />
+				Tersimpan di server sebagai <code>{saved}</code>
 			</p>
 		{/if}
 	</div>
@@ -158,7 +162,7 @@
 		{#if qrDataUrl}
 			<img src={qrDataUrl} alt="QR sertifikat" style="width:100%;max-width:320px" />
 			<button class="btn secondary" style="margin-top:0.5rem" onclick={copyJSON}>
-				{copied ? '✓ Tersalin' : 'Salin JSON sertifikat'}
+				{#if copied}<Icon name="check" size={14} /> Tersalin{:else}<Icon name="save" size={14} /> Salin JSON sertifikat{/if}
 			</button>
 			<p class="muted" style="margin-top:0.5rem">
 				Pindai di halaman <a href="/verify">Verifikasi QR</a> (atau portal pembeli)

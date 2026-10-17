@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { economics, type EconomicsResult } from '$lib/api';
+	import Icon from '$lib/Icon.svelte';
 
 	let areaHa = $state(0.5);
 	let pricePerKg = $state(25000);
@@ -57,7 +58,7 @@
 		<input id="fc" type="number" bind:value={fertilizerCost} step="500000" />
 		<label class="muted" for="op" style="display:block;margin-top:0.5rem">Probabilitas serangan penyakit (0–1)</label>
 		<input id="op" type="number" bind:value={outbreakProb} step="0.05" min="0" max="1" />
-		<button class="btn" style="margin-top:0.75rem" onclick={calc}>💰 Hitung Dampak</button>
+		<button class="btn" style="margin-top:0.75rem" onclick={calc}><Icon name="money" size={14} /> Hitung Dampak</button>
 	</div>
 
 	<div class="card">
@@ -77,7 +78,7 @@
 					<tr><td class="muted">Break-even (fraksi biaya)</td><td>{(res.break_even_fraction * 100).toFixed(1)}%</td></tr>
 				</tbody>
 			</table>
-			{#each res.notes as n}<p class="muted">ℹ️ {n}</p>{/each}
+			{#each res.notes as n}<p class="muted"><Icon name="info" size={13} /> {n}</p>{/each}
 		{:else}
 			<p class="muted">Isi parameter lalu klik hitung.</p>
 		{/if}

@@ -22,6 +22,7 @@
 		type GDDPoint
 	} from '$lib/api';
 	import { db, enqueue } from '$lib/db';
+	import Icon from '$lib/Icon.svelte';
 
 	let land = $state<Land | null>(null);
 	let diseases = $state<DiseaseLog[]>([]);
@@ -79,7 +80,7 @@
 			try {
 				const { microclimateRisk } = await import('$lib/physics');
 				ews = microclimateRisk(rh, t);
-				ewsErr = '⚠️ Dihitung offline (server tak terjangkau).';
+				ewsErr = 'Dihitung offline (server tak terjangkau).';
 			} catch (e2: any) {
 				ewsErr = e2.message;
 			}
@@ -104,7 +105,7 @@
 					tts_text: `Campurkan ${r.vBoilParts.toFixed(1)} gayung air mendidih dengan ${r.vWellParts} gayung air sumur.`,
 					countdown_s: 180
 				};
-				caloErr = '⚠️ Dihitung offline (server tak terjangkau).';
+				caloErr = 'Dihitung offline (server tak terjangkau).';
 			} catch (e2: any) {
 				caloErr = e2.message;
 			}
@@ -192,7 +193,7 @@
 			<h2>Fisiologi (GDD)</h2>
 			<p>Akumulasi GDD: <strong>{(land.accumulated_gdd ?? 0).toFixed(0)}</strong></p>
 			<p class="muted">Tbase cabai = 15 °C. Fase ditentukan oleh umur termal, bukan kalender.</p>
-			<button class="btn" onclick={doGDD}>↻ Hitung Ulang GDD</button>
+			<button class="btn" onclick={doGDD}><Icon name="refresh" size={14} /> Hitung Ulang GDD</button>
 		</div>
 
 		<div class="card">
@@ -307,7 +308,7 @@
 
 	{#if protocol}
 		<div class="card" style="margin-top:1rem;border-color:#86efac">
-			<h2>💊 Resep Tindakan — {protocol.disease}</h2>
+			<h2><Icon name="pill" size={16} /> Resep Tindakan — {protocol.disease}</h2>
 			<p><strong>{protocol.action_line}</strong></p>
 			<p class="muted">
 				Dosis: {protocol.dose_g_per_l} {protocol.unit} · Interval {protocol.interval_days} hari ·
@@ -316,9 +317,9 @@
 			<ol>
 				{#each protocol.steps as s}<li>{s}</li>{/each}
 			</ol>
-			<p class="muted">⚠️ {protocol.safety}</p>
+			<p class="muted"><Icon name="warning" size={13} /> {protocol.safety}</p>
 			{#if protocol.organic_fallback}
-				<p class="muted">🌿 Alternatif organik: {protocol.organic_fallback}</p>
+				<p class="muted"><Icon name="leaf" size={13} /> Alternatif organik: {protocol.organic_fallback}</p>
 			{/if}
 		</div>
 	{/if}
@@ -341,8 +342,8 @@
 			<svg viewBox="0 0 320 80" width="100%" height="90" style="background:#f8faf8;border-radius:8px">
 				<path d={curvePath(yieldRes.cumulative_kg)} fill="none" stroke="#16a34a" stroke-width="2" />
 			</svg>
-			<p class="muted">Kurva kumulatif kg (kiri → hari ke-14).</p>
-			{#each yieldRes.notes as n}<p class="muted">ℹ️ {n}</p>{/each}
+			<p class="muted">Kurva kumulatif kg (kiri <Icon name="chevron-right" size={12} /> hari ke-14).</p>
+			{#each yieldRes.notes as n}<p class="muted"><Icon name="info" size={13} /> {n}</p>{/each}
 		{/if}
 	</div>
 {/if}

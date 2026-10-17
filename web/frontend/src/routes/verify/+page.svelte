@@ -9,6 +9,7 @@
 		type GDDPoint
 	} from '$lib/api';
 	import { barcodeDetectorSupported, startQrScan } from '$lib/qrscan';
+	import Icon from '$lib/Icon.svelte';
 
 	let raw = $state('');
 	let result = $state<VerifyResult | null>(null);
@@ -127,7 +128,7 @@
 			<video bind:this={videoEl} style="width:100%;border-radius:8px;background:#000;min-height:200px"></video>
 		</div>
 		<button class="btn" style="margin-top:0.75rem" onclick={toggleScan}>
-			{scanning ? '⏹ Stop' : '📷 Mulai Pindai'}
+			{#if scanning}<Icon name="cancel" size={14} /> Stop{:else}<Icon name="camera" size={14} /> Mulai Pindai{/if}
 		</button>
 		{#if scanErr}<p class="error">{scanErr}</p>{/if}
 	{:else}
@@ -146,11 +147,11 @@
 		placeholder="Tempel JSON sertifikat: payload, signature, public_key"
 		style="width:100%;font-family:monospace;font-size:0.8rem;border:1px solid #cbd5cf;border-radius:8px;padding:0.5rem;box-sizing:border-box"
 	></textarea>
-	<button class="btn" style="margin-top:0.75rem" onclick={verify}>🔍 Verifikasi</button>
+	<button class="btn" style="margin-top:0.75rem" onclick={verify}><Icon name="search" size={14} /> Verifikasi</button>
 </div>
 
 {#if err}
-	<div class="card" style="margin-top:1rem;border-color:#fca5a5">
+	<div class="card alert danger" style="margin-top:1rem">
 		<p class="error">{err}</p>
 	</div>
 {/if}
@@ -159,9 +160,9 @@
 	<div class="card" style="margin-top:1rem">
 		<h2>
 			{#if result.valid}
-				<span class="badge high">✅ VALID</span>
+				<span class="badge high"><Icon name="check-circle" size={12} /> VALID</span>
 			{:else}
-				<span class="badge low">❌ TIDAK VALID</span>
+				<span class="badge low"><Icon name="cancel" size={12} /> TIDAK VALID</span>
 			{/if}
 			Hasil Verifikasi
 		</h2>

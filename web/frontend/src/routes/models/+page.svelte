@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { modelManifest, modelList, API_BASE, type ModelCard } from '$lib/api';
+	import Icon from '$lib/Icon.svelte';
 
 	// The client's last-known model versions (persisted locally, like a real
 	// device would after downloading).
@@ -53,7 +54,7 @@
 	<h2>Status Registry</h2>
 	<p>Versi registry: <code>{registryVersion || '—'}</code></p>
 	<p>Pembaruan tersedia: <strong>{updateCount}</strong></p>
-	<button class="btn" onclick={check}>↻ Periksa Pembaruan</button>
+	<button class="btn" onclick={check}><Icon name="refresh" size={14} /> Periksa Pembaruan</button>
 </div>
 
 <div class="card" style="margin-top:1rem">

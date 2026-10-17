@@ -10,6 +10,7 @@
 	 */
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import Icon from '$lib/Icon.svelte';
 
 	let videoEl = $state<HTMLVideoElement>();
 	let canvasEl = $state<HTMLCanvasElement>();
@@ -112,17 +113,23 @@
 	<div class="card">
 		<h2>1. Siapkan &amp; Ambil Foto</h2>
 		<p class="muted">
-			Taruh kertas putih di mangkuk gelap → nyalakan flash → ambil foto.
+			Taruh kertas putih di mangkuk gelap <Icon name="chevron-right" size={12} /> nyalakan flash
+			<Icon name="chevron-right" size={12} /> ambil foto.
 		</p>
 		<div style="position:relative;max-width:320px">
 			<video bind:this={videoEl} style="width:100%;border-radius:8px;background:#000;min-height:180px"></video>
 		</div>
-		<button class="btn" style="margin-top:0.75rem" onclick={start}>📷 Nyalakan Kamera</button>
+		<button class="btn" style="margin-top:0.75rem" onclick={start}>
+			<Icon name="camera" size={14} /> Nyalakan Kamera
+		</button>
 		<button class="btn" style="margin-top:0.75rem" onclick={capture} disabled={!streaming}>
-			📸 Ambil Referensi Putih
+			<Icon name="camera" size={14} /> Ambil Referensi Putih
 		</button>
 		{#if lux !== null}
-			<p class="muted">Sensor cahaya: {lux.toFixed(0)} Lux {darkOK ? '(gelap OK)' : '(⚠️ terlalu terang)'}</p>
+			<p class="muted">
+				Sensor cahaya: {lux.toFixed(0)} Lux
+				{#if darkOK}(gelap OK){:else}(<Icon name="warning" size={12} /> terlalu terang){/if}
+			</p>
 		{/if}
 	</div>
 
@@ -135,8 +142,10 @@
 				Kanvas gain yang diterapkan: 255/R = {(255 / whiteRef[0]).toFixed(2)} ·
 				255/G = {(255 / whiteRef[1]).toFixed(2)} · 255/B = {(255 / whiteRef[2]).toFixed(2)}
 			</p>
-			<button class="btn" onclick={save}>💾 Simpan Kalibrasi</button>
-			{#if saved}<p style="color:#16a34a">✓ Tersimpan di perangkat (sinkron ke profil server saat online).</p>{/if}
+			<button class="btn" onclick={save}><Icon name="save" size={14} /> Simpan Kalibrasi</button>
+			{#if saved}
+				<p class="alert-ok"><Icon name="check-circle" size={15} /> Tersimpan di perangkat (sinkron ke profil server saat online).</p>
+			{/if}
 		{:else}
 			<p class="muted">Belum ada referensi. Ambil foto di langkah 1.</p>
 		{/if}

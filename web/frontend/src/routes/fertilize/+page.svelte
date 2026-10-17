@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { listLands, fertilizerGuard, type Land, type FertilizerGuardResult } from '$lib/api';
+	import Icon from '$lib/Icon.svelte';
 
 	let lands = $state<Land[]>([]);
 	let landId = $state('');
@@ -88,16 +89,17 @@
 		{#if !result}
 			<p class="muted">Isi data lalu klik validasi.</p>
 		{:else if result.blocked}
-			<div style="border:2px solid #dc2626;border-radius:8px;padding:0.75rem;background:#fef2f2">
-				<p style="color:#dc2626;font-weight:700;margin:0">
-					⛔ INPUT DIBLOKIR — {result.reason}
+			<div class="alert danger">
+				<p class="alert-title">
+					<Icon name="cancel" size={16} /> INPUT DIBLOKIR — {result.reason}
 				</p>
 				<p class="muted" style="margin-top:0.5rem">{result.guidance}</p>
 				<p class="muted">Protokol wajib: <code>{result.required_protocol}</code></p>
 			</div>
 		{:else}
-			<p style="color:#16a34a;font-weight:600">
-				✓ Diizinkan (fase {result.phase}, GDD {result.plant_gdd.toFixed(0)})
+			<p class="alert-ok">
+				<Icon name="check-circle" size={16} />
+				Diizinkan (fase {result.phase}, GDD {result.plant_gdd.toFixed(0)})
 			</p>
 			{#if result.guidance}<p class="muted">{result.guidance}</p>{/if}
 			{#if logged}<p class="muted">Log pemupukan dicatat.</p>{/if}
