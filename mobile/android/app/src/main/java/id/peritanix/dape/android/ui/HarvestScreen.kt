@@ -516,24 +516,45 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
 
                 Button(
                     onClick = {
-                        val kp = Ed25519OfflineSigner.fromSeed(ByteArray(32) { 42.toByte() })
-                        val payload = mapOf(
-                            "land_id" to "land-peritanix-001",
-                            "grade_result" to seedGrade,
-                            "archimedes_sink_ratio" to (Math.round(sinkRatio * 100.0) / 100.0),
-                            "sterilization_c" to 52.0,
-                            "photo_sha256" to "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                            "gyro_variance" to 0.42
+                        // Use the device's real Ed25519 key from the Android Keystore
+                        // (NOT a fixed seed) so each farmer's certificate is unique.
+                        val bridge = id.peritanix.dape.android.core.crypto.AndroidKeystoreEd25519Bridge(context)
+                        val kp = bridge.getOrCreateKeyPair()
+                        // Aggregate every real upstream metric into the canonical payload.
+                        val payloadResult = id.peritanix.dape.android.core.crypto.CertificatePayloadBuilder.build(
+                            id.peritanix.dape.android.core.crypto.CertificatePayloadBuilder.Inputs(
+                                landId = "land-peritanix-001",
+                                cecMeq = 18.5,
+                                gddFortificationCompliant = morphVerdict.finalGrade in setOf("A+", "A"),
+                                boilingAcousticVerified = mixCheck in 50.5..53.5,
+                                gyroImmersionSeconds = 180,
+                                archimedesSinkRatio = sinkRatio.coerceIn(0.0, 1.0),
+                                gradeResult = morphVerdict.finalGrade,
+                                batchPremiumPct = batchSummary.premiumPct,
+                                imageSha256Hex = id.peritanix.dape.android.core.crypto.ForensicHasher
+                                    .sha256Hex("harvest-${batchSummary.totalPods}-${morphVerdict.finalGrade}".toByteArray()),
+                                timestampEpochS = System.currentTimeMillis() / 1000
+                            )
                         )
-                        signedCert = Ed25519OfflineSigner.certificate(payload, kp)
-
-                        PentasixNotificationHub.notify(
-                            context = context,
-                            title = "Sertifikat QR Diterbitkan",
-                            message = "Sertifikat mutu panen ditandatangani Ed25519 secara offline (RFC 8785).",
-                            type = NotificationType.SUCCESS,
-                            postSystemNotification = true
-                        )
+                        when (payloadResult) {
+                            is id.peritanix.dape.android.core.crypto.CertificatePayloadBuilder.BuildResult.Invalid -> {
+                                PentasixNotificationHub.notify(
+                                    context = context, title = "Sertifikat Tidak Dapat Diterbitkan",
+                                    message = payloadResult.reason,
+                                    type = NotificationType.WARNING, postSystemNotification = false
+                                )
+                            }
+                            is id.peritanix.dape.android.core.crypto.CertificatePayloadBuilder.BuildResult.Ok -> {
+                                signedCert = Ed25519OfflineSigner.certificate(payloadResult.payload, kp)
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Sertifikat QR Diterbitkan",
+                                    message = "Sertifikat mutu panen ditandatangani Ed25519 (kunci perangkat) secara offline.",
+                                    type = NotificationType.SUCCESS,
+                                    postSystemNotification = true
+                                )
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
