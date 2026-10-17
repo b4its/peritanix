@@ -21,6 +21,15 @@ object ChiliGrowingGuide {
         val failAction: String
     )
 
+    data class TreatmentItem(
+        val id: String,
+        val name: String,
+        val category: String,
+        val description: String,
+        val targetCameraSubject: String,
+        val visualSuccessCriteria: String
+    )
+
     data class Stage(
         val index: Int,
         val title: String,
@@ -38,7 +47,8 @@ object ChiliGrowingGuide {
         val checklist: List<String>,
         val optimalTempRange: String,
         val optimalRhRange: String,
-        val targetGdd: Double
+        val targetGdd: Double,
+        val treatments: List<TreatmentItem> = emptyList()
     ) {
         val activities: List<String> get() = maintenanceGuide
     }
@@ -101,7 +111,49 @@ object ChiliGrowingGuide {
             ),
             optimalTempRange = "24 – 28°C",
             optimalRhRange = "65 – 80%",
-            targetGdd = 150.0
+            targetGdd = 150.0,
+            treatments = listOf(
+                TreatmentItem(
+                    id = "T1_1",
+                    name = "Seleksi Benih & Sterilisasi Termal",
+                    category = "Persiapan Benih",
+                    description = "Perendaman benih air hangat 45-50°C selama 30 menit. Buang benih terapung.",
+                    targetCameraSubject = "Wadah Benih & Rasio Tenggelam",
+                    visualSuccessCriteria = "Benih bernas tenggelam di dasar wadah tanpa benda asing."
+                ),
+                TreatmentItem(
+                    id = "T1_2",
+                    name = "Penyiraman Kabut Halus Media Tray",
+                    category = "Irigasi & Kelembaban",
+                    description = "Penyiraman kabut pagi hari menjaga kelembaban arang sekam + kompos tanpa menggenang.",
+                    targetCameraSubject = "Permukaan Tray Semai & Butir Kabut",
+                    visualSuccessCriteria = "Media lembab merata berpori, tidak ada genangan atau kerak kering."
+                ),
+                TreatmentItem(
+                    id = "T1_3",
+                    name = "Aplikasi Pupuk Daun Mikro Klorofil",
+                    category = "Nutrisi Bibit",
+                    description = "Semprot nutrisi daun mikro dosis 0,5 g/L pada hari ke-12 setelah semai.",
+                    targetCameraSubject = "Warna Daun Sejati Bibit",
+                    visualSuccessCriteria = "Daun hijau segar simetris (klorofil > 65%), daun tidak menguning pucat."
+                ),
+                TreatmentItem(
+                    id = "T1_4",
+                    name = "Proteksi Insect Net 50 Mesh",
+                    category = "Pengendalian Hama",
+                    description = "Pasang kasa insect net 50 mesh rapat di bedeng semai untuk memblokir kutu kebul.",
+                    targetCameraSubject = "Kerapatan Kasa Pelindung Semai",
+                    visualSuccessCriteria = "Insect net tertutup rapat tanpa celah robek di sekeliling bedeng semai."
+                ),
+                TreatmentItem(
+                    id = "T1_5",
+                    name = "Aklimatisasi (Hardening-off)",
+                    category = "Adaptasi Lingkungan",
+                    description = "Buka sungkup paranet penuh 4 hari sebelum pindah tanam untuk memperkuat kutikula batang.",
+                    targetCameraSubject = "Ketegakan Batang Bibit di Bawah Terik",
+                    visualSuccessCriteria = "Batang tebal kokoh tegak lurus, tidak layu di bawah matahari siang."
+                )
+            )
         ),
         Stage(
             index = 2,
@@ -149,7 +201,57 @@ object ChiliGrowingGuide {
             ),
             optimalTempRange = "25 – 30°C",
             optimalRhRange = "60 – 75%",
-            targetGdd = 450.0
+            targetGdd = 450.0,
+            treatments = listOf(
+                TreatmentItem(
+                    id = "T2_1",
+                    name = "Pembuatan Bedengan & Parit TWI",
+                    category = "Persiapan Lahan",
+                    description = "Bedengan tinggi 40-50 cm, lebar 100 cm, parit pembuangan 50 cm dengan TWI < 7,5.",
+                    targetCameraSubject = "Profil Ketinggian Bedengan & Parit",
+                    visualSuccessCriteria = "Bedengan lurus kokoh, parit bersih bebas sumbatan genangan air."
+                ),
+                TreatmentItem(
+                    id = "T2_2",
+                    name = "Pemasangan Mulsa Perak-Hitam & Lubang Tanam",
+                    category = "Mulsa & Jarak Tanam",
+                    description = "Mulsa ditarik kencang, lubang tanam 50x60 cm pola segitiga zig-zag.",
+                    targetCameraSubject = "Hamparan Mulsa & Lubang Tanam",
+                    visualSuccessCriteria = "Mulsa perak memantulkan cahaya rapi, lubang tanam presisi."
+                ),
+                TreatmentItem(
+                    id = "T2_3",
+                    name = "Pemasangan Ajir Bambu Penopang",
+                    category = "Struktur & Penopang",
+                    description = "Ajir bambu 1,5 meter dipancangkan 10 cm dari pangkal batang saat 7-10 HST.",
+                    targetCameraSubject = "Ikatan Ajir pada Batang Utama",
+                    visualSuccessCriteria = "Ajir tertancap kokoh, ikatan tali membentuk angka 8 longgar."
+                ),
+                TreatmentItem(
+                    id = "T2_4",
+                    name = "Pewiwilan Tunas Air (Bawah Cabang Y)",
+                    category = "Pemangkasan & Wiwilan",
+                    description = "Buang seluruh tunas samping di ketiak daun di bawah percabangan Y untuk menjaga LAI < 3.5.",
+                    targetCameraSubject = "Pangkal Batang & Ketiak Daun Bawah",
+                    visualSuccessCriteria = "Pangkal batang hingga cabang Y bersih total dari tunas air liar."
+                ),
+                TreatmentItem(
+                    id = "T2_5",
+                    name = "Pemupukan Kocor NPK Starter 16-16-16",
+                    category = "Pemupukan & Nutrisi",
+                    description = "Kocor NPK 16-16-16 dosis 3-4 gram dilarutkan dalam 200 ml air per tanaman setiap 7 hari.",
+                    targetCameraSubject = "Tajuk Daun Muda & Warna Klorofil",
+                    visualSuccessCriteria = "Pertumbuhan tunas baru merata hijau pekat tanpa gejala terbakar pupuk."
+                ),
+                TreatmentItem(
+                    id = "T2_6",
+                    name = "Proteksi Hama Thrips & Tungau",
+                    category = "Pengendalian Hama",
+                    description = "Penyemprotan insektisida abamektin / nabati saat terdeteksi daun melengkung ke atas.",
+                    targetCameraSubject = "Pucuk Daun Muda Cabai",
+                    visualSuccessCriteria = "Helaian daun muda melebar mulus tanpa lekukan perahu atau keriting."
+                )
+            )
         ),
         Stage(
             index = 3,
@@ -194,7 +296,49 @@ object ChiliGrowingGuide {
             ),
             optimalTempRange = "22 – 28°C",
             optimalRhRange = "65 – 75%",
-            targetGdd = 800.0
+            targetGdd = 800.0,
+            treatments = listOf(
+                TreatmentItem(
+                    id = "T3_1",
+                    name = "Fortifikasi Kalsium Nitrat & Boron",
+                    category = "Nutrisi Pembungaan",
+                    description = "Semprot Kalsium Nitrat (2 g/L) + Boron (1 g/L) + Silika cair untuk memperkuat tangkai bunga.",
+                    targetCameraSubject = "Gugus Bunga Mekar & Tangkai Bunga",
+                    visualSuccessCriteria = "Kelopak bunga putih bersih merekah kuat, tangkai hijau tebal menempel kokoh."
+                ),
+                TreatmentItem(
+                    id = "T3_2",
+                    name = "Penghentian Pupuk Nitrogen Tinggi (Urea)",
+                    category = "Manajemen Nutrisi",
+                    description = "Stop aplikasi Urea untuk mencegah gugur bunga massal dan vegetatif liar menutupi bunga.",
+                    targetCameraSubject = "Keseimbangan Tajuk & Kepadatan Bunga",
+                    visualSuccessCriteria = "Kanopi tidak terlalu rimbun gelap, penetrasi sinar matahari sampai ke dahan tengah."
+                ),
+                TreatmentItem(
+                    id = "T3_3",
+                    name = "Pemupukan Fosfat & Kalium Kocor (MKP)",
+                    category = "Pemupukan Generatif",
+                    description = "Kocor Mono Kalium Fosfat (MKP) dosis 4 g/pohon mempercepat inisiasi bakal buah cabai.",
+                    targetCameraSubject = "Bakal Buah Cabai (Fruit-Set) di Cabang Y",
+                    visualSuccessCriteria = "Persentase bunga menjadi bakal buah (fruit-set) > 85%, putik tidak menguning."
+                ),
+                TreatmentItem(
+                    id = "T3_4",
+                    name = "Pengendalian Drainase Air Hujan",
+                    category = "Irigasi & Drainase",
+                    description = "Pastikan parit mengalir tuntas saat hujan deras untuk mencegah stres fluktuasi air perakaran.",
+                    targetCameraSubject = "Kelancaran Aliran Parit Bedengan",
+                    visualSuccessCriteria = "Air hujan tuntas surut dalam < 15 menit, bedengan tetap lembab konstan 65%."
+                ),
+                TreatmentItem(
+                    id = "T3_5",
+                    name = "Sanitasi Bunga Terinfeksi Jamur (Blossom Blight)",
+                    category = "Proteksi Penyakit",
+                    description = "Pengamatan lesi basah jamur pada kelopak bunga dan semprot fungisida tembaga Cu(OH)2 jika perlu.",
+                    targetCameraSubject = "Kelopak Bunga & Pangkal Putik",
+                    visualSuccessCriteria = "Kelopak bunga bebas bercak cokelat busuk (nekrosis < 3%)."
+                )
+            )
         ),
         Stage(
             index = 4,
@@ -238,7 +382,49 @@ object ChiliGrowingGuide {
             ),
             optimalTempRange = "24 – 29°C",
             optimalRhRange = "60 – 70%",
-            targetGdd = 1200.0
+            targetGdd = 1200.0,
+            treatments = listOf(
+                TreatmentItem(
+                    id = "T4_1",
+                    name = "Aplikasi Kalium Nitrat (KNO3 Putih)",
+                    category = "Pemupukan Pembesaran Buah",
+                    description = "KNO3 putih 5-7 gram/tanaman kocor tiap minggu untuk memadatkan dinding buah dan mengilapkan warna.",
+                    targetCameraSubject = "Kulit Buah Cabai & Kilau Pericarp",
+                    visualSuccessCriteria = "Kulit cabai mengkilap mulus bertekstur kenyal padat, pericarp tebal > 1.8 mm."
+                ),
+                TreatmentItem(
+                    id = "T4_2",
+                    name = "Pencegahan Busuk Ujung Buah (Blossom End Rot)",
+                    category = "Fortifikasi Kalsium",
+                    description = "Semprot kalsium chelate larut air pada buah muda untuk mencegah nekrosis pantat buah.",
+                    targetCameraSubject = "Ujung / Pantat Buah Cabai",
+                    visualSuccessCriteria = "Ujung buah cabai utuh meruncing tanpa bercak gosong hitam atau cekungan."
+                ),
+                TreatmentItem(
+                    id = "T4_3",
+                    name = "Sanitasi Petik Buah Gejala Patek (Antraknosa)",
+                    category = "Sanitasi Penyakit",
+                    description = "Petik segera dan musnahkan buah dengan bercak cincin konsentris, semprot fungisida azoksistrobin.",
+                    targetCameraSubject = "Gantungan Buah Cabai di Dahan",
+                    visualSuccessCriteria = "Gantungan buah di pohon bersih dari lesi patek (bebas antraknosa aktif)."
+                ),
+                TreatmentItem(
+                    id = "T4_4",
+                    name = "Pemasangan Perangkap Lalat Buah (Bactrocera)",
+                    category = "Pengendalian Hama",
+                    description = "Pasang perangkap metil eugenol dan likat kuning di sekeliling petak lahan cabai.",
+                    targetCameraSubject = "Perangkap Lalat Buah & Permukaan Buah",
+                    visualSuccessCriteria = "Buah mulus tanpa bekas sengatan ovipositor lalat buah (tanpa bintik jarum)."
+                ),
+                TreatmentItem(
+                    id = "T4_5",
+                    name = "Pengikatan Dahan Beban Buah Lebat",
+                    category = "Struktur & Penopang",
+                    description = "Ikat dahan yang sarat buah dengan tali gawar penopang agar tidak patah terkoyak angin.",
+                    targetCameraSubject = "Ikatan Tali Dahan pada Tiang Ajir",
+                    visualSuccessCriteria = "Dahan-dahan berbuah lebat tertopang seimbang tanpa lengkungan patah."
+                )
+            )
         ),
         Stage(
             index = 5,
@@ -284,7 +470,49 @@ object ChiliGrowingGuide {
             ),
             optimalTempRange = "20 – 26°C",
             optimalRhRange = "55 – 65%",
-            targetGdd = 1500.0
+            targetGdd = 1500.0,
+            treatments = listOf(
+                TreatmentItem(
+                    id = "T5_1",
+                    name = "Pemetikan Buah Pagi Hari Tangkai Utuh",
+                    category = "Pemanenan Presisi",
+                    description = "Petik pukul 07.00 - 10.00 setelah embun kering. Potong tangkai buah hijau segar dengan gunting steril.",
+                    targetCameraSubject = "Tangkai Buah Cabai yang Baru Dipetik",
+                    visualSuccessCriteria = "Tangkai cabai hijau segar utuh, tidak ada luka sobek pada daging buah."
+                ),
+                TreatmentItem(
+                    id = "T5_2",
+                    name = "Sortasi Meja Grading Mutu DAPE",
+                    category = "Grading Mutu",
+                    description = "Klasifikasi Grade A+ (merah > 85%, panjang > 12 cm, lurus), Grade A, Grade B, dan BS afkir.",
+                    targetCameraSubject = "Hamparan Buah di Meja Grading",
+                    visualSuccessCriteria = "Kematangan merah seragam > 85%, buah lurus mulus tanpa cacat fisik."
+                ),
+                TreatmentItem(
+                    id = "T5_3",
+                    name = "Sterilisasi Termoterapi Asas Black 52°C",
+                    category = "Pasca-Panen Karantina",
+                    description = "Rendam buah 180 detik dalam campuran air panas 52°C terkalibrasi untuk membunuh spora laten patek.",
+                    targetCameraSubject = "Buah Cabai dalam Wadah Tirisan Termoterapi",
+                    visualSuccessCriteria = "Buah ditiriskan kering di tempat berangin tanpa bercak melepuh."
+                ),
+                TreatmentItem(
+                    id = "T5_4",
+                    name = "Uji Kepadatan Buah Apung Archimedes",
+                    category = "Uji Laboratorium Lapangan",
+                    description = "Uji apung di wadah air: cabai padat berbobot tenggelam (>80%), cabai berongga terapung.",
+                    targetCameraSubject = "Permukaan Air Uji Densitas Cabai",
+                    visualSuccessCriteria = "Mayoritas buah cabai tenggelam di dasar, membuktikan dinding sel padat tebal."
+                ),
+                TreatmentItem(
+                    id = "T5_5",
+                    name = "Pengepakan Krat Berventilasi & Label Kripto QR",
+                    category = "Pengemasan & Penjualan",
+                    description = "Kemas dalam krat berventilasi maksimal 15 kg/krat, pasang tanda sertifikat mutu Ed25519.",
+                    targetCameraSubject = "Krat Panen Bersusun & Label Sertifikat",
+                    visualSuccessCriteria = "Krat berventilasi rapi dengan label sertifikasi mutu terverifikasi."
+                )
+            )
         )
     )
 

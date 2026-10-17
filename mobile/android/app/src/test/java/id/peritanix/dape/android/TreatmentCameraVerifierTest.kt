@@ -31,6 +31,17 @@ class TreatmentCameraVerifierTest {
             assertTrue(protocol.successCriteria.isNotBlank())
             assertTrue(protocol.inspectionKeyPoints.isNotEmpty())
             assertTrue(protocol.failAction.isNotBlank())
+
+            // Structured Treatments Verification
+            assertTrue("Stage treatments must not be empty", stage.treatments.isNotEmpty())
+            for (treatment in stage.treatments) {
+                assertTrue(treatment.id.isNotBlank())
+                assertTrue(treatment.name.isNotBlank())
+                assertTrue(treatment.category.isNotBlank())
+                assertTrue(treatment.description.isNotBlank())
+                assertTrue(treatment.targetCameraSubject.isNotBlank())
+                assertTrue(treatment.visualSuccessCriteria.isNotBlank())
+            }
         }
     }
 
@@ -87,15 +98,47 @@ class TreatmentCameraVerifierTest {
     }
 
     @Test
+    fun testSpecificTreatmentInspectionWiwil() {
+        val stageVeg = ChiliGrowingGuide.stageForHst(20)
+        val sample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageVeg,
+            hst = 20,
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL,
+            treatmentName = "Pewiwilan Tunas Air (Bawah Cabang Y)"
+        )
+
+        assertEquals("Pewiwilan Tunas Air (Bawah Cabang Y)", sample.treatmentName)
+        assertTrue("Diagnosis should mention wiwilan or tunas", sample.diagnosisText.contains("wiwilan") || sample.diagnosisText.contains("tunas"))
+        assertTrue("Prescriptive action should advise maintaining clean axils", sample.prescriptiveAction.contains("LAI") || sample.prescriptiveAction.contains("cabang Y"))
+    }
+
+    @Test
+    fun testSpecificTreatmentInspectionFertigation() {
+        val stageBunga = ChiliGrowingGuide.stageForHst(45)
+        val sample = TreatmentCameraVerifier.createSimulatedSample(
+            stage = stageBunga,
+            hst = 45,
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL,
+            treatmentName = "Fortifikasi Kalsium Nitrat & Boron"
+        )
+
+        assertEquals("Fortifikasi Kalsium Nitrat & Boron", sample.treatmentName)
+        assertTrue(sample.diagnosisText.contains("pemupukan") || sample.diagnosisText.contains("nutrisi") || sample.diagnosisText.contains("klorofil"))
+        assertTrue(sample.prescriptiveAction.contains("kocor") || sample.prescriptiveAction.contains("fertigasi"))
+    }
+
+    @Test
     fun testCameraInspectionHarvestRipeness() {
         val stagePanen = ChiliGrowingGuide.stageForHst(105)
         val harvestSample = TreatmentCameraVerifier.createSimulatedSample(
             stage = stagePanen,
             hst = 105,
-            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL
+            condition = TreatmentCameraVerifier.SampleCondition.OPTIMAL,
+            treatmentName = "Sortasi Meja Grading Mutu DAPE"
         )
 
         assertEquals(5, harvestSample.stageIndex)
+        assertEquals("Sortasi Meja Grading Mutu DAPE", harvestSample.treatmentName)
         assertTrue("Red coverage should be high at harvest", harvestSample.redPct >= 75.0)
         assertTrue("Health score should be high", harvestSample.healthScore >= 80.0)
         assertTrue(harvestSample.diagnosisText.contains("Grade A+") || harvestSample.diagnosisText.contains("merah"))
@@ -107,13 +150,14 @@ class TreatmentCameraVerifierTest {
         val defectSample = TreatmentCameraVerifier.createSimulatedSample(
             stage = stageBuah,
             hst = 70,
-            condition = TreatmentCameraVerifier.SampleCondition.SEVERE_DISEASE
+            condition = TreatmentCameraVerifier.SampleCondition.SEVERE_DISEASE,
+            treatmentName = "Sanitasi Petik Buah Gejala Patek (Antraknosa)"
         )
 
         assertTrue("Defect percentage should be elevated", defectSample.defectPct >= 10.0)
         assertTrue("Health score should be penalized", defectSample.healthScore < 60.0)
         assertEquals(TreatmentCameraVerifier.VerificationStatus.CRITICAL_RISK, defectSample.status)
-        assertTrue(defectSample.prescriptiveAction.contains("fungisida") || defectSample.prescriptiveAction.contains("Antraknosa") || defectSample.prescriptiveAction.contains("musnahkan"))
+        assertTrue(defectSample.prescriptiveAction.contains("fungisida") || defectSample.prescriptiveAction.contains("Antraknosa") || defectSample.prescriptiveAction.contains("musnahkan") || defectSample.prescriptiveAction.contains("BS"))
     }
 
     @Test
@@ -138,10 +182,12 @@ class TreatmentCameraVerifierTest {
             stageTitle = "Pembungaan & Transisi Generatif",
             score = 92.5,
             statusLabel = "SOP Optimal & Sangat Sehat",
-            actionAdvice = "Semprot Kalsium Nitrat + Boron dan hentikan Urea."
+            actionAdvice = "Semprot Kalsium Nitrat + Boron dan hentikan Urea.",
+            treatmentName = "Fortifikasi Kalsium Nitrat & Boron"
         )
 
         assertTrue(script.contains("Pembungaan"))
+        assertTrue(script.contains("Fortifikasi Kalsium Nitrat"))
         assertTrue(script.contains("92 persen"))
         assertTrue(script.contains("SOP Optimal"))
         assertTrue(script.contains("Kalsium Nitrat"))

@@ -34,6 +34,7 @@ object TreatmentCameraVerifier {
     data class InspectionResult(
         val stageIndex: Int,
         val stageTitle: String,
+        val treatmentName: String = "Perawatan Rutin",
         val hst: Int,
         val timestampMs: Long,
         val healthScore: Double,
@@ -49,14 +50,19 @@ object TreatmentCameraVerifier {
     )
 
     /**
-     * Menganalisis Bitmap dari kamera perangkat.
+     * Menganalisis Bitmap dari kamera perangkat untuk hasil perawatan tertentu.
      */
-    fun analyzeBitmap(stage: ChiliGrowingGuide.Stage, bitmap: Bitmap, hst: Int): InspectionResult {
+    fun analyzeBitmap(
+        stage: ChiliGrowingGuide.Stage,
+        bitmap: Bitmap,
+        hst: Int,
+        treatmentName: String = "Perawatan Rutin"
+    ): InspectionResult {
         val width = bitmap.width
         val height = bitmap.height
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        return analyzePixels(stage, pixels, width, height, hst)
+        return analyzePixels(stage, pixels, width, height, hst, treatmentName)
     }
 
     /**
@@ -67,7 +73,8 @@ object TreatmentCameraVerifier {
         pixels: IntArray,
         width: Int,
         height: Int,
-        hst: Int
+        hst: Int,
+        treatmentName: String = "Perawatan Rutin"
     ): InspectionResult {
         require(width > 0 && height > 0) { "Lebar dan tinggi gambar harus > 0" }
         val total = width * height
@@ -139,12 +146,14 @@ object TreatmentCameraVerifier {
             redPct = redPct,
             yellowPct = yellowPct,
             defectPct = defectPct,
-            hst = hst
+            hst = hst,
+            treatmentName = treatmentName
         )
 
         return InspectionResult(
             stageIndex = stage.index,
             stageTitle = stage.title,
+            treatmentName = treatmentName,
             hst = hst,
             timestampMs = System.currentTimeMillis(),
             healthScore = healthScore,
@@ -224,8 +233,79 @@ object TreatmentCameraVerifier {
         redPct: Double,
         yellowPct: Double,
         defectPct: Double,
-        hst: Int
+        hst: Int,
+        treatmentName: String = "Perawatan Rutin"
     ): Pair<String, String> {
+        val lower = treatmentName.lowercase()
+
+        // Jika inspeksi ditujukan pada perawatan spesifik, berikan diagnosis agronomi presisi
+        if (treatmentName != "Perawatan Rutin") {
+            when {
+                lower.contains("wiwil") || lower.contains("pangkas") -> {
+                    return if (status == VerificationStatus.VERIFIED_OPTIMAL || status == VerificationStatus.VERIFIED_GOOD) {
+                        Pair(
+                            "Hasil wiwilan terverifikasi optimal: pangkal dahan bersih dari tunas air, sirkulasi aerasi kanopi terbuka (klorofil $greenPct%).",
+                            "Pertahankan kebersihan ketiak daun bawah cabang Y untuk menjaga LAI < 3.5 dan mencegah jamur mikro."
+                        )
+                    } else {
+                        Pair(
+                            "Ditemukan sisa tunas liar atau daun tua menyentuh mulsa ($defectPct% defek), pemangkasan belum tuntas.",
+                            "Segera selesaikan pewiwilan tunas samping bawah cabang Y dan angkat daun yang menyentuh tanah."
+                        )
+                    }
+                }
+                lower.contains("pupuk") || lower.contains("kalsium") || lower.contains("kno3") || lower.contains("nutrisi") || lower.contains("mkp") -> {
+                    return if (status == VerificationStatus.VERIFIED_OPTIMAL || status == VerificationStatus.VERIFIED_GOOD) {
+                        Pair(
+                            "Hasil pemupukan terverifikasi berhasil: warna hijau daun pekat ($greenPct% klorofil), dinding sel kokoh tanpa klorosis.",
+                            "Lanjutkan jadwal kocor fertigasi berimbang dan jaga kelembaban tanah 65-70%."
+                        )
+                    } else if (defectPct > 4.0) {
+                        Pair(
+                            "Terdeteksi defisiensi kalsium/nekrosis ($defectPct% defek) pada ujung buah atau tepi daun.",
+                            "Kocor Kalsium Nitrat + Boron larut air segera dan periksa kestabilan pH perakaran tanah."
+                        )
+                    } else {
+                        Pair(
+                            "Daun menunjukkan gejala klorosis kekuningan ($yellowPct%), serapan nitrogen atau magnesium terhambat.",
+                            "Tambahkan pupuk mikro klorofil dan kocor NPK seimbang untuk mempercepat fotosintesis."
+                        )
+                    }
+                }
+                lower.contains("panen") || lower.contains("petik") || lower.contains("sortasi") || lower.contains("grading") || lower.contains("asas black") -> {
+                    return if (redPct >= 75.0 && defectPct <= 3.5) {
+                        Pair(
+                            "Hasil panen memenuhi kualifikasi mutu Grade A+: kematangan merah $redPct%, tangkai utuh segar, bebas patek.",
+                            "Lanjutkan ke penimbangan, sterilisasi Asas Black 52°C, dan kemas dalam krat berventilasi."
+                        )
+                    } else if (defectPct > 4.0) {
+                        Pair(
+                            "Ditemukan cacat fisik / lesi antraknosa laten ($defectPct%) pada buah hasil petik.",
+                            "Pisahkan ke keranjang BS afkir dan lakukan sterilisasi perendaman termoterapi 52°C segera."
+                        )
+                    } else {
+                        Pair(
+                            "Kematangan buah merah baru $redPct%, masih dominan semburat hijau ($greenPct%).",
+                            "Tunda petik 2-3 hari untuk mencapai kematangan seragam > 85% merah menyala."
+                        )
+                    }
+                }
+                lower.contains("hama") || lower.contains("jamur") || lower.contains("proteksi") || lower.contains("patek") || lower.contains("thrips") || lower.contains("perangkap") -> {
+                    return if (defectPct <= 3.5 && yellowPct <= 12.0) {
+                        Pair(
+                            "Proteksi tanaman berhasil: tajuk bersih tanpa lesi jamur aktif atau serangan hama (defek hanya $defectPct%).",
+                            "Pertahankan monitoring perangkap likat kuning dan semprot preventif silika pelindung kutikula."
+                        )
+                    } else {
+                        Pair(
+                            "Terdeteksi lesi aktif nekrosis ($defectPct%) atau daun melengkung/kuning ($yellowPct%).",
+                            "Segera aplikasikan fungisida tembaga/azoksistrobin atau insektisida abamektin sesuai SOP."
+                        )
+                    }
+                }
+            }
+        }
+
         val diagnosis: String
         val prescriptive: String
 
@@ -305,7 +385,8 @@ object TreatmentCameraVerifier {
     fun createSimulatedSample(
         stage: ChiliGrowingGuide.Stage,
         hst: Int,
-        condition: SampleCondition = SampleCondition.OPTIMAL
+        condition: SampleCondition = SampleCondition.OPTIMAL,
+        treatmentName: String = "Perawatan Rutin"
     ): InspectionResult {
         val width = 60
         val height = 60
@@ -349,7 +430,7 @@ object TreatmentCameraVerifier {
             }
         }
 
-        return analyzePixels(stage, pixels, width, height, hst)
+        return analyzePixels(stage, pixels, width, height, hst, treatmentName)
     }
 
     private fun round1(v: Double): Double = Math.round(v * 10.0) / 10.0

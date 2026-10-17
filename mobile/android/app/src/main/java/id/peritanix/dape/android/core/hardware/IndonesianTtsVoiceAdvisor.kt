@@ -78,8 +78,10 @@ object IndonesianTtsVoiceAdvisor {
         stageTitle: String,
         score: Double,
         statusLabel: String,
-        actionAdvice: String
+        actionAdvice: String,
+        treatmentName: String = "Perawatan Rutin"
     ): String {
-        return "Hasil inspeksi kamera pada $stageTitle: status $statusLabel, skor kesehatan ${score.toInt()} persen. Rekomendasi tindakan: $actionAdvice"
+        val target = if (treatmentName == "Perawatan Rutin") "pada $stageTitle" else "untuk $treatmentName pada $stageTitle"
+        return "Hasil inspeksi kamera $target: status $statusLabel, skor kesehatan ${score.toInt()} persen. Rekomendasi tindakan: $actionAdvice"
     }
 }
