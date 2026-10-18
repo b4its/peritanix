@@ -129,6 +129,7 @@ object DailyMissions {
                     add(seedThermoSterilizationMission(epochDay))
                     add(cellTrayAerationMission(epochDay))
                     add(mycorrhizaBioStimulantMission(epochDay))
+                    add(rhizospherePhBufferingMission(epochDay))
                 }
                 2 -> { // Vegetatif (1 s.d. 35 HST)
                     add(wiwilMission(epochDay))
@@ -139,6 +140,8 @@ object DailyMissions {
                     add(canopyCeptometerMission(epochDay))
                     add(humicAcidRootMission(epochDay))
                     add(secondaryMacroMagnesiumMission(epochDay))
+                    add(trellisSpanishWeavingMission(epochDay))
+                    add(chitosanSarBioImmunizationMission(epochDay))
                 }
                 3 -> { // Pembungaan (36 s.d. 55 HST) — Kritis kualitas dinding buah & bunga
                     add(calciumBoronMission(epochDay))
@@ -149,6 +152,8 @@ object DailyMissions {
                     add(flowerVibrationPollinationMission(epochDay))
                     add(flowerPetalSanitationMission(epochDay))
                     add(aminoAcidPollenViabilityMission(epochDay))
+                    add(stomataWindowChelatedCalciumMission(epochDay))
+                    add(refugiaMarigoldBorderMission(epochDay))
                 }
                 4 -> { // Pembuahan & Pematangan (56 s.d. 75 HST) — Kunci warna & kepedasan
                     add(potassiumMission(epochDay))
@@ -160,6 +165,8 @@ object DailyMissions {
                     add(bottomLeafPruningMission(epochDay))
                     add(preHarvestIntervalZeroResidueMission(epochDay))
                     add(potassiumSulfateColorGlossMission(epochDay))
+                    add(epicuticularWaxCuticleProtectionMission(epochDay))
+                    add(fruitRefractometerBrixMission(epochDay))
                 }
                 else -> { // Panen & Pascapanen (76 s.d. 120 HST) — Standar Grade A+ Ekspor
                     add(harvestTimeMorningMission(epochDay))
@@ -171,6 +178,8 @@ object DailyMissions {
                     add(cielabColorCameraMission(epochDay))
                     add(fieldHeatPreCoolingMission(epochDay))
                     add(hotWater52DegreeSterilizationMission(epochDay))
+                    add(cleanCutPedicelSterileMission(epochDay))
+                    add(rapidEvaporativePreCoolingMission(epochDay))
                 }
             }
         }.toMutableList()
@@ -233,6 +242,8 @@ object DailyMissions {
      * - Ketebalan dinding buah (pericarp) dalam mm (standar ekspor > 1.80 mm)
      * - Tingkat kepedasan (capsaicinoids) dalam Scoville Heat Unit (SHU > 80.000)
      * - Indeks kromatisitas warna kapsantin merah dalam % (standar ekspor > 85.0%)
+     * - Kepadatan materi padat / bahan kering buah (Dry Matter > 18.0%)
+     * - Indeks kemanisan & padatan terlarut alami (Total Soluble Solids > 8.5° Brix)
      * - Tingkat kesehatan buah bebas patogen & patek (0% antraknosa / 100% sehat)
      * - Residu pestisida kimia sintetis dalam ppm (Batas Maksimum Residu / MRL < 0.05 ppm, target 0.00 ppm)
      * - Estimasi daya simpan pascapanen pada suhu ruang sejuk (target > 14 hari)
@@ -245,6 +256,8 @@ object DailyMissions {
         val diseaseFreeRatePct: Double,
         val chemicalResiduePpm: Double,
         val shelfLifeDays: Int,
+        val dryMatterPct: Double,
+        val brixDegree: Double,
         val marketGrade: String,
         val qualitySummary: String,
         val completedPillarsCount: Int,
@@ -296,6 +309,12 @@ object DailyMissions {
         val rawShelf = 7.0 + 11.0 * harvestRatio + 3.0 * scoreRatio
         val shelfLifeDays = Math.round(rawShelf).toInt()
 
+        val rawDryMatter = 13.5 + 6.0 * pericarpRatio + 2.0 * scoreRatio
+        val dryMatterPct = Math.round(rawDryMatter * 10.0) / 10.0
+
+        val rawBrix = 6.2 + 2.8 * capsaicinRatio + 1.2 * scoreRatio
+        val brixDegree = Math.round(rawBrix * 10.0) / 10.0
+
         val completedPillars = pillarProgress.values.count { it.first >= it.second && it.second > 0 }
         val totalPillars = pillarProgress.size
 
@@ -307,8 +326,8 @@ object DailyMissions {
         }
 
         val summary = when {
-            score >= 90 -> "Kualitas cabai istimewa! Dinding pericarp tebal ${pericarpThicknessMm} mm kokoh terhadap benturan, kepedasan $capsaicinShu SHU pekat, warna merah kapsantin $colorCapsanthinPct%, dan bebas residu pestisida siap tembus pasar ekspor global."
-            score >= 70 -> "Kualitas cabai sangat baik. Dinding buah terlapisi kalsium pektat (${pericarpThicknessMm} mm), pigmen warna mulai solid ($colorCapsanthinPct%). Tuntaskan sisa misi pilar untuk mengunci predikat Grade A+."
+            score >= 90 -> "Kualitas cabai istimewa! Dinding pericarp tebal ${pericarpThicknessMm} mm kokoh terhadap benturan, kepedasan $capsaicinShu SHU pekat, bahan kering $dryMatterPct% (Brix $brixDegree°), warna merah kapsantin $colorCapsanthinPct%, dan bebas residu pestisida siap tembus pasar ekspor global."
+            score >= 70 -> "Kualitas cabai sangat baik. Dinding buah terlapisi kalsium pektat (${pericarpThicknessMm} mm), pigmen warna solid ($colorCapsanthinPct%), padatan terlarut $brixDegree° Brix. Tuntaskan sisa misi pilar untuk mengunci predikat Grade A+."
             score >= 40 -> "Pertumbuhan cabai moderat (${pericarpThicknessMm} mm). Perkuat aplikasi Kalsium, Kalium, dan bioproteksi patek untuk mencegah penyusutan mutu panen."
             else -> "Cabai berisiko rapuh dan rentan patek. Dinding pericarp saat ini masih di bawah standar (${pericarpThicknessMm} mm). Segera eksekusi misi kalsium terlarut dan sanitasi kebun."
         }
@@ -321,11 +340,43 @@ object DailyMissions {
             diseaseFreeRatePct = diseaseFreeRatePct,
             chemicalResiduePpm = chemicalResiduePpm,
             shelfLifeDays = shelfLifeDays,
+            dryMatterPct = dryMatterPct,
+            brixDegree = brixDegree,
             marketGrade = marketGrade,
             qualitySummary = summary,
             completedPillarsCount = completedPillars,
             totalPillarsCount = totalPillars
         )
+    }
+
+    /**
+     * Memformat sertifikat audit mutu cabai presisi dalam format teks resmi untuk dibagikan ke kelompok tani / penyuluh.
+     */
+    fun formatCqiCertificateReport(cqi: ChiliQualityIndex, plan: DailyPlan): String {
+        return buildString {
+            appendLine("==========================================")
+            appendLine("SERTIFIKAT AUDIT INDEKS MUTU CABAI (CQI)")
+            appendLine("PERITANIX DAPE PRECISION FARMING")
+            appendLine("==========================================")
+            appendLine("Fase Budidaya   : ${plan.stageTitle} (${plan.phaseName})")
+            appendLine("Predikat Mutu   : ${cqi.marketGrade}")
+            appendLine("Skor Kepatuhan  : ${cqi.overallScore}% (${cqi.completedPillarsCount}/${cqi.totalPillarsCount} Pilar Tuntas)")
+            appendLine()
+            appendLine("HASIL AUDIT PARAMETER MUTU CABAI:")
+            appendLine("1. Tebal Pericarp       : ${cqi.pericarpThicknessMm} mm (Standar Ekspor > 1.80 mm) - ${if (cqi.pericarpThicknessMm >= 1.80) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("2. Kadar Kapsaisin      : ${"%,d".format(cqi.capsaicinShu)} SHU (Standar Ekspor > 80.000 SHU) - ${if (cqi.capsaicinShu >= 80_000) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("3. Kromatisitas Kapsantin: ${cqi.colorCapsanthinPct}% (Standar Ekspor > 85.0%) - ${if (cqi.colorCapsanthinPct >= 85.0) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("4. Kepadatan Bahan Kering: ${cqi.dryMatterPct}% (Standar Ekspor > 18.0%) - ${if (cqi.dryMatterPct >= 18.0) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("5. Padatan Terlarut (Brix): ${cqi.brixDegree}° Bx (Standar Ekspor > 8.5° Bx) - ${if (cqi.brixDegree >= 8.5) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("6. Bebas Patek/Patogen  : ${cqi.diseaseFreeRatePct}% Sehat (Target Panen 100%) - ${if (cqi.diseaseFreeRatePct >= 95.0) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("7. Residu Kimia Sintetik: ${if (cqi.chemicalResiduePpm <= 0.05) "0.00 ppm (Nol Residu)" else "${cqi.chemicalResiduePpm} ppm"} (MRL < 0.05 ppm) - ${if (cqi.chemicalResiduePpm <= 0.05) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine("8. Estimasi Daya Simpan : ${cqi.shelfLifeDays} Hari pada suhu 12-15°C - ${if (cqi.shelfLifeDays >= 14) "[MEMENUHI]" else "[BELUM MEMENUHI]"}")
+            appendLine()
+            appendLine("RINGKASAN AGRONOMI:")
+            appendLine(cqi.qualitySummary)
+            appendLine("==========================================")
+            appendLine("Dihasilkan secara otomatis oleh Sistem Mutu Presisi Peritanix DAPE")
+        }
     }
 
     /** Filter misi berdasarkan target mutu. */
@@ -507,15 +558,60 @@ object DailyMissions {
     fun getAgronomistProTips(mission: Mission): List<String> {
         val titleLower = mission.title.lowercase()
         return when {
-            titleLower.contains("kalsium") || titleLower.contains("calcium") || titleLower.contains("boron") -> listOf(
-                "Arahkan nozel semprot menyudut 45 derajat ke arah atas karena 85% stomata cabai terletak di permukaan bawah daun.",
-                "Gunakan nozel tipe kerucut berongga (hollow cone) bertekanan 2-3 bar untuk membentuk kabut berukuran 150-250 mikron.",
-                "Jangan pernah mencampur kalsium nitrat dengan pupuk fosfat pekat dalam satu tangki untuk mencegah endapan kalsium fosfat yang menyumbat nozel."
+            titleLower.contains("buffer ph") || titleLower.contains("rizosfer") || titleLower.contains("dolomit") -> listOf(
+                "Ukur pH tanah di zona perakaran aktif sedalam 10-15 cm; pH ideal cabai adalah 6.2 - 6.8.",
+                "Bila pH < 5.8, taburkan kapur dolomit super (micronized CaCO3-MgCO3) 50 gram per meter bedengan sebelum tanam.",
+                "Tanah dengan pH netral menjamin ion Kalsium dan Magnesium terserap 100% tanpa terkunci oleh fiksasi ion aluminium tanah masam."
+            )
+            titleLower.contains("stomata") || titleLower.contains("khelat") || titleLower.contains("ca-edta") -> listOf(
+                "Waktu terbaik penyemprotan kalsium khelat adalah pukul 06:30 - 08:00 WIB saat konduktansi stomata daun mencapai nilai tertinggi.",
+                "Kalsium bersifat immobile di pembuluh tapis floem; aplikasi tepat pada jendela stomata menjamin kalsium masuk langsung ke lamela sel buah muda.",
+                "Gunakan nozel bertekanan kabut halus (cone mist) dan semprot dari arah bawah tajuk mengarah ke atas."
+            )
+            titleLower.contains("tali salang") || titleLower.contains("trellis") || titleLower.contains("spanish") -> listOf(
+                "Pasang tali salang horizontal setiap kenaikan tinggi tanaman 20-25 cm dengan tarikan kencang tanpa menjepit batang utama.",
+                "Sistem penopang ganda ini membagi beban buah lebat Grade A+ (>1.5 kg per pohon) secara merata ke seluruh tiang ajir bambu.",
+                "Jaga agar tidak ada ranting buah terbawah yang melengkung menyentuh mulsa basah untuk mencegah infeksi spora tanah."
+            )
+            titleLower.contains("kitosan") || titleLower.contains("sar") || titleLower.contains("bio-imunisasi") -> listOf(
+                "Semprotkan kitosan oligosakarida 2% secara preventif sebelum gejala serangan penyakit terlihat di lahan.",
+                "Kitosan bekerja mengaktifkan gen imun SAR tanaman cabai sehingga daun dan buah membentuk senyawa kitinase pelisis dinding jamur.",
+                "Dapat dicampur dengan agens hayati Bacillus subtilis untuk perlindungan biologis ganda."
+            )
+            titleLower.contains("refugia") || titleLower.contains("marigold") || titleLower.contains("kenikir") -> listOf(
+                "Tanam bunga marigold (Tagetes erecta) di pematang dengan jarak 2 meter melingkari batas luar petak cabai.",
+                "Aroma marigold memancarkan alfa-tertienil yang memikat thrips dan kutu kebul agar tidak masuk ke pertanaman utama cabai.",
+                "Bunga mekar menjadi habitat dan sumber nektar bagi predator alami kumbang kepik (Coccinellidae) dan bajing terbang nabati (Orius sp.)."
+            )
+            titleLower.contains("kutikula") || titleLower.contains("lilin") || titleLower.contains("epicuticular") -> listOf(
+                "Jangan menyemprotkan pestisida berbahan formulasi minyak pekat (EC) atau perekat agresif saat terik matahari di atas pukul 09:30 WIB.",
+                "Panas terik yang dipadu pelarut kimia melarutkan kristal lilin alami buah cabai sehingga buah kusam dan mudah dehidrasi.",
+                "Pertahankan kilau alami buah dengan penyemprotan pagi sejuk dan menjaga rasio hara Kalium serta Sulfur seimbang."
+            )
+            titleLower.contains("refraktometer") || titleLower.contains("brix") || titleLower.contains("bahan kering") -> listOf(
+                "Kalibrasi refraktometer digital atau optik dengan air destilasi murni (0.0° Brix) sebelum pengujian sampel buah cabai.",
+                "Teteskan cairan dari 3 buah sampel acak yang matang sempurna; standar Grade A+ ekspor memerlukan padatan terlarut > 8.5° Brix.",
+                "Kadar Brix dan Dry Matter tinggi (>18%) menjamin rasa pedas stabil dan buah tidak layu keriput selama proses pengapalan."
+            )
+            titleLower.contains("tangkai") || titleLower.contains("calyx") || titleLower.contains("kelopak bintang") -> listOf(
+                "Gunakan gunting panen stainless berujung bengkok dan potong tangkai 2.5 - 3.5 cm dari pangkal buah dengan kemiringan 45 derajat.",
+                "Pastikan kelopak bintang (calyx) berwarna hijau segar utuh dan tidak sobek; kelopak utuh adalah sertifikasi kesegaran mutlak pasar ekspor.",
+                "Celupkan gunting ke alkohol 70% secara berkala untuk mencegah transmisi jamur busuk Botrytis dan bakteri Erwinia."
+            )
+            titleLower.contains("pre-cooling") || titleLower.contains("evaporatif") || titleLower.contains("panas lapang") -> listOf(
+                "Pindahkan cabai hasil petik ke ruang pre-cooling berventilasi sejuk maksimal 60 menit setelah pemetikan di lahan.",
+                "Penurunan suhu dari 32°C ke 15°C menurunkan laju respirasi buah hingga 60% dan mengunci kesegaran vitamin C.",
+                "Gunakan kipas angin beraliran udara sejuk tidak langsung (indirect cool airflow) di bawah naungan tanpa sinar matahari."
             )
             titleLower.contains("wiwil") || titleLower.contains("perompesan") || titleLower.contains("pangkas") -> listOf(
                 "Patahkan tunas air (wiwil) dengan dorongan menyamping saat ukuran tunas masih di bawah 5 cm agar luka pada batang utama sangat kecil dan cepat sembuh.",
                 "Lakukan pewiwilan saat matahari pagi sudah bersinar terik agar luka pangkasan cepat membentuk lapisan gabus (suberisasi) penangkal bakteri.",
                 "Hindari menyentuh luka pangkas dengan tangan basah atau sarung tangan yang kotor untuk mencegah penularan penyakit layu bakteri."
+            )
+            titleLower.contains("kalsium") || titleLower.contains("calcium") || titleLower.contains("boron") -> listOf(
+                "Arahkan nozel semprot menyudut 45 derajat ke arah atas karena 85% stomata cabai terletak di permukaan bawah daun.",
+                "Gunakan nozel tipe kerucut berongga (hollow cone) bertekanan 2-3 bar untuk membentuk kabut berukuran 150-250 mikron.",
+                "Jangan pernah mencampur kalsium nitrat dengan pupuk fosfat pekat dalam satu tangki untuk mencegah endapan kalsium fosfat yang menyumbat nozel."
             )
             titleLower.contains("52") || titleLower.contains("termoterapi") -> listOf(
                 "Jaga suhu air presisi pada 52°C ± 0,5°C; gunakan panduan gayung Asas Black DAPE untuk akurasi instan.",
@@ -764,6 +860,31 @@ object DailyMissions {
                 term = "Kalium Sulfat Bebas Klorin (SOP)",
                 definition = "Pupuk kalium berkadar sulfur tinggi (K2O 50%, S 18%) dengan kandungan klorida kurang dari 1%.",
                 practicalSignificance = "Merangsang enzim karotenogenesis kapsantin merah menyala tanpa menimbulkan fitotoksisitas klorida pada buah."
+            ),
+            GlossaryEntry(
+                term = "Kitosan Oligosakarida (SAR)",
+                definition = "Biopolimer kitosan rantai pendek terlarut yang berperan sebagai elicitor pemicu Systemic Acquired Resistance (SAR) pada tanaman cabai.",
+                practicalSignificance = "Menginduksi produksi enzim fitoaleksin, kitinase, dan beta-1,3-glukanase tanaman untuk menghancurkan spora jamur patek sebelum menginfeksi."
+            ),
+            GlossaryEntry(
+                term = "Refraktometer Brix & Dry Matter",
+                definition = "Alat optik pengukur indeks bias untuk menganalisis Total Soluble Solids (°Brix) dan estimasi persentase materi kering buah cabai.",
+                practicalSignificance = "Cabai kualitas ekspor wajib memiliki kadar padatan terlarut > 8.5° Bx dan Dry Matter > 18% agar bobot buah tidak susut selama pengiriman."
+            ),
+            GlossaryEntry(
+                term = "Spanish Weaving Trellis (Tali Salang)",
+                definition = "Teknik perambatan horizontal dua baris tali di antara tiang ajir penopang kanopi cabai.",
+                practicalSignificance = "Menopang cabang pembawa buah lebat Grade A+ agar tidak patah atau melorot menyentuh mulsa lembap pembawa patogen tanah."
+            ),
+            GlossaryEntry(
+                term = "Lapisan Kutikula Lilin (Epicuticular Wax)",
+                definition = "Lapisan kristalin lilin ester alami yang menutupi eksokarp buah cabai, memantulkan kilau cahaya dan menahan dehidrasi sel.",
+                practicalSignificance = "Menjaga kilau segar alami (luster) buah cabai dan mengurangi kehilangan air (transpirasi) pascapanen hingga 80%."
+            ),
+            GlossaryEntry(
+                term = "Buffer pH Rizosfer",
+                definition = "Kapasitas penyangga derajat keasaman tanah di zona perakaran tanaman cabai pada rentang optimum 6.2 - 6.8.",
+                practicalSignificance = "Mencegah fiksasi dan pengendapan ion Kalsium (Ca2+) dan Magnesium (Mg2+) pada tanah masam sehingga terhindar dari penyakit busuk pantat buah (BER)."
             )
         )
     }
@@ -2314,6 +2435,342 @@ object DailyMissions {
         durationMinutes = 25,
         troubleshootingTip = "Gunakan panduan suara TTS DAPE untuk menghitung mundur 180 detik dan memonitor suhu tanpa perlu melihat layar.",
         qualitySigns = "Daya simpan cabai di suhu ruang meningkat dari 5 hari menjadi 16-21 hari tanpa muncul bercak busuk antraknosa."
+    )
+
+    private fun rhizospherePhBufferingMission(day: Long) = Mission(
+        id = "m$day-rhizosphere-ph",
+        category = Category.NUTRISI,
+        title = "Kalibrasi Buffer pH & EC Rizosfer Tanah (Cegah Blokade Kalsium & BER)",
+        detail = "Ukur pH tanah rizosfer bedengan (target 6.2 - 6.8) dan kocor buffer kapur dolomit micronized / kalsium karbonat terlarut untuk membuka kunci serapan hara kalsium pektat.",
+        qualityImpact = "pH tanah netral mencegah kalsium terikat aluminium, menjamin serapan ion Ca2+ optimal sejak bibit berakar sehingga dinding buah kelak tebal dan bebas busuk ujung buah (BER).",
+        weight = 3,
+        qualityTarget = QualityTarget.PERICARP_TEBAL,
+        howToExecute = "Gunakan pH meter tanah terkalibrasi di 5 titik bedengan. Bila pH < 6.0, kocor suspensi dolomit micronized halus dosis 5 g/L air per lubang tanam.",
+        scientificBasis = "Pada pH rizosfer < 5.5, kation Ca2+ dan Mg2+ mengalami fiksasi oleh presipitat Al-OH dan Fe-OH sehingga serapan xilem anjlok > 60%, memicu defisiensi kalsium laten dan kerentanan Blossom End Rot.",
+        targetMetric = "pH tanah rizosfer stabil pada 6.2 - 6.8, nilai EC tanah 1.2 - 1.8 mS/cm",
+        toolsAndMaterials = listOf(
+            "Soil pH & Moisture Tester digital terkalibrasi",
+            "Kapur dolomit super micronized (mesh > 100, CaO 30%, MgO 18%)",
+            "Ember ukur kocor volume 250 ml",
+            "Air bersih ber-pH netral"
+        ),
+        executionSteps = listOf(
+            "Tancapkan probe pH meter tanah sedalam 12-15 cm di dekat perakaran bibit pada 5 titik representatif.",
+            "Catat nilai rerata pH tanah; pastikan tanah dalam kondisi lembab kapasitas lapang saat pengukuran.",
+            "Bila pH terbaca di bawah 6.0, timbang 80 gram kapur dolomit micronized untuk ember 16 Liter.",
+            "Aduk merata hingga membentuk suspensi homogen tanpa gumpalan kasar di dasar ember.",
+            "Kocorkan sebanyak 200 ml suspensi tepat di sekeliling lubang tanam bibit."
+        ),
+        optimalTiming = "Pagi hari pukul 07:00 - 09:00 WIB saat tanah lembab sebelum terik matahari",
+        commonMistakesToAvoid = listOf(
+            "Menggunakan kapur tohor panas (CaO belum padam) yang dapat membakar bulu akar muda bibit.",
+            "Mengukur pH tanah saat kondisi tanah kering kerontang yang menghasilkan pembacaan angka tidak akurat."
+        ),
+        successVerification = "Jarum pH meter menunjukkan skala 6.2 - 6.8 stabil di seluruh petak bedengan.",
+        safetyGear = listOf("Masker kain penahan debu", "Sarung tangan kebun", "Sepatu bot kebun"),
+        standardDosagePerLiter = 5.0,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Jika pH tanah sangat masam (< 5.0), kombinasikan kocor dolomit dengan asam humat 1 g/L untuk mempercepat pelepasan ion kalsium ke kompleks jerapan tanah.",
+        qualitySigns = "Bulu akar bibit berkembang putih lebat, daun muda tidak menggulung mangkuk, translokasi kalsium lancar 100%."
+    )
+
+    private fun trellisSpanishWeavingMission(day: Long) = Mission(
+        id = "m$day-trellis-weaving",
+        category = Category.UMUM,
+        title = "Pemasangan Ajir Ganda & Tali Salang Spanish Weaving (Penopang Beban Buah Grade A)",
+        detail = "Pasang sistem tali salang horizontal di antara tiang ajir bambu untuk menopang kanopi dan mencegah cabang pembawa buah lebat terkulai menyentuh mulsa.",
+        qualityImpact = "Menghindarkan 100% buah cabai dari sentuhan langsung dengan tanah/mulsa basah pembawa spora patek serta menjamin penetrasi sinar matahari merata ke seluruh buah.",
+        weight = 3,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Rentangkan tali salang polietilena di kedua sisi tajuk tanaman mengapit cabang Y, ikat kencang pada tiang ajir setiap interval 20 cm ketinggian tanaman.",
+        scientificBasis = "Buah cabai Grade A+ berbobot berat (massa kanopi > 2 kg); sistem Spanish Weaving mendistribusikan momen gaya lentur sehingga stomata dan kutikula buah terhindar dari abrasi mekanis dan spora tanah.",
+        targetMetric = "100% tanaman tertopang tegak simetris, jarak buah terbawah ke mulsa > 20 cm",
+        toolsAndMaterials = listOf(
+            "Tali salang polietilena (PE strapping / twine) tahan UV",
+            "Ajir bambu diameter 2-3 cm tinggi 1.5 meter",
+            "Gunting tali tajam",
+            "Palu pasak kayu"
+        ),
+        executionSteps = listOf(
+            "Tancapkan tiang ajir bambu kokoh di antara tiap 3 tanaman dengan kemiringan tegak lurus.",
+            "Rentangkan tali salang di sisi kiri barisan tanaman setinggi cabang utama pertama (cabang Y).",
+            "Lilitkan tali mengunci pada setiap tiang bambu dan lanjutkan ke sisi kanan barisan tanaman (mengapit tajuk).",
+            "Ikat kencang ujung tali pada tiang pancang penguat di ujung bedengan.",
+            "Rapikan cabang dan ranting yang menjuntai agar bertumpu nyaman di atas bentangan tali salang."
+        ),
+        optimalTiming = "Pagi atau sore hari yang teduh saat batang tanaman lentur dan tidak rapuh",
+        commonMistakesToAvoid = listOf(
+            "Mengikat tali terlalu kencang melilit batang tanaman sehingga mencekik pembuluh floem dan menghambat aliran nutrisi.",
+            "Membiarkan tali kendur yang menyebabkan tanaman tetap rebah saat tertiup angin kencang atau terbebani buah lebat."
+        ),
+        successVerification = "Seluruh kanopi cabai berdiri kokoh tegak, sirkulasi udara antar bedengan lancar, tidak ada daun atau buah menyentuh mulsa.",
+        safetyGear = listOf("Sarung tangan kerja kain", "Sepatu bot kebun"),
+        standardDosagePerLiter = 0.0,
+        dosageUnit = "meter",
+        durationMinutes = 45,
+        troubleshootingTip = "Tambahkan tingkatan tali salang kedua dan ketiga saat tanaman bertambah tinggi memasuki fase pembungaan lebat.",
+        qualitySigns = "Buah cabai menggantung vertikal lurus sempurna tanpa kelengkungan akibat desakan ranting, aerasi kanopi prima menekan kelembaban mikro hingga 15%."
+    )
+
+    private fun chitosanSarBioImmunizationMission(day: Long) = Mission(
+        id = "m$day-chitosan-sar",
+        category = Category.SANITASI,
+        title = "Bio-Imunisasi Kitosan Oligosakarida 2% (Induksi Resistensi Sistemik SAR)",
+        detail = "Semprot biostimulan kitosan cair terlarut 2 ml/L untuk merangsang reseptor membran dan menginduksi respon kekebalan alami tanaman (SAR) melawan infeksi patogen.",
+        qualityImpact = "Memicu sintesis fitoaleksin alami dan enzim kitinase di dalam jaringan daun dan buah, menghentikan perkecambahan spora antraknosa sejak awal fase vegetatif.",
+        weight = 3,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Larutkan 2 ml kitosan cair per liter air bersih. Semprotkan kabut halus ke seluruh permukaan daun dan pucuk tanaman secara merata.",
+        scientificBasis = "Oligosakarida kitosan bertindak sebagai Microbe-Associated Molecular Pattern (MAMP) yang mengaktivasi transkripsi gen PR-protein (Pathogenesis-Related) dan penumpukan kalosa pada pori stoma.",
+        targetMetric = "100% kanopi terlapisi bio-imunisasi kitosan, indeks resistensi tanaman meningkat",
+        toolsAndMaterials = listOf(
+            "Biostimulan Kitosan Oligosakarida cair terlarut (Chitosan 2%)",
+            "Gelas ukur mili liter",
+            "Tangki sprayer bertekanan kabut halus",
+            "Air bersih ber-pH 6.0 - 6.5"
+        ),
+        executionSteps = listOf(
+            "Takar 32 ml konsentrat kitosan cair untuk tangki semprot 16 Liter (dosis 2 ml/L).",
+            "Tuang ke ember berisi air bersih dan aduk hingga larut homogen.",
+            "Masukkan larutan ke dalam tangki sprayer yang bersih.",
+            "Semprotkan kabut halus ke seluruh permukaan atas dan bawah daun secara merata."
+        ),
+        optimalTiming = "Pagi hari pukul 06:30 - 08:30 WIB saat stomata terbuka dan tanaman dalam kondisi hidrasi optimal",
+        commonMistakesToAvoid = listOf(
+            "Menggunakan air siraman dengan pH basa tinggi (> 7.5) yang dapat mengendapkan molekul kitosan.",
+            "Menyemprot di siang hari terik saat radiasi sinar UV intensitas tinggi mengeringkan cairan sebelum terserap."
+        ),
+        successVerification = "Permukaan daun terlihat segar mengkilap dengan lapisan pelindung bio-film alami yang elastis.",
+        safetyGear = listOf("Masker kain penutup hidung", "Sarung tangan lateks kebun"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "ml",
+        durationMinutes = 30,
+        troubleshootingTip = "Gunakan kitosan berderajat deasetilasi tinggi (> 85%) untuk memastikan penetrasi elicitor ke dalam dinding sel parenkim daun.",
+        qualitySigns = "Ketahanan alami tanaman terhadap infeksi jamur Colletotrichum dan bercak daun Cercospora meningkat hingga 85% tanpa residu kimia beracun."
+    )
+
+    private fun stomataWindowChelatedCalciumMission(day: Long) = Mission(
+        id = "m$day-chelated-calcium-boron",
+        category = Category.NUTRISI,
+        title = "Aplikasi Kalsium Khelat (Ca-EDTA) & Asam Borat pada Jendela Stomata Pagi",
+        detail = "Semprot Kalsium terkelat organik (Ca-EDTA) 2 g/L dan Asam Borat 1 g/L pada jendela transpirasi stomata terbuka penuh untuk memadatkan lamela tengah bakal buah cabai.",
+        qualityImpact = "Memastikan kation kalsium langsung diserap sel meristematik bakal buah muda, membentuk dinding buah tebal kokoh (>1.8 mm) dan meniadakan kerontokan putik.",
+        weight = 3,
+        qualityTarget = QualityTarget.PERICARP_TEBAL,
+        howToExecute = "Larutkan Ca-EDTA dan Asam Borat dalam air bersih. Semprotkan kabut sangat halus mengarah dari bawah tajuk ke permukaan abaxial daun dan bunga mekar.",
+        scientificBasis = "Kalsium adalah unsur immobile di pembuluh floem dan hanya bergerak mengikuti aliran transpirasi xilem. Aplikasi pada jam bukaan stomata maksimum (06:30-08:00) menjamin difusi kalsium langsung ke dinding sel ovarium.",
+        targetMetric = "Tingkat kerontokan bunga < 5%, pembentukan bakal buah (fruit set) > 90%",
+        toolsAndMaterials = listOf(
+            "Pupuk Kalsium Khelat organik (Ca-EDTA 10-14% larut air)",
+            "Asam Borat murni / Boron terlarut (B 17%)",
+            "Timbangan digital baku",
+            "Tangki sprayer nozel kabut kerucut (cone mist)"
+        ),
+        executionSteps = listOf(
+            "Timbang 32 gram Ca-EDTA dan 16 gram Asam Borat untuk tangki semprot 16 Liter.",
+            "Larutkan secara terpisah dalam ember berisi sedikit air bersih lalu tuang ke tangki semprot.",
+            "Penuhi air hingga 16 Liter dan tambahkan perekat non-ionik 0.5 ml/L.",
+            "Semprotkan kabut halus menyudut 45 derajat dari arah bawah kanopi menuju bunga dan helai daun abaxial."
+        ),
+        optimalTiming = "Pagi hari pukul 06:30 - 08:00 WIB saat stomata daun terbuka 100% dan suhu udara 24-27°C",
+        commonMistakesToAvoid = listOf(
+            "Menyemprot di atas pukul 09:30 saat stomata mulai menutup akibat suhu panas (nutrisi terbuang sia-sia).",
+            "Menggunakan pupuk kalsium sulfat tak terlarut yang mengendap dan meninggalkan noda putih di kelopak bunga."
+        ),
+        successVerification = "Mahkota bunga mekar sempurna, bakal buah muda berpegangan kuat pada tangkai tanpa menguning atau rontok.",
+        safetyGear = listOf("Masker kain", "Kacamata pelindung", "Sarung tangan nitril"),
+        standardDosagePerLiter = 2.0,
+        dosageUnit = "gram",
+        durationMinutes = 35,
+        troubleshootingTip = "Kombinasi Boron dan Kalsium memiliki efek sinergis: Boron menstabilkan ikatan ester borat pada membran pektin dinding sel ovarium cabai.",
+        qualitySigns = "Pericarp buah berkembang tebal, tekstur dinding buah kenyal kokoh, potensi buah pecah (cracking) saat panen turun ke 0%."
+    )
+
+    private fun refugiaMarigoldBorderMission(day: Long) = Mission(
+        id = "m$day-refugia-border",
+        category = Category.SANITASI,
+        title = "Konservasi Musuh Alami Refugia Marigold (Push-Pull IPM Perangkap Trips)",
+        detail = "Rawat tanaman pembatas bunga marigold / kenikir (Tagetes erecta) di sekeliling pematang kebun sebagai perangkap trips alami dan konservasi predator mikro.",
+        qualityImpact = "Menghalau hama thrips, tungau, dan kutu kebul sebelum mencapai petak cabai, mencegah daun keriting virus Gemini dan menjaga kulit buah mulus tanpa goresan perak.",
+        weight = 2,
+        qualityTarget = QualityTarget.BEBAS_CACAT,
+        howToExecute = "Pangkas kuntum marigold yang mengering, periksa populasi predator kumbang kubah dan serangga parasitoid di bunga, siram pematang agar bunga tetap mekar lebat.",
+        scientificBasis = "Senyawa metabolit sekunder alfa-tertienil dan minyak atsiri pada kelopak marigold menarik hama trips keluar dari pertanaman utama cabai (efek trap crop) sekaligus menyediakan nektar bagi predator Orius sp.",
+        targetMetric = "Barier refugia mengelilingi 100% petak lahan, populasi trips pada daun cabai < 1 ekor/daun",
+        toolsAndMaterials = listOf(
+            "Gunting pangkas stek steril",
+            "Kaca pembesar (lensa loop) saku 10x",
+            "Ember siram pematang"
+        ),
+        executionSteps = listOf(
+            "Kelilingi pematang batas lahan cabai dan periksa kondisi pertanaman bunga marigold.",
+            "Pangkas bunga yang sudah layu atau kecokelatan untuk merangsang tumbuhnya kuntum bunga baru yang harum mekar.",
+            "Gunakan lensa pembesar untuk mengamati keberadaan serangga bermanfaat (Orius, Coccinellidae, Chrysoperla).",
+            "Siram perakaran marigold secukupnya agar tanaman tetap berbunga lebat dan harum memikat hama."
+        ),
+        optimalTiming = "Pagi hari pukul 07:30 - 09:30 WIB saat serangga musuh alami aktif bergerak di bunga",
+        commonMistakesToAvoid = listOf(
+            "Menyemprotkan insektisida kimia spektrum luas ke tanaman marigold yang membunuh musuh alami bermanfaat.",
+            "Membiarkan marigold mongering dan mati kekeringan sehingga fungsi barier proteksi hilang."
+        ),
+        successVerification = "Bunga marigold berwarna kuning-oranye cerah mekar lebat di sepanjang pematang, kanopi cabai bersih dari koloni trips.",
+        safetyGear = listOf("Topi kebun pelindung panas", "Sarung tangan kain"),
+        standardDosagePerLiter = 0.0,
+        dosageUnit = "meter",
+        durationMinutes = 25,
+        troubleshootingTip = "Bila populasi thrips pada marigold sangat padat, kibaskan bunga ke nampan putih untuk memonitor rasio predator terhadap hama sasaran.",
+        qualitySigns = "Buah cabai tumbuh mulus tanpa bintik goresan nekrotik abu-abu keperakan (silvering) akibat tusukan hisapan nimfa trips."
+    )
+
+    private fun epicuticularWaxCuticleProtectionMission(day: Long) = Mission(
+        id = "m$day-epicuticular-wax",
+        category = Category.NUTRISI,
+        title = "Proteksi Lapisan Kutikula Lilin Alami Cabai (Luster & Anti-Transpirasi)",
+        detail = "Kawal perlindungan lapisan kristal lilin alami buah dengan meniadakan aplikasi pelarut minyak agresif saat terik dan semprot biostimulan pelindung kutikula.",
+        qualityImpact = "Mempertahankan lapisan lilin alami yang memberikan efek mengkilap memantulkan cahaya (luster premium), serta menahan penyusutan bobot air buah saat distribusi.",
+        weight = 3,
+        qualityTarget = QualityTarget.WARNA_KILAP,
+        howToExecute = "Hentikan penggunaan surfaktan berbahan dasar solvent keras pada suhu > 28°C. Semprotkan silika terlarut konsentrasi ringan 0.5 ml/L di pagi sejuk untuk mengunci kutikula.",
+        scientificBasis = "Lapisan epicuticular wax tersusun dari hidrokarbon rantai panjang, ester lilin, dan alkohol alifatik bebas yang sangat sensitif terhadap pelarut emulsi pekat (EC) pada suhu tinggi; rusaknya lilin menyebabkan buah tampak kusam dan laju transpirasi naik 300%.",
+        targetMetric = "Tingkat kilau buah (gloss index) prima, ketahanan susut bobot pascapanen < 2% per 5 hari",
+        toolsAndMaterials = listOf(
+            "Silika cair nano murni / Orthosilicic acid 0.5 ml/L",
+            "Tangki sprayer bertekanan kabut merata",
+            "Gelas ukur presisi"
+        ),
+        executionSteps = listOf(
+            "Periksa jadwal semprot: pastikan tidak ada bahan aktif berbasis pelarut minyak kasar (EC).",
+            "Takar 8 ml silika nano cair untuk tangki 16 Liter.",
+            "Larutkan dalam air bersih dingin yang tidak terkena panas matahari langsung.",
+            "Semprotkan kabut sangat halus melayang di sekitar buah cabai yang sedang dalam fase pembesaran."
+        ),
+        optimalTiming = "Pagi hari pukul 06:15 - 08:00 WIB saat suhu udara sejuk (< 26°C)",
+        commonMistakesToAvoid = listOf(
+            "Menyemprot pestisida berkonsentrasi minyak tinggi pada siang hari terik yang menyebabkan kutikula buah melepuh dan warna menjadi kusam.",
+            "Menggosok atau mengelap permukaan buah di pohon dengan kain kasar."
+        ),
+        successVerification = "Permukaan buah cabai memantulkan kilau cahaya seperti pernis alami, licin, dan tidak meninggalkan noda minyak.",
+        safetyGear = listOf("Masker kain", "Sarung tangan kebun"),
+        standardDosagePerLiter = 0.5,
+        dosageUnit = "ml",
+        durationMinutes = 30,
+        troubleshootingTip = "Silika orto-silisat bersinergi dengan kalium sulfat mempertebal lapisan kutin lilin alami pada eksokarp buah.",
+        qualitySigns = "Buah cabai tampak merah berkilau kristalin tahan pudar, tekstur kulit kencang berdaya pantul cahaya tinggi saat dipajang di etalase pasar modern."
+    )
+
+    private fun fruitRefractometerBrixMission(day: Long) = Mission(
+        id = "m$day-fruit-refractometer-brix",
+        category = Category.INSPEKSI,
+        title = "Pengujian Refraktometer Brix & Kepadatan Bahan Kering (Dry Matter > 18%)",
+        detail = "Ukur sampel sari buah cabai matang dengan refraktometer optik untuk memverifikasi akumulasi padatan terlarut (target > 8.5° Brix) dan bahan kering > 18%.",
+        qualityImpact = "Menjamin cabai memiliki kepadatan sari buah tinggi, cita rasa pedas mantap berpadu rasa gurih manis alami, serta rendemen bobot kering tinggi untuk industri dan ekspor.",
+        weight = 3,
+        qualityTarget = QualityTarget.KAPSAISIN_PEDAS,
+        howToExecute = "Petik 3 buah sampel cabai matang acak. Iris melintang bagian tengah, teteskan sari buah ke prisma refraktometer, dan baca skala Brix tepat pada garis batas kontras.",
+        scientificBasis = "Indeks derajat Brix merefleksikan konsentrasi padatan terlarut (gula glukosa-fruktosa, asam amino, dan senyawa kapsaisinoid terlarut) yang berbanding lurus dengan persentase Dry Matter buah dan ketahanan turgor sel.",
+        targetMetric = "Padatan terlarut total > 8.5° Brix, estimasi Dry Matter > 18.0%, kadar air buah < 82%",
+        toolsAndMaterials = listOf(
+            "Refraktometer genggam optik atau digital (skala 0 - 32° Brix)",
+            "Pipet tetes kaca / plastik",
+            "Pisau cutter stainless steril",
+            "Kain mikrofiber pembersih prisma dan aquades/air destilasi"
+        ),
+        executionSteps = listOf(
+            "Kalibrasi refraktometer dengan 2 tetes air destilasi murni; pastikan garis batas berada di angka 0.0° Brix.",
+            "Keringkan prisma kaca dengan kain mikrofiber lembut searah tanpa menggores.",
+            "Iris melintang 3 buah sampel cabai merah matang dan peras lembut 1-2 tetes sari buah ke permukaan prisma.",
+            "Tutup plat penutup prisma dan arahkan refraktometer ke sumber cahaya terang.",
+            "Baca angka skala derajat Brix pada garis batas biru-putih dan catat di aplikasi DAPE."
+        ),
+        optimalTiming = "Pagi menjelang siang pukul 09:00 - 11:00 WIB saat proses asimilasi fotosintesis buah aktif",
+        commonMistakesToAvoid = listOf(
+            "Mengambil sampel cairan yang tercampur serpihan biji padat kasar yang dapat menggores kaca prisma refraktometer.",
+            "Membersihkan prisma menggunakan kertas tisu kasar atau pakaian kerja yang berdebu pasir."
+        ),
+        successVerification = "Garis batas kontras terbaca jelas di atas skala 8.5° Brix, menandakan kematangan biokimia sempurna.",
+        safetyGear = listOf("Sarung tangan lateks bersih", "Kotak penyimpan refraktometer berbusa"),
+        standardDosagePerLiter = 0.0,
+        dosageUnit = "buah",
+        durationMinutes = 20,
+        troubleshootingTip = "Bila Brix < 7.5° Bx, kurangi volume irigasi air selama 3 hari terakhir sebelum panen (mild deficit irrigation) untuk memadatkan sari buah.",
+        qualitySigns = "Buah berbobot berat padat, rasa pedas menyengat stabil di lidah, tidak berair encer saat diiris, rendemen serbuk cabai kering meningkat 22%."
+    )
+
+    private fun cleanCutPedicelSterileMission(day: Long) = Mission(
+        id = "m$day-sterile-pedicel-cut",
+        category = Category.PANEN,
+        title = "Pemotongan Tangkai Bersih 2.5 - 3.5 cm Berkelopak Bintang Utuh (Intact Green Calyx)",
+        detail = "Gunakan gunting panen stainless steril untuk memotong tangkai cabai sepanjang 2.5 - 3.5 cm bersudut miring 45° dengan kelopak bintang hijau utuh tanpa luka sobek.",
+        qualityImpact = "Mencegah luka koyak pangkal buah tempat masuknya bakteri pembusuk basah (Erwinia carotovora), mempertahankan turgor tangkai hijau segar standar ekspor Grade A+.",
+        weight = 3,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Pegang buah cabai dengan lembut tanpa menekan badan buah. Potong tangkai 2.5 - 3.5 cm di atas kelopak bintang dengan gunting panen bersudut miring 45 derajat.",
+        scientificBasis = "Pemetikan manual dengan tarikan jari merobek pembuluh vaskular pedisel dan meninggalkan jaringan berpori terbuka yang mengeksudasi sukrosa, memicu infeksi busuk pangkal buah Botrytis dan Erwinia dalam waktu 48 jam.",
+        targetMetric = "100% buah bertangkai hijau utuh 2.5 - 3.5 cm, kelopak bintang (calyx) 5 cuping utuh 0% robek",
+        toolsAndMaterials = listOf(
+            "Gunting panen buah berujung lengkung stainless steel (curved harvest shears)",
+            "Botol spray alkohol 70% steril",
+            "Wadah petik beralas busa empuk",
+            "Sarung tangan katun tipis"
+        ),
+        executionSteps = listOf(
+            "Semprotkan alkohol 70% pada bilah gunting panen sebelum memulai pemetikan.",
+            "Posisikan bilah gunting tepat 2.5 - 3.5 cm di atas kelopak bintang buah cabai matang.",
+            "Lakukan pemotongan bersih bersudut miring 45 derajat dengan satu kali tekanan gunting.",
+            "Letakkan cabai secara perlahan ke dalam wadah petik tanpa melempar atau membanting.",
+            "Ulangi sterilisasi bilah gunting setiap menyelesaikan pemetikan satu baris bedengan."
+        ),
+        optimalTiming = "Pagi hari pukul 07:00 - 09:30 WIB saat embun telah kering dan turgor tangkai buah maksimum",
+        commonMistakesToAvoid = listOf(
+            "Memetik cabai dengan mencabut atau memelintir buah dengan paksa yang mengakibatkan kelopak bintang lepas dari buah.",
+            "Memotong tangkai terlalu pendek (< 1 cm) yang membuka luka terlalu dekat dengan rongga plasenta buah."
+        ),
+        successVerification = "Tangkai cabai berpenampang potong bersih rata berwarna hijau segar, kelopak bintang menempel kuat melingkari pangkal buah.",
+        safetyGear = listOf("Sarung tangan katun", "Topi kebun", "Botol steril alkohol"),
+        standardDosagePerLiter = 0.0,
+        dosageUnit = "buah",
+        durationMinutes = 40,
+        troubleshootingTip = "Kemiringan potong 45 derajat mencegah air kondensasi menggenang di ujung potongan tangkai selama penyimpanan.",
+        qualitySigns = "Tangkai tetap berwarna hijau segar cerah selama 14-21 hari masa simpan rantai dingin, tidak menghitam atau kering layu."
+    )
+
+    private fun rapidEvaporativePreCoolingMission(day: Long) = Mission(
+        id = "m$day-evaporative-precooling",
+        category = Category.PANEN,
+        title = "Pre-Cooling Cepat & Penurunan Panas Lapang (Target Suhu Inti 15°C)",
+        detail = "Lakukan pendinginan awal (pre-cooling) segera dalam tempo maksimal 60 menit pascapetik di ruang berventilasi sejuk untuk membuang panas lapang (field heat removal).",
+        qualityImpact = "Menurunkan laju respirasi buah cabai hingga 60% dan menahan perombakan vitamin C serta penguapan air sehingga cabai tetap segar, padat, dan berbobot.",
+        weight = 3,
+        qualityTarget = QualityTarget.GRADE_A_PANEN,
+        howToExecute = "Susun krat cabai secara berjarak di ruang naungan sejuk beraliran udara kipas indirek. Pantau suhu inti daging buah hingga mencapai 15°C - 18°C.",
+        scientificBasis = "Setiap penurunan suhu buah sebesar 10°C (faktor Q10) memotong laju respirasi jaringan menjadi separuhnya dan menghambat pelepasan gas etilen pemacu pelunakan pericarp.",
+        targetMetric = "Suhu inti buah turun ke 15°C - 18°C dalam tempo 60-90 menit pascapanen, RH 85-90%",
+        toolsAndMaterials = listOf(
+            "Krat plastik berventilasi udara 4 sisi (food grade)",
+            "Termometer tusuk digital (probe thermometer)",
+            "Kipas angin beraliran udara sejuk (indirect airflow)",
+            "Higrometer ruang"
+        ),
+        executionSteps = listOf(
+            "Bawa krat cabai hasil panen ke ruang transit beratap naungan sejuk maksimal 30 menit pascapetik.",
+            "Susun krat berjarak minimal 15 cm antar tumpukan untuk memastikan sirkulasi udara bebas hambatan.",
+            "Nyalakan kipas berventilasi udara sejuk secara tidak langsung (jangan mengarahkan hembusan angin kencang langsung ke cabai).",
+            "Tusukkan probe termometer ke 1 buah cabai sampel di bagian tengah tumpukan.",
+            "Setelah suhu inti buah mencapai 15°C - 18°C, matikan kipas dan siapkan cabai untuk sortasi akhir atau pengemasan."
+        ),
+        optimalTiming = "Segera dalam rentang waktu 30 hingga 60 menit setelah sesi pemetikan pagi selesai",
+        commonMistakesToAvoid = listOf(
+            "Membiarkan karung atau krat cabai terpapar sinar matahari terik di pinggir jalan kebun.",
+            "Menumpuk cabai terlalu padat dalam ruang tertutup tanpa ventilasi yang memicu panas fermentasi respirasi."
+        ),
+        successVerification = "Suhu daging buah cabai terasa sejuk saat disentuh (15°C - 18°C), tidak ada tetesan uap air mengembun (sweating) di dasar wadah.",
+        safetyGear = listOf("Sarung tangan katun bersih", "Higrometer digital"),
+        standardDosagePerLiter = 0.0,
+        dosageUnit = "krat",
+        durationMinutes = 30,
+        troubleshootingTip = "Pertahankan kelembaban relatif ruang pre-cooling di kisaran 85-90% dengan membasahi lantai sekeliling menggunakan air bersih bersuhu sejuk.",
+        qualitySigns = "Kadar air dan turgor buah terkunci 98%, asam askorbat terjaga stabil, cabai tidak kehilangan bobot (weight loss < 0.5% per hari)."
     )
 
     // EWS defensive addition

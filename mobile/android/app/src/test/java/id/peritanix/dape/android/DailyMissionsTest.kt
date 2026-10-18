@@ -492,7 +492,7 @@ class DailyMissionsTest {
     @Test
     fun testAgronomyGlossary() {
         val entries = DailyMissions.AgronomyGlossary.entries
-        assertEquals(13, entries.size)
+        assertEquals(18, entries.size)
         entries.forEach { entry ->
             assertTrue("Term non-blank", entry.term.isNotBlank())
             assertTrue("Definition non-blank", entry.definition.isNotBlank())
@@ -512,6 +512,11 @@ class DailyMissionsTest {
         assertTrue(terms.any { it.contains("Mikoriza", ignoreCase = true) })
         assertTrue(terms.any { it.contains("Waktu Henti Semprot", ignoreCase = true) || it.contains("PHI", ignoreCase = true) })
         assertTrue(terms.any { it.contains("Kalium Sulfat", ignoreCase = true) || it.contains("SOP", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Kitosan", ignoreCase = true) || it.contains("SAR", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Refraktometer", ignoreCase = true) || it.contains("Brix", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Trellis", ignoreCase = true) || it.contains("Salang", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Kutikula", ignoreCase = true) || it.contains("Wax", ignoreCase = true) })
+        assertTrue(terms.any { it.contains("Buffer pH", ignoreCase = true) || it.contains("Rizosfer", ignoreCase = true) })
     }
 
     @Test
@@ -579,6 +584,8 @@ class DailyMissionsTest {
         assertEquals(60.0, cqiEmpty.colorCapsanthinPct, 0.5)
         assertTrue("chemical residue should be detected if uncompleted", cqiEmpty.chemicalResiduePpm > 0.3)
         assertEquals(7, cqiEmpty.shelfLifeDays)
+        assertEquals(13.5, cqiEmpty.dryMatterPct, 0.2)
+        assertEquals(6.2, cqiEmpty.brixDegree, 0.2)
         assertTrue(cqiEmpty.marketGrade.contains("Grade Standar"))
         assertEquals(0, cqiEmpty.completedPillarsCount)
 
@@ -591,52 +598,104 @@ class DailyMissionsTest {
         assertTrue("disease free rate should exceed 95%", cqiFull.diseaseFreeRatePct >= 95.0)
         assertEquals("zero residue expected when 100% completed", 0.00, cqiFull.chemicalResiduePpm, 0.01)
         assertTrue("shelf life should exceed 14 days", cqiFull.shelfLifeDays >= 14)
+        assertTrue("dry matter should meet export standard > 18%", cqiFull.dryMatterPct >= 18.0)
+        assertTrue("brix should meet export standard > 8.5", cqiFull.brixDegree >= 8.5)
         assertTrue(cqiFull.marketGrade.contains("Grade A+"))
         assertEquals(cqiFull.totalPillarsCount, cqiFull.completedPillarsCount)
         assertTrue(cqiFull.qualitySummary.contains("Kualitas cabai istimewa"))
     }
 
     @Test
+    fun testFormatCqiCertificateReport() {
+        val plan = DailyMissions.planFor(today, 65)
+        val cqiFull = DailyMissions.calculateChiliQualityIndex(plan, ids(plan))
+        val report = DailyMissions.formatCqiCertificateReport(cqiFull, plan)
+
+        assertTrue(report.contains("SERTIFIKAT AUDIT INDEKS MUTU CABAI"))
+        assertTrue(report.contains("Grade A+"))
+        assertTrue(report.contains("100%"))
+        assertTrue(report.contains("Tebal Pericarp"))
+        assertTrue(report.contains("Kadar Kapsaisin"))
+        assertTrue(report.contains("Kromatisitas Kapsantin"))
+        assertTrue(report.contains("Kepadatan Bahan Kering"))
+        assertTrue(report.contains("Padatan Terlarut (Brix)"))
+        assertTrue(report.contains("Bebas Patek/Patogen"))
+        assertTrue(report.contains("Residu Kimia Sintetik"))
+        assertTrue(report.contains("Estimasi Daya Simpan"))
+        assertTrue(report.contains("[MEMENUHI]"))
+        assertTrue(report.contains("RINGKASAN AGRONOMI"))
+    }
+
+    @Test
     fun testNewQualityGroundedMissionsInPhases() {
-        // Stage 1: Mycorrhiza
+        // Stage 1: Mycorrhiza & Rhizosphere Buffer pH
         val p1 = DailyMissions.planFor(today, -5)
         val mMyco = p1.missions.find { it.id.contains("mycorrhiza") }
+        val mPh = p1.missions.find { it.id.contains("rhizosphere-ph") }
         assertNotNull("Mycorrhiza mission missing in stage 1", mMyco)
+        assertNotNull("Rhizosphere pH mission missing in stage 1", mPh)
         assertEquals(DailyMissions.QualityTarget.VIGOR_AKAR, mMyco!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mPh!!.qualityTarget)
         assertTrue(mMyco.title.contains("Mikoriza"))
-        assertTrue(mMyco.qualityImpact.contains("pericarp") || mMyco.qualityImpact.contains("kalsium"))
+        assertTrue(mPh.title.contains("pH & EC Rizosfer"))
 
-        // Stage 2: Magnesium Sulfate
+        // Stage 2: Magnesium Sulfate, Spanish Weaving Trellis, Chitosan SAR
         val p2 = DailyMissions.planFor(today, 20)
         val mMg = p2.missions.find { it.id.contains("magnesium-sulfate") }
+        val mTrellis = p2.missions.find { it.id.contains("trellis-weaving") }
+        val mChitosan = p2.missions.find { it.id.contains("chitosan-sar") }
         assertNotNull("Magnesium mission missing in stage 2", mMg)
+        assertNotNull("Trellis mission missing in stage 2", mTrellis)
+        assertNotNull("Chitosan mission missing in stage 2", mChitosan)
         assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mMg!!.qualityTarget)
-        assertTrue(mMg.title.contains("Magnesium Sulfat"))
+        assertEquals(DailyMissions.QualityTarget.BEBAS_CACAT, mTrellis!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.BEBAS_CACAT, mChitosan!!.qualityTarget)
+        assertTrue(mTrellis.title.contains("Tali Salang Spanish Weaving"))
+        assertTrue(mChitosan.title.contains("Kitosan Oligosakarida"))
 
-        // Stage 3: Amino Acid & Zinc Pollen Viability
+        // Stage 3: Amino Acid, Chelated Calcium-Boron, Refugia Marigold
         val p3 = DailyMissions.planFor(today, 45)
         val mAmino = p3.missions.find { it.id.contains("amino-zinc") }
+        val mChelated = p3.missions.find { it.id.contains("chelated-calcium-boron") }
+        val mRefugia = p3.missions.find { it.id.contains("refugia-border") }
         assertNotNull("Amino acid mission missing in stage 3", mAmino)
-        assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mAmino!!.qualityTarget)
-        assertTrue(mAmino.title.contains("Asam Amino") && mAmino.title.contains("Zink"))
+        assertNotNull("Chelated calcium mission missing in stage 3", mChelated)
+        assertNotNull("Refugia mission missing in stage 3", mRefugia)
+        assertEquals(DailyMissions.QualityTarget.PERICARP_TEBAL, mChelated!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.BEBAS_CACAT, mRefugia!!.qualityTarget)
+        assertTrue(mChelated.title.contains("Ca-EDTA"))
+        assertTrue(mRefugia.title.contains("Refugia Marigold"))
 
-        // Stage 4: PHI Zero Residue & SOP Potassium Sulfate
+        // Stage 4: PHI Zero Residue, SOP Potassium Sulfate, Epicuticular Wax, Brix Refractometer
         val p4 = DailyMissions.planFor(today, 65)
         val mPhi = p4.missions.find { it.id.contains("phi-zero-residue") }
         val mSop = p4.missions.find { it.id.contains("potassium-sulfate") }
+        val mWax = p4.missions.find { it.id.contains("epicuticular-wax") }
+        val mBrix = p4.missions.find { it.id.contains("fruit-refractometer-brix") }
         assertNotNull("PHI mission missing in stage 4", mPhi)
         assertNotNull("SOP Potassium Sulfate mission missing in stage 4", mSop)
+        assertNotNull("Epicuticular wax mission missing in stage 4", mWax)
+        assertNotNull("Brix refractometer mission missing in stage 4", mBrix)
         assertEquals(DailyMissions.QualityTarget.BEBAS_CACAT, mPhi!!.qualityTarget)
         assertEquals(DailyMissions.QualityTarget.WARNA_KILAP, mSop!!.qualityTarget)
-        assertTrue(mPhi.title.contains("PHI H-14"))
-        assertTrue(mSop.title.contains("Kalium Sulfat bebas klorin"))
+        assertEquals(DailyMissions.QualityTarget.WARNA_KILAP, mWax!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.KAPSAISIN_PEDAS, mBrix!!.qualityTarget)
+        assertTrue(mWax.title.contains("Kutikula Lilin"))
+        assertTrue(mBrix.title.contains("Refraktometer Brix"))
 
-        // Stage 5: Hot Water 52C Sterilization
+        // Stage 5: Hot Water 52C, Sterile Pedicel Cut, Evaporative Pre-Cooling
         val p5 = DailyMissions.planFor(today, 95)
         val mHotWater = p5.missions.find { it.id.contains("hotwater-immersion") }
+        val mPedicel = p5.missions.find { it.id.contains("sterile-pedicel-cut") }
+        val mPreCool = p5.missions.find { it.id.contains("evaporative-precooling") }
         assertNotNull("Hot water immersion missing in stage 5", mHotWater)
+        assertNotNull("Sterile pedicel cut mission missing in stage 5", mPedicel)
+        assertNotNull("Evaporative pre-cooling mission missing in stage 5", mPreCool)
         assertEquals(DailyMissions.QualityTarget.GRADE_A_PANEN, mHotWater!!.qualityTarget)
-        assertTrue(mHotWater.title.contains("52°C"))
+        assertEquals(DailyMissions.QualityTarget.GRADE_A_PANEN, mPedicel!!.qualityTarget)
+        assertEquals(DailyMissions.QualityTarget.GRADE_A_PANEN, mPreCool!!.qualityTarget)
+        assertTrue(mPedicel.title.contains("Kelopak Bintang Utuh", ignoreCase = true))
+        assertTrue(mPreCool.title.contains("Pre-Cooling Cepat"))
     }
 
     @Test
@@ -644,6 +703,8 @@ class DailyMissionsTest {
         val p4 = DailyMissions.planFor(today, 65)
         val mPhi = p4.missions.first { it.id.contains("phi-zero-residue") }
         val mSop = p4.missions.first { it.id.contains("potassium-sulfate") }
+        val mWax = p4.missions.first { it.id.contains("epicuticular-wax") }
+        val mBrix = p4.missions.first { it.id.contains("fruit-refractometer-brix") }
 
         val phiTips = DailyMissions.getAgronomistProTips(mPhi)
         assertTrue(phiTips.isNotEmpty())
@@ -653,17 +714,51 @@ class DailyMissionsTest {
         assertTrue(sopTips.isNotEmpty())
         assertTrue(sopTips.any { it.contains("klorin") || it.contains("kapsantin") })
 
+        val waxTips = DailyMissions.getAgronomistProTips(mWax)
+        assertTrue(waxTips.isNotEmpty())
+        assertTrue(waxTips.any { it.contains("lilin") || it.contains("kutikula") })
+
+        val brixTips = DailyMissions.getAgronomistProTips(mBrix)
+        assertTrue(brixTips.isNotEmpty())
+        assertTrue(brixTips.any { it.contains("refraktometer") || it.contains("Brix") })
+
         val p1 = DailyMissions.planFor(today, -5)
         val mMyco = p1.missions.first { it.id.contains("mycorrhiza") }
+        val mPh = p1.missions.first { it.id.contains("rhizosphere-ph") }
         val mycoTips = DailyMissions.getAgronomistProTips(mMyco)
+        val phTips = DailyMissions.getAgronomistProTips(mPh)
         assertTrue(mycoTips.isNotEmpty())
         assertTrue(mycoTips.any { it.contains("mikoriza") || it.contains("fungisida") })
+        assertTrue(phTips.isNotEmpty())
+        assertTrue(phTips.any { it.contains("pH") || it.contains("dolomit") })
+
+        val p2 = DailyMissions.planFor(today, 20)
+        val mTrellis = p2.missions.first { it.id.contains("trellis-weaving") }
+        val mChitosan = p2.missions.first { it.id.contains("chitosan-sar") }
+        val trellisTips = DailyMissions.getAgronomistProTips(mTrellis)
+        val chitosanTips = DailyMissions.getAgronomistProTips(mChitosan)
+        assertTrue(trellisTips.any { it.contains("tali salang") || it.contains("beban buah") })
+        assertTrue(chitosanTips.any { it.contains("kitosan") || it.contains("SAR") })
+
+        val p3 = DailyMissions.planFor(today, 45)
+        val mChelated = p3.missions.first { it.id.contains("chelated-calcium-boron") }
+        val mRefugia = p3.missions.first { it.id.contains("refugia-border") }
+        val chelatedTips = DailyMissions.getAgronomistProTips(mChelated)
+        val refugiaTips = DailyMissions.getAgronomistProTips(mRefugia)
+        assertTrue(chelatedTips.any { it.contains("stomata") || it.contains("kalsium") })
+        assertTrue(refugiaTips.any { it.contains("marigold") || it.contains("thrips") })
 
         val p5 = DailyMissions.planFor(today, 95)
         val m52 = p5.missions.first { it.id.contains("hotwater-immersion") }
+        val mPedicel = p5.missions.first { it.id.contains("sterile-pedicel-cut") }
+        val mPreCool = p5.missions.first { it.id.contains("evaporative-precooling") }
         val tips52 = DailyMissions.getAgronomistProTips(m52)
+        val pedicelTips = DailyMissions.getAgronomistProTips(mPedicel)
+        val preCoolTips = DailyMissions.getAgronomistProTips(mPreCool)
         assertTrue(tips52.isNotEmpty())
         assertTrue(tips52.any { it.contains("52°C") || it.contains("Asas Black") })
+        assertTrue(pedicelTips.any { it.contains("gunting") || it.contains("calyx") || it.contains("kelopak") })
+        assertTrue(preCoolTips.any { it.contains("pre-cooling") || it.contains("respirasi") })
     }
 
     @Test
@@ -678,6 +773,8 @@ class DailyMissionsTest {
         assertTrue(script.contains("ketebalan dinding buah"))
         assertTrue(script.contains("Scoville Heat Unit"))
         assertTrue(script.contains("kapsantin"))
+        assertTrue(script.contains("bahan kering"))
+        assertTrue(script.contains("derajat Brix"))
         assertTrue(script.contains("bebas residu"))
         assertTrue(script.contains("daya simpan"))
     }

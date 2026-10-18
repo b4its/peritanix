@@ -234,7 +234,9 @@ object IndonesianTtsVoiceAdvisor {
         diseaseFreeRatePct: Double,
         chemicalResiduePpm: Double,
         shelfLifeDays: Int,
-        qualitySummary: String
+        qualitySummary: String,
+        dryMatterPct: Double = 18.0,
+        brixDegree: Double = 8.5
     ): String {
         val residueDesc = if (chemicalResiduePpm <= 0.05) {
             "residu pestisida nol koma nol ppm, memenuhi kriteria bebas residu ekspor"
@@ -245,6 +247,7 @@ object IndonesianTtsVoiceAdvisor {
             "Proyeksi ketebalan dinding buah: $pericarpThicknessMm milimeter. " +
             "Tingkat kepedasan kapsaisin: $capsaicinShu Scoville Heat Unit. " +
             "Intensitas warna merah kapsantin: $colorCapsanthinPct persen. " +
+            "Kepadatan bahan kering buah: $dryMatterPct persen, dengan padatan terlarut $brixDegree derajat Brix. " +
             "Tingkat kesehatan buah bebas patogen: $diseaseFreeRatePct persen. " +
             "Kandungan $residueDesc. " +
             "Proyeksi daya simpan pascapanen: $shelfLifeDays hari. " +
@@ -264,6 +267,8 @@ object IndonesianTtsVoiceAdvisor {
             diseaseFreeRatePct = cqi.diseaseFreeRatePct,
             chemicalResiduePpm = cqi.chemicalResiduePpm,
             shelfLifeDays = cqi.shelfLifeDays,
-            qualitySummary = cqi.qualitySummary
+            qualitySummary = cqi.qualitySummary,
+            dryMatterPct = cqi.dryMatterPct,
+            brixDegree = cqi.brixDegree
         )
 }

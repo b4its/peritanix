@@ -1019,6 +1019,7 @@ fun DailyMissionsScreen(
 
                                 // Takaran Tangki Sprayer & Durasi Kerja
                                 if (mission.standardDosagePerLiter > 0.0 || mission.durationMinutes > 0) {
+                                    var customTankCapacity by remember(mission.id) { mutableStateOf(16) }
                                     Surface(
                                         color = BlueWater.copy(alpha = 0.08f),
                                         shape = RoundedCornerShape(8.dp),
@@ -1026,18 +1027,47 @@ fun DailyMissionsScreen(
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                             if (mission.standardDosagePerLiter > 0.0) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                     Icon(AppIcons.WaterDrop, contentDescription = null, tint = BlueWater, modifier = Modifier.size(13.dp))
                                                     Text(
-                                                        "Takaran Larutan: ${mission.standardDosagePerLiter} ${mission.dosageUnit}/L (Tangki 16L = ${"%.1f".format(mission.standardDosagePerLiter * 16)} ${mission.dosageUnit})",
+                                                        "Takaran Baku: ${mission.standardDosagePerLiter} ${mission.dosageUnit}/L",
                                                         fontSize = 10.sp,
-                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontWeight = FontWeight.Bold,
                                                         color = BlueWater
                                                     )
                                                 }
+                                                // Tank capacity selector chips
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Text("Kapasitas Tangki:", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    listOf(14, 16, 18, 20).forEach { cap ->
+                                                        val isSelected = customTankCapacity == cap
+                                                        Surface(
+                                                            color = if (isSelected) BlueWater else MaterialTheme.colorScheme.surface,
+                                                            shape = RoundedCornerShape(4.dp),
+                                                            modifier = Modifier.clickable { customTankCapacity = cap }
+                                                        ) {
+                                                            Text(
+                                                                "${cap}L",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Text(
+                                                    "Kebutuhan Tangki ${customTankCapacity}L: ${"%.1f".format(mission.standardDosagePerLiter * customTankCapacity)} ${mission.dosageUnit}",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = BlueWater
+                                                )
                                             }
                                             if (mission.durationMinutes > 0) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1596,7 +1626,7 @@ fun DailyMissionsScreen(
                     }
 
                     Text(
-                        "6 Parameter Kunci Kualitas Cabai Terbaik:",
+                        "8 Parameter Kunci Kualitas Cabai Terbaik:",
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.primary
@@ -1632,7 +1662,27 @@ fun DailyMissionsScreen(
                         scientificNote = "Karotenogenesis pigmen kapsantin & kapsorubin distimulasi Kalium Sulfat bebas klorin."
                     )
 
-                    // Parameter 4: Bebas Patogen & Antraknosa
+                    // Parameter 4: Kepadatan Bahan Kering (Dry Matter)
+                    CqiMetricCard(
+                        name = "Kerapatan Bahan Kering (Dry Matter)",
+                        valueText = "${cqi.dryMatterPct}%",
+                        targetSpec = "Standar Ekspor: > 18.0%",
+                        isTargetMet = cqi.dryMatterPct >= 18.0,
+                        progress = (cqi.dryMatterPct / 25.0).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Materi padat tinggi menjamin daging cabai padat berbobot, tidak susut menciut selama proses logistik pengiriman."
+                    )
+
+                    // Parameter 5: Padatan Terlarut Alami (Brix)
+                    CqiMetricCard(
+                        name = "Padatan Terlarut Alami (Total Soluble Solids / Brix)",
+                        valueText = "${cqi.brixDegree}° Bx",
+                        targetSpec = "Standar Ekspor: > 8.5° Bx",
+                        isTargetMet = cqi.brixDegree >= 8.5,
+                        progress = (cqi.brixDegree / 12.0).toFloat().coerceIn(0f, 1f),
+                        scientificNote = "Akumulasi glukosa dan kapsaisinoid terlarut memberikan perpaduan rasa pedas mantap dan gurih alami."
+                    )
+
+                    // Parameter 6: Bebas Patogen & Antraknosa
                     CqiMetricCard(
                         name = "Tingkat Bebas Patogen & Antraknosa",
                         valueText = "${cqi.diseaseFreeRatePct}% Sehat",
@@ -1642,7 +1692,7 @@ fun DailyMissionsScreen(
                         scientificNote = "Sterilisasi spora laten, sanitasi proaktif, dan inokulasi biokontrol Trichoderma."
                     )
 
-                    // Parameter 5: Residu Kimia Sintetis
+                    // Parameter 7: Residu Kimia Sintetis
                     CqiMetricCard(
                         name = "Residu Pestisida Kimia Sintetis (MRL)",
                         valueText = if (cqi.chemicalResiduePpm <= 0.05) "0.00 ppm (Nol Residu)" else "${cqi.chemicalResiduePpm} ppm",
@@ -1652,7 +1702,7 @@ fun DailyMissionsScreen(
                         scientificNote = "Protokol PHI H-14 menghentikan kimia sintetis; beralih total ke agens hayati Bacillus subtilis."
                     )
 
-                    // Parameter 6: Daya Simpan Pascapanen
+                    // Parameter 8: Daya Simpan Pascapanen
                     CqiMetricCard(
                         name = "Daya Simpan Pascapanen (Shelf-Life)",
                         valueText = "${cqi.shelfLifeDays} Hari",
@@ -1692,11 +1742,37 @@ fun DailyMissionsScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { showCqiDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Tutup Audit")
+                    OutlinedButton(
+                        onClick = {
+                            val cert = DailyMissions.formatCqiCertificateReport(cqi, plan)
+                            clipboardManager.setText(AnnotatedString(cert))
+                            feedbackToastText = "Sertifikat Audit Mutu CQI berhasil disalin ke papan klip!"
+                            scope.launch {
+                                kotlinx.coroutines.delay(3000)
+                                feedbackToastText = null
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Icon(AppIcons.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp), tint = OrangePrimary)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Salin Sertifikat", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = { showCqiDialog = false },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Text("Tutup Audit", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         )
