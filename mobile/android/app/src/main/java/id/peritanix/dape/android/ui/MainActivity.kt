@@ -632,6 +632,38 @@ fun PentasixApp(queue: SyncQueueStore) {
                         ModeBanner(mode = mode, onToggle = toggleMode)
                         Spacer(Modifier.height(8.dp))
 
+                        if (isExtremeSunlight) {
+                            Surface(
+                                color = Color.Black,
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFFF9100)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(AppIcons.WbSunny, contentDescription = null, tint = Color(0xFFFFD600), modifier = Modifier.size(20.dp))
+                                    Column {
+                                        Text(
+                                            "MODE TERIK MATAHARI AKTIF (${ambientLux.toInt()} LUX)",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 11.sp
+                                        )
+                                        Text(
+                                            "Kontras tinggi & respon haptik maksimal aktif untuk kemudahan baca di kebun.",
+                                            color = Color(0xFFFFD600),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         if (missingPermissions.isNotEmpty()) {
                             Card(
                                 modifier = Modifier

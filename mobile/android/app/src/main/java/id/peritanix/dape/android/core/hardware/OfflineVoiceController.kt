@@ -24,6 +24,7 @@ class OfflineVoiceController(private val context: Context) {
         CAPTURE_PHOTO("ambil foto", "Menembakkan kamera 12-frame burst / Stokes"),
         START_TIMER("mulai hitung", "Memulai timer 180 detik Asas Black"),
         SPEAK_DOSAGE("bacakan dosis", "Memicu TTS membacakan resep pupuk / fungisida"),
+        PRINT_CERTIFICATE("cetak qr", "Mencetak bukti sertifikat mutu fisik ke printer thermal Bluetooth"),
         NEXT_BED("lanjut bedengan", "Menyimpan data dan berpindah ke titik berikutnya")
     }
 
@@ -104,6 +105,7 @@ class OfflineVoiceController(private val context: Context) {
             lower.contains("foto") || lower.contains("ambil") || lower.contains("jepret") -> VoiceCommand.CAPTURE_PHOTO
             lower.contains("hitung") || lower.contains("mulai") || lower.contains("timer") -> VoiceCommand.START_TIMER
             lower.contains("dosis") || lower.contains("baca") || lower.contains("resep") -> VoiceCommand.SPEAK_DOSAGE
+            lower.contains("cetak") || lower.contains("print") || lower.contains("struk") -> VoiceCommand.PRINT_CERTIFICATE
             lower.contains("lanjut") || lower.contains("bedeng") || lower.contains("berikut") -> VoiceCommand.NEXT_BED
             else -> null
         }
@@ -112,7 +114,7 @@ class OfflineVoiceController(private val context: Context) {
             onSpeechStatusChanged?.invoke("Perintah dikenali: '${matchedCommand.triggerPhrase}' (${matchedCommand.description})")
             onCommandRecognized?.invoke(matchedCommand)
         } else {
-            onSpeechStatusChanged?.invoke("Perintah '$spokenText' belum terdaftar. Contoh: 'Ambil Foto', 'Mulai Hitung', 'Bacakan Dosis'.")
+            onSpeechStatusChanged?.invoke("Perintah '$spokenText' belum terdaftar. Contoh: 'Ambil Foto', 'Mulai Hitung', 'Bacakan Dosis', 'Cetak QR'.")
         }
     }
 }

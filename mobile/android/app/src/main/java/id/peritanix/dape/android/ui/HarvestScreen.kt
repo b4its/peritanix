@@ -18,10 +18,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.OutlinedTextField
 import id.peritanix.dape.android.core.crypto.QrMatrixGenerator
 import id.peritanix.dape.android.core.hardware.BluetoothThermalPrinter
 import id.peritanix.dape.android.core.hardware.BoilingSoundVerifier
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
+import id.peritanix.dape.android.core.hardware.OfflineVoiceController
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
 import id.peritanix.dape.android.core.physics.PodMorphologyGrader
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -83,12 +86,104 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
         id.peritanix.dape.android.core.physics.BatchGradingSummary.summarize(batchPods.toList())
     }
 
+    // State: Perintah Suara Offline Hands-Free (Tahap 6.3)
+    val voiceController = remember { OfflineVoiceController(context) }
+    var isVoiceActive by remember { mutableStateOf(false) }
+    var voiceStatusMsg by remember { mutableStateOf("Perintah suara siap ('Mulai Hitung', 'Bacakan Dosis', 'Cetak QR').") }
+
+    DisposableEffect(voiceController) {
+        voiceController.onCommandRecognized = { cmd ->
+            when (cmd) {
+                OfflineVoiceController.VoiceCommand.START_TIMER -> {
+                    isTimerRunning = true
+                    secondsLeft = 180
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Timer 180s Dimulai (Suara)",
+                        message = "Timer termoterapi 52°C aktif via perintah suara.",
+                        type = NotificationType.SUCCESS,
+                        postSystemNotification = true
+                    )
+                }
+                OfflineVoiceController.VoiceCommand.SPEAK_DOSAGE -> {
+                    isTtsPlaying = true
+                    PentasixNotificationHub.notify(
+                        context = context,
+                        title = "Membacakan Takaran (Suara)",
+                        message = "TTS membacakan takaran Asas Black 52°C.",
+                        type = NotificationType.INFO,
+                        postSystemNotification = false
+                    )
+                }
+                OfflineVoiceController.VoiceCommand.PRINT_CERTIFICATE -> {
+                    if (signedCert.isNotBlank()) {
+                        val receipt = BluetoothThermalPrinter.generateEscPosReceipt(
+                            landId = "land-peritanix-001",
+                            gradeResult = seedGrade,
+                            commercialTier = morphVerdict.commercialTier,
+                            sinkRatio = Math.round(sinkRatio * 100.0) / 100.0,
+                            sterilizationC = 52.0,
+                            photoSha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                            gyroVariance = 0.42,
+                            cryptoSignatureB64 = "lcPzlao/gSP0CtQA0OyjB+p2yv3SVV2YcFj8GD2swTTWU3arLri06+KWHHut+veVbBGwwTcmh7uBDo5iVgOFCQ==",
+                            qrPayload = signedCert
+                        )
+                        printStatus = "Struk bukti fisik dicetak (${receipt.byteCount} bytes) via suara."
+                    }
+                }
+                else -> {}
+            }
+        }
+        voiceController.onSpeechStatusChanged = { voiceStatusMsg = it }
+        onDispose { voiceController.destroy() }
+    }
+
+    // State: Mode Verifikasi Pembeli / Off-Taker Offline (Tahap 6.2)
+    var buyerCertInput by remember { mutableStateOf("") }
+    var buyerVerdict by remember { mutableStateOf<Ed25519OfflineSigner.VerificationVerdict?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- Bar Perintah Suara Offline Hands-Free (Tahap 6.3) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(AppIcons.Mic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Text("Perintah Suara Hands-Free Lapangan", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                    Button(
+                        onClick = {
+                            isVoiceActive = !isVoiceActive
+                            if (isVoiceActive) voiceController.startListening() else voiceController.stopListening()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isVoiceActive) Color(0xFFD32F2F) else MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text(if (isVoiceActive) "Stop Mic" else "Aktifkan Mic", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Text(
+                    voiceStatusMsg,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
         // --- Card 1: Termoterapi Air Panas 52°C (Asas Black) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -688,6 +783,199 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Card 4: Mode Pemindai & Verifikasi Pembeli / Off-Taker (Offline Ed25519 - Tahap 6.2) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFF2E7D32), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text(
+                            "4. Mode Pemindai & Verifikasi Pembeli / Off-Taker (100% Offline)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Verifikasi keaslian kriptografis Ed25519 & 6 parameter mutu cabai tanpa internet.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Quick load helper buttons
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(
+                        onClick = {
+                            if (signedCert.isNotBlank()) {
+                                buyerCertInput = signedCert
+                            } else {
+                                val testKp = Ed25519OfflineSigner.fromSeed(ByteArray(32) { (it + 1).toByte() })
+                                val samplePayload = mapOf(
+                                    "land_id" to "land-peritanix-001",
+                                    "cec_meq" to 18.5,
+                                    "gdd_fortification_compliant" to true,
+                                    "sterilization_c" to 52.0,
+                                    "acoustic_boiling_verified" to true,
+                                    "gyro_immersion_seconds" to 180,
+                                    "archimedes_sink_ratio" to 0.88,
+                                    "grade_result" to "A+",
+                                    "batch_premium_pct" to 95.0,
+                                    "image_sha256_hash" to "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                    "timestamp" to (System.currentTimeMillis() / 1000)
+                                )
+                                buyerCertInput = Ed25519OfflineSigner.certificate(samplePayload, testKp)
+                            }
+                            buyerVerdict = Ed25519OfflineSigner.verifyCertificate(buyerCertInput)
+                        },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(if (signedCert.isNotBlank()) "Muat Terbitan di Atas" else "Muat Contoh Grade A+", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            if (buyerCertInput.isNotBlank()) {
+                                val corrupted = if (buyerCertInput.contains("\"grade_result\":\"A+\"")) {
+                                    buyerCertInput.replace("\"grade_result\":\"A+\"", "\"grade_result\":\"BS\"")
+                                } else {
+                                    buyerCertInput.replace("\"land_id\":\"", "\"land_id\":\"palsu-")
+                                }
+                                buyerCertInput = corrupted
+                                buyerVerdict = Ed25519OfflineSigner.verifyCertificate(corrupted)
+                                PentasixNotificationHub.notify(
+                                    context = context,
+                                    title = "Simulasi Fraud Diuji",
+                                    message = "Payload sertifikat diubah secara sengaja. Verifier kripto menolak tanda tangan.",
+                                    type = NotificationType.WARNING,
+                                    postSystemNotification = false
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("Uji Simulasi Fraud", fontSize = 11.sp, color = Color(0xFFD32F2F))
+                    }
+                }
+
+                OutlinedTextField(
+                    value = buyerCertInput,
+                    onValueChange = {
+                        buyerCertInput = it
+                        if (it.isBlank()) buyerVerdict = null
+                    },
+                    label = { Text("Payload JSON QR Karung Cabai (RFC 8785)", fontSize = 11.sp) },
+                    placeholder = { Text("Tempel JSON sertifikat atau pindai QR karung...", fontSize = 11.sp) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp, max = 120.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace),
+                    maxLines = 4
+                )
+
+                Button(
+                    onClick = {
+                        if (buyerCertInput.isNotBlank()) {
+                            val verdict = Ed25519OfflineSigner.verifyCertificate(buyerCertInput)
+                            buyerVerdict = verdict
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = if (verdict.isAuthentic) "Verifikasi Berhasil" else "Sertifikat Ditolak",
+                                message = verdict.badgeTitle,
+                                type = if (verdict.isAuthentic) NotificationType.SUCCESS else NotificationType.ERROR,
+                                postSystemNotification = true
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                ) {
+                    Icon(AppIcons.Shield, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Verifikasi Tanda Tangan Kriptografis (Ed25519)")
+                }
+
+                // Verification Result Badge and Breakdown Table
+                buyerVerdict?.let { verdict ->
+                    val badgeBg = if (verdict.isAuthentic && verdict.isGradeAPlus) Color(0xFFE8F5E9)
+                        else if (verdict.isAuthentic) Color(0xFFE3F2FD)
+                        else Color(0xFFFFEBEE)
+                    val badgeBorder = if (verdict.isAuthentic && verdict.isGradeAPlus) Color(0xFF2E7D32)
+                        else if (verdict.isAuthentic) Color(0xFF1976D2)
+                        else Color(0xFFD32F2F)
+                    val badgeFg = if (verdict.isAuthentic && verdict.isGradeAPlus) Color(0xFF1B5E20)
+                        else if (verdict.isAuthentic) Color(0xFF0D47A1)
+                        else Color(0xFFB71C1C)
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = badgeBg),
+                        border = BorderStroke(1.5.dp, badgeBorder)
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    if (verdict.isAuthentic) AppIcons.CheckCircle else AppIcons.Info,
+                                    contentDescription = null,
+                                    tint = badgeFg,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Column {
+                                    Text(
+                                        verdict.badgeTitle,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = badgeFg
+                                    )
+                                    Text(
+                                        if (verdict.isAuthentic) "${verdict.commercialTier} · Pengali Harga: ${verdict.priceMultiplier}x" else "Integritas Kripto Gagal",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp,
+                                        color = badgeFg.copy(alpha = 0.9f)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                verdict.statusMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = badgeFg
+                            )
+
+                            HorizontalDivider(color = badgeBorder.copy(alpha = 0.3f))
+
+                            Text("Rincian 6 Parameter Mutu Terverifikasi:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = badgeFg)
+                            verdict.details.forEach { (k, v) ->
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(k, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(v, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = badgeFg)
+                                }
+                            }
                         }
                     }
                 }
