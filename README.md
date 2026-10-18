@@ -1,5 +1,5 @@
 # 🌶️ DAPE — Deterministic Agro-Physics Engine
-### Precision Micro-Farming Cabai (`Capsicum annuum` / `Capsicum frutescens`), 0,1 – 2 ha
+### B2B Contract Farming & Precision Quality Assurance Cabai (`Capsicum annuum` / `Capsicum frutescens`), 0,1 – 2 ha
 
 [![tests](https://img.shields.io/badge/python%20tests-267%20passing-brightgreen)](#-testing)
 [![go](https://img.shields.io/badge/go%20tests-8%20pkgs%20ok-brightgreen)](#-testing)
@@ -68,6 +68,25 @@ tertutup dan bisa diverifikasi laboratorium:
 - **Kanonikalisasi tanda tangan lintas-platform** adalah jebakan nyata: tes
   integrasi menemukan Kotlin `52.0` vs Go `52`. Aturan final: nilai integral
   selalu `x.0`. Lihat §6.
+
+### 1.4 Model Operasional: B2B Contract Farming dan Solusi Rantai Pasok Industri
+
+Berdasarkan data **Sensus Pertanian 2023 (ST2023) BPS**, sekitar 74,89 persen tenaga kerja pertanian di Indonesia berpendidikan maksimal Sekolah Dasar (SD) ke bawah dan mayoritas berusia di atas 55 tahun. Model aplikasi mandiri (B2C) yang diserahkan langsung ke petani tua perorangan di desa memiliki kesenjangan adopsi yang sangat tinggi terhadap prosedur laboratorium presisi.
+
+Oleh karena itu, DAPE diposisikan sebagai **Solusi B2B Contract Farming (Kemitraan Industri Agribisnis)**. Sistem ini menghubungkan korporasi pengolahan pangan (pabrik saus cabai, bumbu olahan, industri makanan instan) dan jaringan pasar modern dengan ribuan petani binaan (*plasma*) melalui perantara **staf agronomis lapangan (*field extension officers*)** dan **petani muda milenial (21,93 persen)**.
+
+Sistem ini menjawab lima masalah bisnis utama pihak industri:
+
+1. **Kepastian Pasokan Pabrik (14-Day Supply Projection):**
+   Memprediksi estimasi tonase pasokan cabai yang siap masuk ke lini produksi pabrik dalam 14 hari ke depan dari seluruh blok kebun binaan menggunakan fusi kurva fenologi GDD dan auto-count buah matang, sehingga mencegah kekosongan bahan baku atau kelebihan muatan di gudang.
+2. **Standarisasi Mutu dan Kadar Padatan (*High Dry-Matter*):**
+   Memastikan cabai yang diserap dari petani binaan memiliki daging tebal dan padat melalui uji apung Archimedes (*sink ratio*) serta penilaian kelengkungan dan warna, membedakan secara objektif mutu Grade A+, A, B, atau BS.
+3. **Pencegahan Pembusukan Pascapanen di Gudang (Antraknosa Laten):**
+   Menghilangkan risiko spora jamur patek laten meledak di ruang pendingin atau perjalanan truk logistik melalui protokol perendaman Asas Black 52 °C terkalibrasi elevasi dengan validasi sensor giroskop anti-manipulasi.
+4. **Audit Kepatuhan GAP dan Ketertelusuran Kriptografis (*Traceability Anti-Fraud*):**
+   Menerbitkan sertifikat digital bertanda tangan Ed25519 offline pada setiap lot panen untuk mengikat lokasi GPS, kepatuhan dosis pupuk kalsium, dan riwayat sterilisasi ke dalam kode QR yang dapat diverifikasi oleh pembeli dan auditor secara publik.
+5. **Mitigasi Risiko Wabah Kawasan Binaan (Regional Early Warning System):**
+   Memetakan risiko penularan spora jamur dalam 72 jam ke depan berbasis mikroklimat, kecepatan angin, dan cekungan drainase air (TWI) melalui analisis spasial Moran's I di dashboard pusat, memungkinkan tindakan proteksi dini sebelum wabah menyebar ke seluruh wilayah kabupaten.
 
 ---
 
