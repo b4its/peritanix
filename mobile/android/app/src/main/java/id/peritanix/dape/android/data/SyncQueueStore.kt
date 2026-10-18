@@ -165,22 +165,32 @@ class SyncQueueStore(private val context: Context) {
         }.start()
     }
 
-    /** Save white reference calibration into Room DB */
+    /** Save white reference, optical mm scale, and zero-tilt calibration into Room DB */
     fun saveCalibration(
         id: String,
         whiteRefR: Double,
         whiteRefG: Double,
         whiteRefB: Double,
-        luxVerified: Boolean
+        luxVerified: Boolean,
+        opticalMmScale: Double = 1.0,
+        pitchZeroOffset: Double = 0.0,
+        rollZeroOffset: Double = 0.0
     ) {
         val ts = System.currentTimeMillis()
         Thread {
             db.openHelper.writableDatabase.execSQL(
-                "INSERT OR REPLACE INTO device_calibrations (id, whiteRefR, whiteRefG, whiteRefB, luxVerified, timestamp) " +
-                    "VALUES (?, ?, ?, ?, ?, ?)",
-                arrayOf(id, whiteRefR, whiteRefG, whiteRefB, if (luxVerified) 1 else 0, ts)
+                "INSERT OR REPLACE INTO device_calibrations (id, whiteRefR, whiteRefG, whiteRefB, luxVerified, opticalMmScale, pitchZeroOffset, rollZeroOffset, timestamp) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                arrayOf(id, whiteRefR, whiteRefG, whiteRefB, if (luxVerified) 1 else 0, opticalMmScale, pitchZeroOffset, rollZeroOffset, ts)
             )
         }.start()
+    }
+
+    /** Retrieve latest device calibration snapshot */
+    fun getLatestCalibration(): DeviceCalibrationEntity? = try {
+        db.dao().latestCalibrationSync()
+    } catch (_: Exception) {
+        null
     }
 
     /**

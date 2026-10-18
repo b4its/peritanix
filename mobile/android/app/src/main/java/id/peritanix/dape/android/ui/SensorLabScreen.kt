@@ -38,8 +38,11 @@ import id.peritanix.dape.android.ui.components.AppIcons
  * core/hardware (unit-tested). This screen is the thin Compose wrapper.
  */
 @Composable
-fun SensorLabScreen() {
+fun SensorLabScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     val context = LocalContext.current
+    var showCalibrationWizard by remember { mutableStateOf(false) }
+    var latestCalib by remember { mutableStateOf(queue?.getLatestCalibration()) }
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -54,11 +57,115 @@ fun SensorLabScreen() {
             }
         }
 
+        // TAHAP 0.3: Wisard Kalibrasi Spektral, Diopter Lensa & Fisika HP
+        InstrumentCalibrationCard(
+            latestCalib = latestCalib,
+            onOpenWizard = { showCalibrationWizard = true }
+        )
+
+        if (showCalibrationWizard) {
+            InstrumentCalibrationWizard(
+                queue = queue,
+                onDismiss = { showCalibrationWizard = false },
+                onCalibrationSaved = {
+                    latestCalib = it
+                    showCalibrationWizard = false
+                }
+            )
+        }
+
         GnssBiomassCard(context)
         ProximityTriggerCard(context)
         CompassFigure8Card(context)
         FertilizerOptimizerCard()
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun InstrumentCalibrationCard(
+    latestCalib: id.peritanix.dape.android.data.DeviceCalibrationEntity?,
+    onOpenWizard: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.size(32.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(AppIcons.Straighten, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                    Column {
+                        Text("Kalibrasi Spektral & Lensa (Tahap 0.3)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text("Standardisasi laboratorium 100% offline", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                AssistChip(
+                    onClick = {},
+                    leadingIcon = {
+                        Icon(
+                            AppIcons.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    },
+                    label = { Text(if (latestCalib != null) "TERKALIBRASI" else "BAWAAN", fontSize = 10.sp) }
+                )
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val r = latestCalib?.whiteRefR ?: 1.02
+                    val g = latestCalib?.whiteRefG ?: 1.00
+                    val b = latestCalib?.whiteRefB ?: 1.03
+                    val optScale = latestCalib?.opticalMmScale ?: 1.00
+                    val pitchZero = latestCalib?.pitchZeroOffset ?: 0.0
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Matriks White Balance (0 Lux):", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("R=${"%.2f".format(r)} G=${"%.2f".format(g)} B=${"%.2f".format(b)}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Skala Diopter Lensa Optis:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${"%.2f".format(optScale)} mm·D/px", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Offset Titik Nol Datar:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${"%.1f".format(pitchZero)}° Pitch (0.0° Flat)", fontSize = 11.sp)
+                    }
+                }
+            }
+
+            Button(
+                onClick = onOpenWizard,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(AppIcons.Straighten, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Buka Wisard Kalibrasi Spektral & Lensa")
+            }
+        }
     }
 }
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import id.peritanix.dape.android.core.hardware.SensorCalibrationMath
 import id.peritanix.dape.android.core.vision.ChiliQualityAnalyzer
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.NotificationType
@@ -269,6 +270,32 @@ private fun QualityResultCard(report: ChiliQualityAnalyzer.QualityReport) {
                 MetricChip("Kematangan (merah)", "${report.redCoveragePct}%", Modifier.weight(1f))
                 MetricChip("Cacat gelap", "${report.defectPct}%", Modifier.weight(1f))
                 MetricChip("Skor mutu", "${report.morphologicalScore}", Modifier.weight(1f))
+            }
+
+            // Optical Diopter Millimeter Dimensions (Tahap 0.3 & 5.3)
+            val opticalLenMm = SensorCalibrationMath.pixelsToMm(550.0, 5.0, 1.0)
+            val defectPixels = (report.stats.sampledPixels * (report.defectPct / 100.0)).coerceAtLeast(0.0)
+            val lesionAreaMm2 = SensorCalibrationMath.pixelsToMm2(defectPixels, 5.0, 1.0)
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Panjang Buah Optis:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${opticalLenMm.toInt()} mm (${"%.1f".format(opticalLenMm / 10.0)} cm)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Luas Lesi Cacat:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (report.defectPct > 0) "${lesionAreaMm2} mm²" else "0 mm² (Bebas Cacat)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (report.defectPct > 5.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
 
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(10.dp)) {

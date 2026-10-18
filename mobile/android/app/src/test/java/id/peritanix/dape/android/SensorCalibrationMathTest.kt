@@ -131,4 +131,32 @@ class SensorCalibrationMathTest {
         assertTrue("Harus terdeteksi searah vektor angin spora lereng Merbabu", headingSporeWind.isSporeWindAligned)
         assertTrue("Pesan harus menyebut risiko vektor angin spora", headingSporeWind.sporeWindRisk.contains("vektor angin spora", ignoreCase = true))
     }
+
+    @Test
+    fun testOpticalDiopterToMillimetersAndArea() {
+        // 550 px on pod, 5.0 diopters (200 mm focus distance), scale k=1.0
+        val lengthMm = SensorCalibrationMath.pixelsToMm(550.0, 5.0, 1.0)
+        assertEquals(110.0, lengthMm, 0.1) // 11 cm pod
+
+        // 200 px² lesion, 5.0 diopters, scale k=1.0
+        // linearScale = 1.0 / 5.0 = 0.2, area = 200 * 0.04 = 8.0 mm²
+        val lesionAreaMm2 = SensorCalibrationMath.pixelsToMm2(200.0, 5.0, 1.0)
+        assertEquals(8.0, lesionAreaMm2, 0.1)
+    }
+
+    @Test
+    fun testCalculateOpticalScaleFromReferenceObject() {
+        // Standard ID card: 85.6 mm, detected as 428 px at 5.0 diopters
+        // k = (85.6 * 5.0) / 428 = 428.0 / 428.0 = 1.00
+        val k = SensorCalibrationMath.calculateOpticalScale(428.0, 85.6, 5.0)
+        assertEquals(1.00, k, 0.01)
+    }
+
+    @Test
+    fun testBarometricBedHeightEstimation() {
+        // Baseline trench pressure = 915.20 hPa, Crest pressure = 915.14 hPa (ΔP = 0.06 hPa)
+        // Δh = 0.06 * 830 = 49.8 cm
+        val heightCm = SensorCalibrationMath.barometricPressureToBedHeightCm(915.20, 915.14)
+        assertEquals(49.8, heightCm, 0.2)
+    }
 }

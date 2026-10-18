@@ -205,4 +205,49 @@ object SensorCalibrationMath {
             isIdealBedOrientation = isNorthSouth
         )
     }
+
+    /**
+     * Converts pixel count to physical length (mm) using Camera2 diopter lens focus distance.
+     * Focus distance D in diopters = 1 / d (meters). So d (mm) = 1000 / D.
+     * [kOpticalScale] is the calibrated optical scale factor (mm * diopter / pixel).
+     */
+    fun pixelsToMm(pixels: Double, focusDiopter: Double, kOpticalScale: Double = 1.0): Double {
+        val safeDiopter = focusDiopter.coerceIn(0.1, 25.0)
+        val mm = (pixels * kOpticalScale) / safeDiopter
+        return round(mm * 10.0) / 10.0
+    }
+
+    /**
+     * Converts pixel area to physical square millimeters (mm²) using Camera2 diopter lens focus distance.
+     */
+    fun pixelsToMm2(pixelArea: Double, focusDiopter: Double, kOpticalScale: Double = 1.0): Double {
+        val safeDiopter = focusDiopter.coerceIn(0.1, 25.0)
+        val linearScale = kOpticalScale / safeDiopter
+        val area = pixelArea * linearScale * linearScale
+        return round(area * 10.0) / 10.0
+    }
+
+    /**
+     * Calibrates optical constant k from a known reference physical object (e.g. standard card 85.6 mm or 100 mm card).
+     */
+    fun calculateOpticalScale(
+        pixelLength: Double,
+        referenceMm: Double,
+        focusDiopter: Double
+    ): Double {
+        if (pixelLength <= 0.0) return 1.0
+        val safeDiopter = focusDiopter.coerceIn(0.1, 25.0)
+        val scale = (referenceMm * safeDiopter) / pixelLength
+        return round(scale * 100.0) / 100.0
+    }
+
+    /**
+     * Calculates bed height difference from differential atmospheric pressure (ΔP).
+     * Near sea-level to 2000m, 1 hPa ~ 8.3 meters = 830 cm.
+     */
+    fun barometricPressureToBedHeightCm(baselinePressureHpa: Double, crestPressureHpa: Double): Double {
+        val deltaP = baselinePressureHpa - crestPressureHpa
+        val heightCm = deltaP * 830.0
+        return round(heightCm.coerceIn(0.0, 150.0) * 10.0) / 10.0
+    }
 }

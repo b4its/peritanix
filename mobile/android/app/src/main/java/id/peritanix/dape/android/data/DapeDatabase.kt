@@ -75,6 +75,9 @@ data class DeviceCalibrationEntity(
     val whiteRefG: Double,
     val whiteRefB: Double,
     val luxVerified: Boolean,
+    val opticalMmScale: Double = 1.0,
+    val pitchZeroOffset: Double = 0.0,
+    val rollZeroOffset: Double = 0.0,
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -175,6 +178,9 @@ interface DapeDao {
     @Query("SELECT * FROM device_calibrations ORDER BY timestamp DESC LIMIT 1")
     suspend fun latestCalibration(): DeviceCalibrationEntity?
 
+    @Query("SELECT * FROM device_calibrations ORDER BY timestamp DESC LIMIT 1")
+    fun latestCalibrationSync(): DeviceCalibrationEntity?
+
     // --- farm activities (30-year calendar) ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertActivity(a: FarmActivityEntity)
@@ -219,7 +225,7 @@ interface DapeDao {
         FarmActivityEntity::class,
         DailyMissionDoneEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class DapeDatabase : RoomDatabase() {
