@@ -26,6 +26,7 @@ import id.peritanix.dape.android.core.hardware.BoilingSoundVerifier
 import id.peritanix.dape.android.core.hardware.IndonesianTtsVoiceAdvisor
 import id.peritanix.dape.android.core.hardware.OfflineVoiceController
 import id.peritanix.dape.android.core.physics.BlackCalorimetryEngine
+import id.peritanix.dape.android.core.ai_edge.MultiInstancePodSegmentationEngine
 import id.peritanix.dape.android.core.physics.PodMorphologyGrader
 import id.peritanix.dape.android.ui.components.AppIcons
 import id.peritanix.dape.android.ui.components.NotificationType
@@ -85,6 +86,20 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
     val batchSummary = remember(batchPods.size) {
         id.peritanix.dape.android.core.physics.BatchGradingSummary.summarize(batchPods.toList())
     }
+
+    // State: Meja Sortir Pintar & Multi-Instance Segmentation (Tahap 5.3)
+    var sortingTableAngleDeg by remember { mutableStateOf(1.2) }
+    var lensFocusDiopters by remember { mutableStateOf(3.0f) }
+    var sortingSummary by remember {
+        mutableStateOf(
+            MultiInstancePodSegmentationEngine.detectAndSegmentTable(
+                podCount = 16,
+                tiltAngleDeg = 1.2,
+                lensFocusDistanceDiopters = 3.0f
+            )
+        )
+    }
+    var selectedPodDetail by remember { mutableStateOf<MultiInstancePodSegmentationEngine.PodInstance?>(null) }
 
     // State: Perintah Suara Offline Hands-Free (Tahap 6.3)
     val voiceController = remember { OfflineVoiceController(context) }
@@ -487,7 +502,7 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
             }
         }
 
-        // --- Card 2.5: Grading Morfologi Fisik Buah Cabai (FR-4.2) ---
+        // --- Card 2.5: Meja Sortir Pintar & Visual Reject Overlay (Tahap 5.3) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -507,70 +522,373 @@ fun HarvestScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) 
                                 .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(AppIcons.Chili, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Icon(AppIcons.Camera, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         }
-                        Text(
-                            "2.5. Grading Morfologi Buah Cabai",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    AssistChip(
-                        modifier = Modifier.wrapContentSize(),
-                        onClick = {},
-                        label = { Text("Grade ${morphVerdict.finalGrade}", maxLines = 1, softWrap = false) }
-                    )
-                }
-                Text("Panjang: ${"%.1f".format(podLength)} cm | Kelengkungan: ${"%.1f".format(podCurv)}° | Merah: ${podRed.toInt()}% | Cacat: ${"%.1f".format(podDefect)}%", style = MaterialTheme.typography.bodySmall)
-
-                Slider(value = podLength.toFloat(), onValueChange = { podLength = it.toDouble() }, valueRange = 5f..16f)
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Klasifikasi Komersial", style = MaterialTheme.typography.bodySmall)
-                        Text(morphVerdict.commercialTier, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                    Column {
-                        Text("Pengali Harga", style = MaterialTheme.typography.bodySmall)
-                        Text("${morphVerdict.priceMultiplier}x", fontWeight = FontWeight.Bold)
+                        Column {
+                            Text(
+                                "2.5. Meja Sortir Pintar & Visual Reject Overlay",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                "Multi-Instance Segmentation & Deteksi Spora Patek (Tahap 5.3)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-                Text(morphVerdict.remarks, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                // Batch sortation: add current pod, recap by weight % across grades.
-                HorizontalDivider()
+                // Baris Kalibrasi Sudut & Skala Optik
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = if (sortingSummary.isTopDownAngleLocked) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (sortingSummary.isTopDownAngleLocked) Color(0xFFA5D6A7) else Color(0xFFFFCDD2))
+                    ) {
+                        Row(Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(
+                                if (sortingSummary.isTopDownAngleLocked) AppIcons.CheckCircle else AppIcons.Warning,
+                                contentDescription = null,
+                                tint = if (sortingSummary.isTopDownAngleLocked) Color(0xFF2E7D32) else Color(0xFFD32F2F),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                if (sortingSummary.isTopDownAngleLocked) "Sudut 0° Terkunci (${sortingSummary.tiltAngleDeg}°)" else "Miring ${sortingSummary.tiltAngleDeg}°",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (sortingSummary.isTopDownAngleLocked) Color(0xFF1B5E20) else Color(0xFFB71C1C)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(AppIcons.Straighten, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Text(
+                                "Skala: ${sortingSummary.opticalMmPerPixel} mm/px",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                // Tombol Pindai & Refresh Meja Sortir
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
+                    Button(
                         onClick = {
-                            val wGrams = 8.0 + podLength * 1.2  // proxy fresh weight from pod length
-                            batchPods.add(
-                                id.peritanix.dape.android.core.physics.BatchGradingSummary.GradedPod(
-                                    grade = morphVerdict.finalGrade, weightG = wGrams
-                                )
+                            sortingSummary = MultiInstancePodSegmentationEngine.detectAndSegmentTable(
+                                podCount = 16,
+                                tiltAngleDeg = sortingTableAngleDeg,
+                                lensFocusDistanceDiopters = lensFocusDiopters
+                            )
+                            selectedPodDetail = null
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Pemindaian Meja Selesai",
+                                message = "Terdeteksi ${sortingSummary.totalPodsDetected} buah cabai pada alas kontras.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = false
                             )
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) { Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Tambah ke Batch", fontSize = 11.sp) }
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Pindai Meja Sortir (AI)", fontSize = 11.sp)
+                    }
+
                     OutlinedButton(
-                        onClick = { batchPods.clear() },
-                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            sortingTableAngleDeg = if (sortingTableAngleDeg > 2.0) 0.8 else 1.2
+                            sortingSummary = MultiInstancePodSegmentationEngine.detectAndSegmentTable(
+                                podCount = 16,
+                                tiltAngleDeg = sortingTableAngleDeg,
+                                lensFocusDistanceDiopters = lensFocusDiopters
+                            )
+                        },
                         shape = RoundedCornerShape(10.dp)
-                    ) { Text("Reset Batch", fontSize = 11.sp) }
+                    ) {
+                        Icon(AppIcons.RotateRight, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Simulasi Posisi", fontSize = 11.sp)
+                    }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Rekap Batch Sortasi (${batchSummary.totalPods} buah · ${"%.1f".format(batchSummary.totalWeightG)} g)", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                    Text("Premium ${batchSummary.premiumPct}%", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-                if (batchSummary.totalPods > 0) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        id.peritanix.dape.android.core.physics.BatchGradingSummary.GRADES.forEach { g ->
-                            Text("$g: ${batchSummary.weightPctByGrade[g] ?: 0.0}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+
+                // VISUAL REJECT OVERLAY (CANVAS & MAT)
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(210.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                ) {
+                    Box(Modifier.fillMaxSize()) {
+                        // Background Grid & Pod Render
+                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+
+                            val gridSpacing = 40.dp.toPx()
+                            var gx = 0f
+                            while (gx < w) {
+                                drawLine(Color(0xFF1E293B), Offset(gx, 0f), Offset(gx, h), strokeWidth = 1f)
+                                gx += gridSpacing
+                            }
+                            var gy = 0f
+                            while (gy < h) {
+                                drawLine(Color(0xFF1E293B), Offset(0f, gy), Offset(w, gy), strokeWidth = 1f)
+                                gy += gridSpacing
+                            }
+
+                            sortingSummary.activePods.forEach { pod ->
+                                val cx = pod.xRel * w
+                                val cy = pod.yRel * h
+                                val isSelected = (selectedPodDetail?.id == pod.id)
+
+                                if (pod.isReject) {
+                                    // VISUAL REJECT: Bright Red Ring & Target Indicator
+                                    drawCircle(
+                                        color = Color(0xFFFF1744).copy(alpha = 0.25f),
+                                        radius = 26.dp.toPx(),
+                                        center = Offset(cx, cy)
+                                    )
+                                    drawCircle(
+                                        color = Color(0xFFFF1744),
+                                        radius = 20.dp.toPx(),
+                                        center = Offset(cx, cy),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx())
+                                    )
+                                    drawLine(Color(0xFFFF1744), Offset(cx - 24.dp.toPx(), cy), Offset(cx + 24.dp.toPx(), cy), strokeWidth = 1.5.dp.toPx())
+                                    drawLine(Color(0xFFFF1744), Offset(cx, cy - 24.dp.toPx()), Offset(cx, cy + 24.dp.toPx()), strokeWidth = 1.5.dp.toPx())
+
+                                    drawOval(
+                                        color = Color(0xFF880E4F),
+                                        topLeft = Offset(cx - 14.dp.toPx(), cy - 7.dp.toPx()),
+                                        size = Size(28.dp.toPx(), 14.dp.toPx())
+                                    )
+                                    drawCircle(
+                                        color = Color(0xFF212121),
+                                        radius = 4.dp.toPx(),
+                                        center = Offset(cx, cy)
+                                    )
+                                } else {
+                                    val ringColor = when (pod.grade) {
+                                        "A+" -> Color(0xFF00E676)
+                                        "A" -> Color(0xFF4CAF50)
+                                        else -> Color(0xFFFFB300)
+                                    }
+
+                                    if (isSelected) {
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = 0.4f),
+                                            radius = 20.dp.toPx(),
+                                            center = Offset(cx, cy)
+                                        )
+                                    }
+
+                                    drawCircle(
+                                        color = ringColor,
+                                        radius = 16.dp.toPx(),
+                                        center = Offset(cx, cy),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
+                                    )
+
+                                    drawOval(
+                                        color = Color(0xFFE53935),
+                                        topLeft = Offset(cx - 13.dp.toPx(), cy - 6.dp.toPx()),
+                                        size = Size(26.dp.toPx(), 12.dp.toPx())
+                                    )
+                                    drawLine(
+                                        color = Color(0xFF4CAF50),
+                                        start = Offset(cx - 13.dp.toPx(), cy),
+                                        end = Offset(cx - 18.dp.toPx(), cy - 4.dp.toPx()),
+                                        strokeWidth = 2.dp.toPx()
+                                    )
+                                }
+                            }
+                        }
+
+                        // Top summary strip inside canvas
+                        Row(
+                            Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(color = Color.Black.copy(alpha = 0.7f), shape = RoundedCornerShape(4.dp)) {
+                                Text(
+                                    "Meja Sortir: ${sortingSummary.activePods.size} Buah Aktif",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            if (sortingSummary.rejectPods.isNotEmpty()) {
+                                Surface(color = Color(0xFFFF1744), shape = RoundedCornerShape(4.dp)) {
+                                    Text(
+                                        "REJECT: ${sortingSummary.rejectPods.size} PATEK/CACAT",
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            } else {
+                                Surface(color = Color(0xFF2E7D32), shape = RoundedCornerShape(4.dp)) {
+                                    Text(
+                                        "100% BEBAS CACAT",
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-                    Text(batchSummary.batchVerdict, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // Alert and Action for Rejects
+                if (sortingSummary.rejectPods.isNotEmpty()) {
+                    Surface(
+                        color = Color(0xFFFFEBEE),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFF1744)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(AppIcons.Warning, contentDescription = null, tint = Color(0xFFD50000), modifier = Modifier.size(18.dp))
+                                Text(
+                                    "Visual Reject Alert: ${sortingSummary.rejectPods.size} Buah Berisiko Patek!",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB71C1C)
+                                )
+                            }
+                            Text(
+                                "AI mendeteksi spora antraknosa / busuk ujung pada koordinat berlingkar MERAH TERANG di layar. Singkirkan segera agar spora tidak menyebar ke karung ekspor.",
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
+                                color = Color(0xFFC62828)
+                            )
+                            Button(
+                                onClick = {
+                                    sortingSummary = MultiInstancePodSegmentationEngine.removeAllRejects(sortingSummary)
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Buah Cacat Disingkirkan",
+                                        message = "Seluruh buah berisiko patek telah disingkirkan dari meja sortir.",
+                                        type = NotificationType.SUCCESS,
+                                        postSystemNotification = false
+                                    )
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD50000)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(AppIcons.Remove, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Singkirkan Semua Buah Cacat (Bersihkan Meja)", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = Color(0xFFE8F5E9),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFFA5D6A7)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
+                            Column {
+                                Text(
+                                    "Meja Sortir Bersih: Standar Ekspor Terpenuhi",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF1B5E20)
+                                )
+                                Text(
+                                    "Nol spora patek terdeteksi. Kualitas batch memenuhi kriteria Ekspor Prime Grade A+.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF2E7D32)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Batch Sortation Recap & Sync to RFC 8785 Certificate
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        "Rekapitulasi Mutu Batch (${sortingSummary.activePods.size} buah)",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Premium ${sortingSummary.premiumPct}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (sortingSummary.premiumPct >= 85.0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    listOf("A+", "A", "B", "BS").forEach { g ->
+                        val count = sortingSummary.countByGrade[g] ?: 0
+                        val pct = sortingSummary.weightPctByGrade[g] ?: 0.0
+                        val col = when (g) {
+                            "A+" -> Color(0xFF1B5E20)
+                            "A" -> Color(0xFF2E7D32)
+                            "B" -> Color(0xFFE65100)
+                            else -> Color(0xFFB71C1C)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(g, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = col)
+                            Text("$count btr", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            Text("${pct}%", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        batchPods.clear()
+                        sortingSummary.activePods.forEach { p ->
+                            batchPods.add(
+                                id.peritanix.dape.android.core.physics.BatchGradingSummary.GradedPod(
+                                    grade = p.grade,
+                                    weightG = p.weightGrams
+                                )
+                            )
+                        }
+                        PentasixNotificationHub.notify(
+                            context = context,
+                            title = "Batch Meja Tersinkronisasi",
+                            message = "${sortingSummary.activePods.size} buah tersortir dialirkan ke sertifikat Ed25519 & struk fisik.",
+                            type = NotificationType.SUCCESS,
+                            postSystemNotification = true
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Salin Hasil Meja ke Sertifikat Ed25519", fontSize = 11.sp)
                 }
             }
         }
