@@ -105,6 +105,31 @@ class AndroidModelInferencePipelineTest {
     }
 
     @Test
+    fun testOptimalHarvestWindowAndPhysiologicalIndices() {
+        // Optimal harvest ready: 45 ripe, 5 turning, 0 green -> 90% ripe
+        val ready = runner.estimateYieldAndFruitCount(
+            greenCount = 0,
+            turningCount = 5,
+            ripeCount = 45
+        )
+        assertEquals(90.0, ready.harvestReadinessPct, 0.1)
+        assertEquals(0, ready.optimalHarvestWindowDays)
+        assertEquals(92.5, ready.capsanthinGlossIndex, 0.1)
+        assertEquals(21.4, ready.estimatedDryMatterPct, 0.1)
+        assertTrue(ready.recommendedHarvestDayAdvisory.contains("KEMATANGAN FISIOLOGIS OPTIMAL"))
+
+        // Turning dominant: 10 green, 25 turning, 15 ripe -> 50 fruits, 30% ripe
+        val turning = runner.estimateYieldAndFruitCount(
+            greenCount = 10,
+            turningCount = 25,
+            ripeCount = 15
+        )
+        assertEquals(30.0, turning.harvestReadinessPct, 0.1)
+        assertEquals(7, turning.optimalHarvestWindowDays)
+        assertTrue(turning.recommendedHarvestDayAdvisory.contains("FASE PEMATANGAN AWAL"))
+    }
+
+    @Test
     fun testActiveLeafTransIllumination() {
         // Latent fungal infection: R=130, G=110, B=90 (green < red -> high attenuation)
         val infected = runner.evaluateTransIllumination(130, 110, 90)

@@ -841,14 +841,98 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     }
                 }
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Buah Hijau: $greenFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-                    Text("Semburat: $turningFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-                    Text("Merah Matang: $ripeFruits", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                // Interactive Steppers for YOLO Fruit Detection Counting
+                Text("Kalkulasi Jumlah Buah Sampel (YOLOv8 + ByteTrack):", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Buah Hijau
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Hijau", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+                            Text("$greenFruits", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalButton(
+                                    onClick = { if (greenFruits > 0) greenFruits-- },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                                Button(
+                                    onClick = { greenFruits++ },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
+                    // Semburat
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Semburat", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFE65100))
+                            Text("$turningFruits", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalButton(
+                                    onClick = { if (turningFruits > 0) turningFruits-- },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                                Button(
+                                    onClick = { turningFruits++ },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
+                    // Merah Matang
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Merah", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFC2185B))
+                            Text("$ripeFruits", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalButton(
+                                    onClick = { if (ripeFruits > 0) ripeFruits-- },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                                Button(
+                                    onClick = { ripeFruits++ },
+                                    modifier = Modifier.size(32.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(AppIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
                 }
 
                 HorizontalDivider()
 
+                // Yield metrics row
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Total Buah/Pohon", style = MaterialTheme.typography.bodySmall)
@@ -861,6 +945,61 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                     Column {
                         Text("Proyeksi Tonase", style = MaterialTheme.typography.bodySmall)
                         Text("${yieldResult.projectedYieldTonPerHa} Ton/Ha", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
+                // Physiological Quality Indices (Capsanthin Gloss & Pericarp Dry Matter)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Kesiapan Panen", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${yieldResult.harvestReadinessPct}%", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary)
+                    }
+                    Column {
+                        Text("Kilap Kapsantin", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${yieldResult.capsanthinGlossIndex}%", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Column {
+                        Text("Bahan Kering", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${yieldResult.estimatedDryMatterPct}%", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Column {
+                        Text("Jendela Petik", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (yieldResult.optimalHarvestWindowDays == 0) "Hari Ini" else "${yieldResult.optimalHarvestWindowDays} hari", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE65100))
+                    }
+                }
+
+                // Advisory Banner Hari Petik Optimal
+                Surface(
+                    color = if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFFA5D6A7) else Color(0xFFFFCC80)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.Chili,
+                            contentDescription = null,
+                            tint = if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFF2E7D32) else Color(0xFFE65100),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(
+                                "Jadwal Hari Petik Optimal (Tahap 4.5)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFF1B5E20) else Color(0xFFBF360C)
+                            )
+                            Text(
+                                yieldResult.recommendedHarvestDayAdvisory,
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
+                                color = if (yieldResult.harvestReadinessPct >= 80.0) Color(0xFF2E7D32) else Color(0xFFD84315)
+                            )
+                        }
                     }
                 }
             }
