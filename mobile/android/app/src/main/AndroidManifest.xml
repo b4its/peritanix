@@ -61,5 +61,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".core.physics.StokesAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="id.peritanix.dape.android.STOKES_SAND_EXPIRED" />
+                <action android:name="id.peritanix.dape.android.STOKES_SILT_EXPIRED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -14,8 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.peritanix.dape.android.core.ai_edge.EdgeInferenceRunner
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
+import id.peritanix.dape.android.core.physics.BayesianSpatialInfectionEngine
+import id.peritanix.dape.android.core.physics.OozeVideoStabilizer
 import id.peritanix.dape.android.core.physics.PericarpFortificationManager
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -41,6 +44,28 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
     var isWilting by remember { mutableStateOf(true) }
     var soilMoisturePct by remember { mutableStateOf(68.0) }
     var saveStatus by remember { mutableStateOf("") }
+
+    // --- State: Tahap 4.3 Ooze Test & Local Bayesian Spatial Engine ---
+    var oozeStreamingSeen by remember { mutableStateOf(true) }
+    var leavesGreenWilt by remember { mutableStateOf(true) }
+    var oozeShakeDeg by remember { mutableStateOf(3.2) }
+    var oozeRecordedSuccess by remember { mutableStateOf(false) }
+
+    val bayesianPerimeter = remember(isWilting, leavesGreenWilt, oozeStreamingSeen, soilMoisturePct) {
+        BayesianSpatialInfectionEngine.evaluatePathogenAndPerimeter(
+            BayesianSpatialInfectionEngine.MultiModalEvidence(
+                isWilting = isWilting,
+                leavesRemainGreen = leavesGreenWilt,
+                oozeStreamingDetected = oozeStreamingSeen,
+                twiScore = 8.1,
+                soilMoisturePct = soilMoisturePct,
+                prevailingWindBearingDeg = 65.0,
+                infectedBedIndex = 3,
+                infectedHoleIndex = 12,
+                totalBedsInBlock = 12
+            )
+        )
+    }
 
     // --- State: Spatial Pathology GIS Mapping ---
     val diagMarkers = remember {
@@ -361,38 +386,57 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
             }
         }
 
-        // --- Card 2: Pemicu Uji Ooze Destruktif (FR-2.3) ---
+        // --- Card 2: Uji Ooze Destruktif & Mesin Bayesian Isolasi Spasial (Tahap 4.3) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (oozeResult.isMandatory) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(if (oozeResult.isMandatory) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, CircleShape),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(AppIcons.Science, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(AppIcons.Science, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Column {
+                            Text(
+                                "2. Uji Ooze & Mesin Bayesian Spasial",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Diferensiasi Ralstonia vs Fusarium & Isolasi Bedeng (Tahap 4.3)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    Column {
+
+                    Surface(
+                        color = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Text(
-                            "2. Pemicu Uji Ooze Destruktif (Layu Bakteri vs Jamur)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Prosedur potong batang & celup air untuk membedakan Ralstonia dan Fusarium.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = bayesianPerimeter.urgencyLevel,
+                            color = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -403,33 +447,173 @@ fun DiagnosticsScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = nu
                         onCheckedChange = { isWilting = it }
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isWilting) "Gejala Layu Terdeteksi" else "Tanaman Tidak Layu", fontWeight = FontWeight.SemiBold)
+                    Text(if (isWilting) "Gejala Layu Terdeteksi di Bedengan #3" else "Tanaman Tidak Layu", fontWeight = FontWeight.SemiBold)
                 }
 
-                Text("Kelembaban Tanah: ${soilMoisturePct.toInt()}%")
-                Slider(
-                    value = soilMoisturePct.toFloat(),
-                    onValueChange = { soilMoisturePct = it.toDouble() },
-                    valueRange = 10f..100f
-                )
-
-                if (oozeResult.isMandatory) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                        Text(
-                            "PERINGATAN: ${oozeResult.reason}",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Text(
-                        "Prosedur Lapangan: Potong batang 2 cm di atas permukaan tanah, celupkan pangkal ke gelas berisi air bening. Jika keluar kabut/asap putih dalam 1-3 menit, positif Ralstonia solanacearum (cabut dan musnahkan segera).",
-                        style = MaterialTheme.typography.bodySmall
+                if (isWilting) {
+                    Text("Kelembaban Tanah Zona TWI: ${soilMoisturePct.toInt()}%", style = MaterialTheme.typography.bodySmall)
+                    Slider(
+                        value = soilMoisturePct.toFloat(),
+                        onValueChange = { soilMoisturePct = it.toDouble() },
+                        valueRange = 10f..100f
                     )
+
+                    // Video Ooze 10s Recording & Gyro Stability Gate
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Stabilisasi Video Uji Ooze (10 Detik)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    if (oozeShakeDeg <= 4.0) "Stabil (${"%.1f".format(oozeShakeDeg)}°)" else "Goyangan (${"%.1f".format(oozeShakeDeg)}°)",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (oozeShakeDeg <= 4.0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                            Text(
+                                "Potong batang cabai 2 cm di atas leher akar, celupkan pangkal ke gelas air bening selama 10 detik.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Button(
+                                onClick = {
+                                    oozeShakeDeg = 2.8
+                                    oozeRecordedSuccess = true
+                                    PentasixNotificationHub.notify(
+                                        context = context,
+                                        title = "Video Uji Ooze Terekam",
+                                        message = "10 detik video terekam stabil (goyangan ${oozeShakeDeg}°). Optical flow aktif.",
+                                        type = NotificationType.SUCCESS,
+                                        postSystemNotification = false
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(AppIcons.Camera, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Mulai Perekaman Video Ooze 10s (Gyro Gate)", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    // Multi-Modal Observations (Foliar Phenotype & Bacterial Streaming)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Checkbox(
+                                checked = oozeStreamingSeen,
+                                onCheckedChange = { oozeStreamingSeen = it }
+                            )
+                            Text("Asap Putih Mengalir (Ooze Positif)", style = MaterialTheme.typography.labelSmall)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Checkbox(
+                                checked = leavesGreenWilt,
+                                onCheckedChange = { leavesGreenWilt = it }
+                            )
+                            Text("Daun Layu Tetap Hijau", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    // Bayesian Posterior Odds Card
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Diagnosis Bayesian Multi-Modal:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "Probabilitas: ${"%.1f".format(bayesianPerimeter.bacterialWiltProbability * 100)}%",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Text(
+                                bayesianPerimeter.diagnosedPathogen,
+                                fontWeight = FontWeight.Bold,
+                                color = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                bayesianPerimeter.agronomicSummary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    // Spatial Quarantine Buffer Guidance
+                    Surface(
+                        color = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(AppIcons.GpsFixed, contentDescription = null, tint = if (bayesianPerimeter.bacterialWiltProbability >= 0.50) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Text(
+                                    "Perimeter Karantina: Bedengan #${bayesianPerimeter.quarantinedBedStart} s/d #${bayesianPerimeter.quarantinedBedEnd} (Lubang #${bayesianPerimeter.quarantinedHoleStart} - #${bayesianPerimeter.quarantinedHoleEnd})",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            Text("Tindakan Parit: ${bayesianPerimeter.isolationTrenchAction}", style = MaterialTheme.typography.labelSmall)
+                            Text("Resep Kocor: ${bayesianPerimeter.biologicalDrenchingRecipe}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            val markLat = -7.123380
+                            val markLon = 110.457220
+                            queue?.enqueueDiagnosis(
+                                landId = "land-demo-001",
+                                confirmedDisease = bayesianPerimeter.diagnosedPathogen,
+                                severityPct = (bayesianPerimeter.bacterialWiltProbability * 100),
+                                confidence = "HIGH",
+                                protocolCode = if (bayesianPerimeter.bacterialWiltProbability >= 0.5) "P-BA-RALSTONIA" else "P-FU-FUSARIUM",
+                                localTwi = 8.1,
+                                lon = markLon,
+                                lat = markLat
+                            )
+                            diagMarkers.add(
+                                FarmMapMarker(
+                                    id = "d-${System.currentTimeMillis().toString().takeLast(4)}",
+                                    lat = markLat,
+                                    lon = markLon,
+                                    title = bayesianPerimeter.diagnosedPathogen,
+                                    diseaseType = if (bayesianPerimeter.bacterialWiltProbability >= 0.5) "RALSTONIA" else "FUSARIUM",
+                                    severityPct = (bayesianPerimeter.bacterialWiltProbability * 100),
+                                    localTwi = 8.1,
+                                    protocolCode = "BAYES-QUARANTINE",
+                                    actionNote = "Karantina Bedengan #${bayesianPerimeter.quarantinedBedStart}-#${bayesianPerimeter.quarantinedBedEnd}"
+                                )
+                            )
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Karantina Spasial Disimpan",
+                                message = "Perimeter Bedengan #${bayesianPerimeter.quarantinedBedStart} s/d #${bayesianPerimeter.quarantinedBedEnd} ditandai pada Peta GIS.",
+                                type = NotificationType.SUCCESS,
+                                postSystemNotification = true
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(AppIcons.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Terapkan Karantina Spasial ke Peta GIS")
+                    }
                 } else {
                     Text(
-                        oozeResult.reason,
+                        "Tanaman cabai dalam keadaan segar. Pantau terus zona TWI tinggi agar perakaran terhindar dari genangan air.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

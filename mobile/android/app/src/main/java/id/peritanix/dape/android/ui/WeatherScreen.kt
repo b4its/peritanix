@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.peritanix.dape.android.core.hardware.AcousticAnemometer
+import id.peritanix.dape.android.core.hardware.BarometricStormGuard
 import id.peritanix.dape.android.core.physics.DailyWeatherSummary
 import id.peritanix.dape.android.core.physics.RainEvent
 import id.peritanix.dape.android.core.physics.WeatherCondition
@@ -76,6 +78,25 @@ fun WeatherScreen(
             elapsedSeconds = (System.currentTimeMillis() - rainStartTime) / 1000L
             delay(1000L)
         }
+    }
+
+    // State: Tahap 4.4 Barometric Storm Guard & Acoustic Anemometer
+    val anemometer = remember { AcousticAnemometer(context) }
+    var windSpeedKmh by remember { mutableStateOf(6.5) }
+    var baroPressureCurrent by remember { mutableStateOf(1012.4) }
+    var baroPressureDelta2Hr by remember { mutableStateOf(-0.4) }
+    var windStatusMsg by remember { mutableStateOf("") }
+
+    val stormVerdict = remember(baroPressureCurrent, baroPressureDelta2Hr) {
+        val dummySamples = listOf(
+            BarometricStormGuard.PressureReading(System.currentTimeMillis() - 7200000L, baroPressureCurrent - baroPressureDelta2Hr),
+            BarometricStormGuard.PressureReading(System.currentTimeMillis(), baroPressureCurrent)
+        )
+        BarometricStormGuard.evaluateBarometricTrend(dummySamples)
+    }
+
+    val sprayLockout = remember(windSpeedKmh, stormVerdict) {
+        BarometricStormGuard.evaluateSprayLockout(windSpeedKmh, stormVerdict)
     }
 
     Column(
@@ -453,6 +474,160 @@ fun WeatherScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // --- 2.5. Pengunci Keamanan Semprot & Detektor Badai Barometer (Tahap 4.4) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (!sprayLockout.isPermitted) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    if (!sprayLockout.isPermitted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (!sprayLockout.isPermitted) AppIcons.Shield else AppIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Kunci Keamanan Semprot & Detektor Badai",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Barometer (ΔP/2h) & Anemometer Mikrofon (Tahap 4.4)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = if (sprayLockout.isPermitted) Color(0xFF2E7D32).copy(alpha = 0.15f) else MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = if (sprayLockout.isPermitted) "SEMPROT DIIZINKAN" else "KUNCI SEMPROT AKTIF",
+                            color = if (sprayLockout.isPermitted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                // Status message & corrective advice
+                Text(
+                    text = sprayLockout.reason,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (!sprayLockout.isPermitted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = sprayLockout.correctiveAdvice,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+
+                // Live Sensor Metrics
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Kecepatan Angin (Acoustic)", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "${"%.1f".format(windSpeedKmh)} km/jam",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (windSpeedKmh > 12.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                        Text("Batas aman: ≤ 12.0 km/jam", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Laju Barometer (2 Jam)", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            "${"%.2f".format(baroPressureDelta2Hr)} hPa / 2h",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (stormVerdict.isRainImminent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                        Text("Batas badai: ≤ -1.50 hPa", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                // Interactive Buttons & Wind Measurement
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val res = anemometer.measureWindSpeed(durationMs = 2000)
+                            windSpeedKmh = res.windSpeedKmh
+                            windStatusMsg = res.statusMessage
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Ukur Angin Akustik",
+                                message = "Kecepatan angin terdeteksi ${res.windSpeedKmh} km/jam. ${if (res.isDriftHazard) "Bahaya drift!" else "Aman semprot."}",
+                                type = if (res.isDriftHazard) NotificationType.WARNING else NotificationType.SUCCESS,
+                                postSystemNotification = false
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(AppIcons.Mic, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Ukur Angin (Mic FFT)", fontSize = 11.sp, maxLines = 1)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            // Toggle storm simulation
+                            baroPressureDelta2Hr = if (baroPressureDelta2Hr <= -1.5) -0.3 else -1.8
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Simulasi Tren Barometer",
+                                message = "ΔP diset ke ${"%.2f".format(baroPressureDelta2Hr)} hPa / 2h.",
+                                type = if (baroPressureDelta2Hr <= -1.5) NotificationType.WARNING else NotificationType.INFO,
+                                postSystemNotification = false
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(AppIcons.Speed, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(if (baroPressureDelta2Hr <= -1.5) "Reset Baro" else "Simulasi Badai", fontSize = 11.sp, maxLines = 1)
+                    }
+                }
+
+                if (windStatusMsg.isNotEmpty()) {
+                    Text(
+                        windStatusMsg,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

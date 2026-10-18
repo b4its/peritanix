@@ -255,6 +255,26 @@ object Physics {
         )
     }
 
+    /**
+     * Calculates the required Agricultural Lime / Dolomite in grams per planting hole
+     * to neutralize acidic soil to target pH (default 6.5) so Calcium uptake is not blocked.
+     *
+     * Stoichiometry for tropical volcanic/alluvial soil: ~2.0 ton/ha per 1.0 pH deficit.
+     * At 18,000 planting holes per hectare:
+     *   grams_per_hole = (deficit * 2,000,000 g) / 18,000 holes
+     */
+    fun calculateDolomitePerPlantingHole(
+        ph: Double,
+        targetPh: Double = 6.5,
+        holesPerHectare: Int = 18000
+    ): Double {
+        if (ph >= targetPh) return 0.0
+        val deficit = (targetPh - ph).coerceAtLeast(0.0)
+        val totalGramsHa = deficit * 2.0 * 1_000_000.0 // 2.0 ton per pH unit
+        val gramsPerHole = totalGramsHa / holesPerHectare.toDouble()
+        return Math.round(gramsPerHole * 10.0) / 10.0
+    }
+
     // --- Immersion Gyroscope Anti-Cheat Validation (TAHAP 6.3) ----------------
 
     data class TraceSample(

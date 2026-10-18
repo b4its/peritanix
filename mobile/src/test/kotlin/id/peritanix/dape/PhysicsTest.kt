@@ -187,5 +187,19 @@ class PhysicsTest {
         assertTrue(!v.valid)
         assertTrue(v.reasons.any { it.contains("pendek") })
     }
+
+    @Test fun testCalculateDolomitePerPlantingHole() {
+        // pH 5.5 to target 6.5 -> 1.0 deficit -> 2.0 ton/ha (2,000,000 g) / 18,000 holes = 111.1 g
+        val gramsAt55 = Physics.calculateDolomitePerPlantingHole(ph = 5.5, targetPh = 6.5, holesPerHectare = 18000)
+        assertEquals(111.1, gramsAt55, 0.1)
+
+        // pH 6.0 to target 6.5 -> 0.5 deficit -> 1.0 ton/ha (1,000,000 g) / 18,000 holes = 55.6 g
+        val gramsAt60 = Physics.calculateDolomitePerPlantingHole(ph = 6.0, targetPh = 6.5, holesPerHectare = 18000)
+        assertEquals(55.6, gramsAt60, 0.1)
+
+        // pH 6.8 (already above target 6.5) -> 0.0 g required
+        val gramsAt68 = Physics.calculateDolomitePerPlantingHole(ph = 6.8, targetPh = 6.5, holesPerHectare = 18000)
+        assertEquals(0.0, gramsAt68, 0.0)
+    }
 }
 

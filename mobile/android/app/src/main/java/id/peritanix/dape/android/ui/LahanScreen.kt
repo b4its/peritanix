@@ -25,6 +25,7 @@ import id.peritanix.dape.android.core.hardware.DarkChamberFlashManager
 import id.peritanix.dape.android.core.hardware.GpsPolygonTracker
 import id.peritanix.dape.android.core.hardware.PedestrianDeadReckoning
 import id.peritanix.dape.android.core.hardware.PermissionManager
+import id.peritanix.dape.android.core.physics.StokesAlarmScheduler
 import id.peritanix.dape.android.core.physics.TwiLocalCompute
 
 import id.peritanix.dape.android.ui.components.AppIcons
@@ -115,6 +116,7 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
     var calibB by remember { mutableStateOf(238) }
     var calibLux by remember { mutableStateOf(0.0f) }
     var calibStatus by remember { mutableStateOf("") }
+    var stokesAlarmStatus by remember { mutableStateOf("") }
 
     val twiAssessment = TwiLocalCompute.compute(upslopeArea, slopeDeg)
     val twi = twiAssessment.twiValue
@@ -696,10 +698,20 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     }
                 }
 
-                // Stage selection tabs
+                // Stage selection tabs with exact hardware AlarmManager
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Button(
-                        onClick = {},
+                        onClick = {
+                            StokesAlarmScheduler.scheduleSandAlarm(context, delaySeconds = 40L)
+                            stokesAlarmStatus = "Alarm Aktif: Pengendapan Pasir (40s). Timer AlarmManager berjalan."
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Alarm Pasir Stokes (40s) Aktif",
+                                message = "Alarm exact AlarmManager dijadwalkan. Letakkan botol di permukaan datar.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = true
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(AppIcons.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -707,12 +719,44 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                         Text("Tahap 1: 40s Pasir", style = MaterialTheme.typography.labelSmall)
                     }
                     OutlinedButton(
-                        onClick = {},
+                        onClick = {
+                            StokesAlarmScheduler.scheduleSiltClayAlarm(context, delaySeconds = 7200L)
+                            stokesAlarmStatus = "Alarm Aktif: Pengendapan Debu & Liat (2 Jam). Timer AlarmManager berjalan."
+                            PentasixNotificationHub.notify(
+                                context = context,
+                                title = "Alarm Debu Stokes (2 Jam) Aktif",
+                                message = "Alarm exact AlarmManager dijadwalkan untuk 2 jam ke depan.",
+                                type = NotificationType.INFO,
+                                postSystemNotification = true
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(AppIcons.Timer, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("Tahap 2: 2h Debu", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
+                if (stokesAlarmStatus.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(AppIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                stokesAlarmStatus,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
@@ -820,14 +864,33 @@ fun LahanScreen(queue: id.peritanix.dape.android.data.SyncQueueStore? = null) {
                     }
                 }
 
-                if (fertPlan.dolomiteGPerM2 > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                        Text(
-                            "Advis pH Masam: Aplikasi dolomit ${fertPlan.dolomiteGPerM2} g/m² sebelum pemupukan.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                val dolomitePerHole = Physics.calculateDolomitePerPlantingHole(soilPh)
+                if (fertPlan.dolomiteGPerM2 > 0 || dolomitePerHole > 0) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(AppIcons.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                            Column {
+                                Text(
+                                    "Koreksi pH Masam: Dosis Dolomit $dolomitePerHole g / Lubang Tanam",
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    "Setara ${fertPlan.dolomiteGPerM2} g/m² (target pH 6.5). Kalsium (Ca) esensial untuk pembentukan dinding buah tebal bebas busuk pantat cabai (BER).",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
                     }
                 }
 

@@ -36,7 +36,8 @@ object DarkChamberFlashManager {
         val labA: Double,
         val labB: Double,
         val isValid: Boolean,
-        val statusMessage: String
+        val statusMessage: String,
+        val dolomiteGramsPerHole: Double = 0.0
     )
 
     /**
@@ -123,10 +124,16 @@ object DarkChamberFlashManager {
 
         val roundedPh = Math.round(phEstimate * 10.0) / 10.0
 
+        val dolomiteGrams = if (roundedPh < 6.0) {
+            id.peritanix.dape.physics.Physics.calculateDolomitePerPlantingHole(roundedPh, targetPh = 6.5)
+        } else 0.0
+
+        val tonPerHa = if (roundedPh < 6.0) (6.5 - roundedPh) * 2.0 else 0.0
+
         val msg = when {
-            roundedPh < 5.5 -> "Tanah masam (pH $roundedPh): Berikan Dolomit (Kapur Pertanian) 1.5 - 2 ton/ha untuk membuka fiksasi Al/Fe."
+            roundedPh < 6.0 -> "Tanah masam (pH $roundedPh): Berikan Dolomit $dolomiteGrams gram per lubang tanam (${"%.1f".format(tonPerHa)} ton/ha) 2-3 minggu sebelum tanam untuk membuka fiksasi Al/Fe dan menjamin serapan Kalsium pembentuk dinding buah tebal."
             roundedPh > 7.2 -> "Tanah alkalis (pH $roundedPh): Gunakan pupuk ZA / belerang untuk menurunkan pH ke rentang ideal 6.0 - 6.8."
-            else -> "pH tanah ideal ($roundedPh): Ketersediaan hara makro (N, P, K, Ca, Mg) dalam kondisi optimum."
+            else -> "pH tanah ideal ($roundedPh): Ketersediaan hara makro (N, P, K, Ca, Mg) dalam kondisi optimum untuk menghasilkan cabai Grade A+."
         }
 
         return PhotometryResult(
@@ -136,7 +143,8 @@ object DarkChamberFlashManager {
             labA = Math.round(a * 10.0) / 10.0,
             labB = Math.round(b * 10.0) / 10.0,
             isValid = true,
-            statusMessage = msg
+            statusMessage = msg,
+            dolomiteGramsPerHole = dolomiteGrams
         )
     }
 }
